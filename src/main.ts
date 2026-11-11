@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import './ui/hud.css';
 import { BootScene } from './scenes/BootScene';
 import { WorldScene } from './scenes/WorldScene';
 

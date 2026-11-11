@@ -103,6 +103,15 @@ export function findWaypoints(grid: Grid, from: Point, to: Point): Point[] | nul
   return waypoints;
 }
 
+/**
+ * Wie findWaypoints, spart sich aber die Wegsuche, wenn der direkte Weg frei
+ * ist. Für Verfolger, die ihren Weg mehrmals pro Sekunde neu berechnen.
+ */
+export function findRoute(grid: Grid, from: Point, to: Point): Point[] | null {
+  if (grid.hasClearLine(from, to, BODY_RADIUS)) return [{ x: to.x, y: to.y }];
+  return findWaypoints(grid, from, to);
+}
+
 /** Vorrangwarteschlange: gibt immer den Eintrag mit der kleinsten Priorität zurück. */
 class MinHeap {
   private readonly items: number[] = [];

@@ -32,9 +32,16 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     und folgt ihm. Hindernisse blockieren, die Figur rutscht aber an ihnen entlang und
     umrundet kleine Ecken von selbst (wie in Diablo). Loslassen = stehen bleiben.
   - Als „halten" gilt ein Mausdruck ab 0,25 Sekunden (`HOLD_DELAY_MS` in `src/config.ts`).
-- **Angriff:** Klick auf Gegner = als Ziel wählen, hinlaufen, automatisch angreifen. *(Entschieden)*
-- **Skills:** Tasten `1`–`6`. *(Vorschlag)*
+- **Angriff:** Klick auf Gegner = als Ziel wählen, hinlaufen, automatisch angreifen. *(Umgesetzt)*
+  - Über einem Gegner wird der Mauszeiger zur Hand; das Ziel bekommt einen roten Ring.
+  - Klick auf den Boden = weglaufen. Das Ziel bleibt angewählt, die Figur schlägt weiter
+    zu, solange es in Reichweite steht. `Esc` hebt die Zielauswahl auf.
+  - Wird die Figur ohne Ziel angegriffen, wählt sie den Angreifer von selbst an. Stirbt
+    das Ziel, wechselt sie zum nächsten Angreifer.
+- **Skills:** Tasten `1`–`4` oder Klick auf den Skill-Balken *(Umgesetzt)*; `5`–`6` sind
+  für spätere Skills frei. *(Vorschlag)*
 - **Fenster:** `I` Inventar, `C` Charakter, `T` Talente, `Esc` schließen/Menü. *(Vorschlag)*
+- **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
 - **Tränke:** `Q` Heiltrank, `E` Manatrank. *(Vorschlag)*
 
 ## 3. Perspektive & Grafik
@@ -53,13 +60,33 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 
 ## 4. Kampfsystem
 
-- **Stil:** Ziel anwählen + Auto-Angriff + Skills mit Cooldowns (klassisches MMO). *(Entschieden)*
-- **Ressource:** Mana + Cooldowns. Mana regeneriert sich, schneller außerhalb des Kampfes. *(Entschieden)*
+- **Stil:** Ziel anwählen + Auto-Angriff + Skills mit Cooldowns (klassisches MMO). *(Entschieden, umgesetzt)*
+- **Ressource:** Mana + Cooldowns. Mana regeneriert sich, schneller außerhalb des Kampfes. *(Entschieden, umgesetzt)*
+  - 1 Mana pro Sekunde im Kampf, 5 außerhalb. Außerhalb des Kampfes kommen auch 5 % des
+    Lebens pro Sekunde zurück. „Im Kampf" heißt: der letzte Treffer (ausgeteilt oder
+    kassiert) ist höchstens 5 Sekunden her.
 - **Tod:** Respawn in der Stadt mit kleinem Gold-/EP-Verlust, kein Itemverlust. *(Entschieden)*
-  - Konkret: 5 % Gold und 5 % der EP des aktuellen Levels, nie Levelverlust. *(Vorschlag)*
-- **Gegner-Verhalten:** Aggro-Radius, verfolgen, zurücklaufen bei zu großer Entfernung
-  (Leash), Respawn nach Timer. *(Vorschlag)*
-- **Schadensformel:** Angriffskraft gegen Rüstung, Krit-Chance, Schadenszahlen über dem Ziel. *(Vorschlag)*
+  - Umgesetzt: Die Figur bleibt 3 Sekunden liegen und wacht dann mit vollem Leben und
+    Mana im Dorf auf.
+  - Der Abzug – 5 % Gold und 5 % der EP des aktuellen Levels, nie Levelverlust *(Vorschlag)* –
+    kommt mit Meilenstein 4 (EP) und 5 (Gold); vorher gibt es nichts abzuziehen.
+- **Gegner-Verhalten** *(Umgesetzt)*:
+  - Aggro: Ein Gegner greift an, wenn die Figur in seinem Radius steht (3–4,5 Kacheln je
+    nach Typ) und kein Hindernis die Sicht versperrt – oder wenn er getroffen wird.
+  - Leash: Entfernt er sich mehr als 11–12 Kacheln von seinem Platz, läuft er zurück,
+    ist dabei nicht angreifbar und hat wieder volles Leben.
+  - Respawn 30 Sekunden nach dem Tod am selben Platz.
+  - Im Leerlauf schlendern Gegner ein paar Schritte um ihren Platz.
+- **Schadensformel** *(Umgesetzt)*: Schaden = Angriffskraft × Skill-Faktor × Streuung
+  (85–115 %) × 100 / (100 + Rüstung), mindestens 1. 100 Rüstung halbieren den Schaden.
+  Kritische Treffer (Krieger: 5 % Chance) machen 150 %. Schadenszahlen steigen über dem
+  Ziel auf: weiß = Treffer, gelb = kritisch, rot = Schaden an der Figur.
+- **Nahkampf-Reichweite:** 22 Pixel, also knapp anderthalb Kacheln. *(Umgesetzt)*
+- **Krieger ohne Level** *(Umgesetzt, gilt bis Meilenstein 4)*: 120 Leben, 50 Mana,
+  12 Angriffskraft, 10 Rüstung, ein Auto-Angriff alle 1,8 Sekunden.
+
+Alle Zahlen sind Startwerte fürs Balancing und stehen in `src/config.ts`,
+`src/data/warrior.ts` und `src/data/enemies.ts`.
 
 ## 5. Klassen
 
@@ -67,14 +94,17 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 - **V1: Krieger** (Nahkampf, robust). *(Entschieden)*
 - Geplant danach: Magier, Waldläufer, Schurke; evtl. eine fünfte (Priester/Paladin). *(Vorschlag)*
 
-Krieger-Skills für V1 *(Vorschlag)*:
+Krieger-Skills für V1 *(Umgesetzt; Zahlen sind Startwerte fürs Balancing)*:
 
-| Skill | Wirkung |
-|---|---|
-| Wuchtschlag | Starker Einzelschlag, kurzer Cooldown |
-| Rundumschlag | Schaden an allen Gegnern in Nahkampfreichweite |
-| Kriegsschrei | Kurzzeitig mehr Angriffskraft |
-| Schildwall | Kurzzeitig stark reduzierter Schaden, langer Cooldown |
+| Taste | Skill | Mana | Cooldown | Wirkung |
+|---|---|---|---|---|
+| `1` | Wuchtschlag | 10 | 6 s | 220 % Schaden auf das Ziel |
+| `2` | Rundumschlag | 15 | 10 s | 130 % Schaden an allen Gegnern in Nahkampfreichweite |
+| `3` | Kriegsschrei | 15 | 30 s | 10 Sekunden lang 30 % mehr Angriffskraft |
+| `4` | Schildwall | 20 | 60 s | 8 Sekunden lang 60 % weniger erlittener Schaden |
+
+Bis Meilenstein 4 sind alle vier Skills von Anfang an verfügbar; danach werden sie auf
+festen Stufen freigeschaltet.
 
 ## 6. Progression
 
@@ -153,7 +183,7 @@ Zonen-Skizze *(Vorschlag)*:
 | Zone | Level | Gegner |
 |---|---|---|
 | Stadt (Hub) | – | Händler, Schmied, Questgeber (in V1 ein Dorf am Rand von Grünwald) |
-| Grünwald | 1–10 | Wölfe, Wildschweine, Goblins |
+| Grünwald | 1–10 | Riesenratten, Waldspinnen, Wegelagerer (ursprünglich geplant: Wölfe, Wildschweine, Goblins – siehe Offene Punkte) |
 | Orkhügel | 10–20 | Orks, Schamanen |
 | Sumpf / Friedhof | 20–35 | Untote |
 | Burgruine | 35–50 | Ritter-Geister, Dämonen |
@@ -164,6 +194,16 @@ Grünwald, Stand V1 *(Umgesetzt)*: 120 × 90 Kacheln, vom Dorf bis zur Ruine lä
 Gegnergruppen (Pilzhain, Westlichtung, Große Lichtung, Ostlichtung, Südlichtung,
 Ruine im Herbstwald im Nordosten), verbunden durch Erdwege. Die Lichtungen sind in
 der Karte als Marker hinterlegt.
+
+Gegner in Grünwald *(Umgesetzt)* – 31 Stück, je weiter vom Dorf, desto gefährlicher:
+
+| Gegner | Stufe | Leben | Angriff | Rüstung | Wo |
+|---|---|---|---|---|---|
+| Riesenratte | 1 | 30 | 5 | 0 | Westlichtung (4), Pilzhain (3), Große Lichtung (4) |
+| Waldspinne | 2 | 55 | 8 | 5 | Pilzhain (3), Große Lichtung (3), Südlichtung (4), Ostlichtung (3) |
+| Wegelagerer | 3 | 90 | 12 | 15 | Ostlichtung (2), Ruine (5) |
+
+Alle Gegner sind etwas langsamer als die Figur – weglaufen geht also immer.
 
 ## 10. Endgame
 
@@ -192,7 +232,7 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 |---|---|---|---|
 | 1 ✅ | Setup + Deploy | Vite + TS + Phaser, GitHub-Pages-Action, leere Szene | die Seite unter der Pages-URL lädt |
 | 2 ✅ | Karte + Bewegung | Tilemap Grünwald, Kollision, Klick-Laufen mit Wegfindung, Kamera folgt | man um Bäume herum durch die Zone laufen kann |
-| 3 | Kampf | Ziel wählen, Auto-Angriff, 3 Gegnertypen mit Aggro/Leash/Respawn, Leben/Mana-Balken, 4 Krieger-Skills, Tod + Respawn | man Gegner töten und sterben kann |
+| 3 ✅ | Kampf | Ziel wählen, Auto-Angriff, 3 Gegnertypen mit Aggro/Leash/Respawn, Leben/Mana-Balken, 4 Krieger-Skills, Tod + Respawn | man Gegner töten und sterben kann |
 | 4 | Leveln | EP, Levelkurve 1–10, Wertezuwachs, Skill-Freischaltung auf festen Stufen | Level 10 erreichbar ist und sich stärker anfühlt |
 | 5 | Loot | Item-Generator (Affixe, 6 Seltenheiten, Itemlevel), Drops, Inventar, Ausrüstung, Tooltip mit Vergleich | ein Fund die Werte sichtbar verbessert |
 | 6 | Elites | Zufällige Elite-Spawns mit 1–3 Eigenschaften und besserem Loot | Elites erkennbar gefährlicher und lohnender sind |
@@ -208,8 +248,27 @@ nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 **Reihenfolge nach V1** *(Vorschlag)*: Talentbaum → Quests + Stadt ausbauen → Aufwerten
 (Schmied) → Zone 2 → zweite Klasse + Charakter-Slots → Weltbosse → Endlos-Turm.
 
-## 13. Offene Punkte
+## 13. Geplante Features
+
+Von dir gewünscht, noch nicht umgesetzt. *(Entschieden)*
+
+| Feature | Wann | Inhalt |
+|---|---|---|
+| Minimap | direkt nach Meilenstein 3 (Kampf) | Kleine Übersichtskarte oben rechts im Bild: Gelände, eigene Position, Gegner in der Nähe |
+| Große Karte | sobald es mehrere Zonen gibt | Taste `M` öffnet und schließt die Karte der ganzen Zone |
+| Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
+
+Die Ecke oben rechts bleibt im HUD für die Minimap frei.
+
+## 14. Offene Punkte
 
 1. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe (Balancing, nach V1).
 2. Lauf-Animation: Das Pack hat keine. Reicht das Hüpfen, oder später ein anderes
    Figuren-Pack mit Animationen suchen?
+3. Gegner in Grünwald: „Tiny Dungeon" enthält keine Wölfe, Wildschweine oder Goblins.
+   Deshalb sind es vorerst Riesenratten, Waldspinnen und Wegelagerer. So lassen, oder
+   ein weiteres CC0-Pack mit Waldtieren suchen?
+4. Skill-Symbole sind vorerst Waffenbilder aus „Tiny Dungeon" (Hammer, Axt, Schwert,
+   Schild). Eigene Symbole wären schöner.
+5. Kampf-Balancing: Alle Werte sind erste Schätzungen für eine Figur ohne Level und
+   werden mit Meilenstein 4 (Leveln) neu eingestellt.

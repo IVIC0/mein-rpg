@@ -1,50 +1,117 @@
 import Phaser from 'phaser';
-import { BODY_RADIUS, PLAYER_SPEED } from '../config';
+import { BODY_RADIUS, COMBAT_TIMEOUT_MS, PLAYER_SPEED } from '../config';
+import { WARRIOR, type SkillDef, type SkillId } from '../data/warrior';
 import type { Grid, Point } from '../world/Grid';
 import { moveToward } from '../world/movement';
+import { Actor } from './Actor';
 
 /** Bild-Nummer des Ritters in assets/sprites/characters.png. */
 const KNIGHT_FRAME = 96;
 
-/** Das Sprite sitzt etwas über dem Standpunkt, damit die Füße auf der Kachel stehen. */
-const SPRITE_OFFSET_Y = -3;
+/** Eine laufende Verstärkung durch einen Skill. */
+export interface Buff {
+  skillId: SkillId;
+  name: string;
+  remainingMs: number;
+  attackBonus: number;
+  damageTakenFactor: number;
+  tint: number;
+}
 
-/**
- * Die Spielfigur. `pos` ist der genaue Punkt, an dem die Figur steht.
- * Gezeichnet wird sie auf ganze Bildschirm-Pixel gerundet (x/y des Containers),
- * sonst flimmert Pixel-Art beim Laufen.
- */
-export class Player extends Phaser.GameObjects.Container {
-  /** Genaue Position in Welt-Pixeln. */
-  readonly pos: Phaser.Math.Vector2;
+/** Die Spielfigur: Bewegung, Leben, Mana, Abklingzeiten und Buffs. */
+export class Player extends Actor {
+  mana = WARRIOR.maxMana;
+  readonly maxMana = WARRIOR.maxMana;
 
-  /** Größe eines Bildschirm-Pixels in Welt-Pixeln (= 1 / Kamera-Zoom). */
-  pixelStep = 1;
+  /** Zeit bis zum nächsten Auto-Angriff in Millisekunden. */
+  attackCooldown = 0;
+  /** Restliche Abklingzeit je Skill in Millisekunden. */
+  readonly cooldowns = new Map<SkillId, number>();
+  buffs: Buff[] = [];
 
-  private readonly sprite: Phaser.GameObjects.Sprite;
-  private waypoints: Point[] = [];
-  private walkTime = 0;
+  private sinceCombatMs = COMBAT_TIMEOUT_MS;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y);
-    this.pos = new Phaser.Math.Vector2(x, y);
-    const shadow = scene.add.image(0, 5, 'shadow').setAlpha(0.25);
-    this.sprite = scene.add.sprite(0, SPRITE_OFFSET_Y, 'characters', KNIGHT_FRAME);
-    this.add([shadow, this.sprite]);
-    scene.add.existing(this);
+    super(scene, x, y, KNIGHT_FRAME, WARRIOR.maxHp);
   }
 
-  /** Läuft die Figur gerade einen berechneten Weg ab? */
-  get hasPath(): boolean {
-    return this.waypoints.length > 0;
+  /** Im Kampf ist die Figur, solange der letzte Treffer (ausgeteilt oder kassiert) frisch ist. */
+  get inCombat(): boolean {
+    return this.sinceCombatMs < COMBAT_TIMEOUT_MS;
   }
 
-  walkAlong(waypoints: Point[]): void {
-    this.waypoints = waypoints;
+  /** Angriffskraft inklusive laufender Buffs. */
+  get attackPower(): number {
+    return WARRIOR.attackPower * (1 + this.buffs.reduce((sum, buff) => sum + buff.attackBonus, 0));
   }
 
-  stop(): void {
-    this.waypoints = [];
+  /** Faktor auf erlittenen Schaden, 1 = voller Schaden. */
+  get damageTakenFactor(): number {
+    return this.buffs.reduce((factor, buff) => factor * buff.damageTakenFactor, 1);
+  }
+
+  enterCombat(): void {
+    this.sinceCombatMs = 0;
+  }
+
+  takeDamage(amount: number): void {
+    this.hp = Math.max(0, this.hp - amount);
+    this.flashHit();
+    this.enterCombat();
+  }
+
+  addBuff(skill: SkillDef): void {
+    if (skill.effect.type !== 'buff') return;
+    const { durationMs, attackBonus, damageTakenFactor, tint } = skill.effect;
+    this.buffs = this.buffs.filter((buff) => buff.skillId !== skill.id);
+    this.buffs.push({ skillId: skill.id, name: skill.name, remainingMs: durationMs, attackBonus, damageTakenFactor, tint });
+    this.refreshTint();
+  }
+
+  /** Lässt Abklingzeiten und Buffs ablaufen und regeneriert Leben und Mana. */
+  tick(deltaMs: number): void {
+    this.attackCooldown = Math.max(0, this.attackCooldown - deltaMs);
+    for (const [id, remaining] of this.cooldowns) this.cooldowns.set(id, Math.max(0, remaining - deltaMs));
+
+    if (this.buffs.length > 0) {
+      for (const buff of this.buffs) buff.remainingMs -= deltaMs;
+      const active = this.buffs.filter((buff) => buff.remainingMs > 0);
+      if (active.length !== this.buffs.length) {
+        this.buffs = active;
+        this.refreshTint();
+      }
+    }
+
+    this.sinceCombatMs += deltaMs;
+    const seconds = deltaMs / 1000;
+    if (this.inCombat) {
+      this.mana += WARRIOR.manaRegenCombat * seconds;
+    } else {
+      this.mana += WARRIOR.manaRegenIdle * seconds;
+      this.hp += this.maxHp * WARRIOR.hpRegenIdle * seconds;
+    }
+    this.mana = Math.min(this.maxMana, this.mana);
+    this.hp = Math.min(this.maxHp, this.hp);
+  }
+
+  /** Die Figur fällt um und bleibt liegen, bis revive() aufgerufen wird. */
+  die(): void {
+    this.hp = 0;
+    this.stop();
+    this.buffs = [];
+    this.refreshTint();
+    this.sprite.setAngle(90);
+  }
+
+  /** Stellt die Figur mit vollem Leben und Mana an den Punkt `at`. */
+  revive(at: Point): void {
+    this.pos.set(at.x, at.y);
+    this.hp = this.maxHp;
+    this.mana = this.maxMana;
+    this.attackCooldown = 0;
+    this.cooldowns.clear();
+    this.sinceCombatMs = COMBAT_TIMEOUT_MS;
+    this.sprite.setAngle(0);
   }
 
   /**
@@ -52,50 +119,21 @@ export class Player extends Phaser.GameObjects.Container {
    * `target` zu und rutscht an Hindernissen entlang. Ein laufender Weg wird verworfen.
    */
   steerToward(target: Point, grid: Grid, deltaMs: number): void {
-    this.waypoints = [];
+    this.stop();
     const next = moveToward(grid, this.pos, target, (PLAYER_SPEED * deltaMs) / 1000, BODY_RADIUS);
     const moved = Math.hypot(next.x - this.pos.x, next.y - this.pos.y) > 0.01;
-    if (Math.abs(target.x - this.pos.x) > 2) this.sprite.setFlipX(target.x < this.pos.x);
+    if (Math.abs(target.x - this.pos.x) > 2) this.face(target.x);
     this.pos.set(next.x, next.y);
-    this.animate(moved, deltaMs);
+    this.draw(moved, deltaMs);
   }
 
   /** Einen Frame lang dem berechneten Weg folgen. `deltaMs` = Zeit seit dem letzten Frame. */
   step(deltaMs: number): void {
-    let budget = (PLAYER_SPEED * deltaMs) / 1000; // so weit darf die Figur in diesem Frame laufen
-    while (budget > 0 && this.waypoints.length > 0) {
-      const target = this.waypoints[0];
-      const dx = target.x - this.pos.x;
-      const dy = target.y - this.pos.y;
-      const distance = Math.hypot(dx, dy);
-      if (Math.abs(dx) > 0.5) this.sprite.setFlipX(dx < 0);
-      if (distance <= budget) {
-        this.pos.set(target.x, target.y);
-        this.waypoints.shift();
-        budget -= distance;
-      } else {
-        this.pos.set(this.pos.x + (dx / distance) * budget, this.pos.y + (dy / distance) * budget);
-        budget = 0;
-      }
-    }
-
-    this.animate(this.hasPath, deltaMs);
+    this.draw(this.followPath(PLAYER_SPEED, deltaMs), deltaMs);
   }
 
-  private animate(walking: boolean, deltaMs: number): void {
-    // Kleines Hüpfen beim Laufen – das Asset-Pack hat keine Lauf-Animation.
-    let hop = 0;
-    if (walking) {
-      this.walkTime += deltaMs;
-      hop = Math.abs(Math.sin(this.walkTime * 0.014)) * 1.5;
-    } else {
-      this.walkTime = 0;
-    }
-    this.sprite.y = SPRITE_OFFSET_Y - this.snap(hop);
-    this.setPosition(this.snap(this.pos.x), this.snap(this.pos.y));
-  }
-
-  private snap(value: number): number {
-    return Math.round(value / this.pixelStep) * this.pixelStep;
+  private refreshTint(): void {
+    // Bei mehreren Buffs gewinnt der zuletzt gestartete.
+    this.setBaseTint(this.buffs.length > 0 ? this.buffs[this.buffs.length - 1].tint : null);
   }
 }
