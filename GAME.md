@@ -35,6 +35,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 - **Angriff:** Klick auf Gegner = als Ziel wählen, hinlaufen, automatisch angreifen. *(Entschieden)*
 - **Skills:** Tasten `1`–`6`. *(Vorschlag)*
 - **Fenster:** `I` Inventar, `C` Charakter, `T` Talente, `Esc` schließen/Menü. *(Vorschlag)*
+- **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
 - **Tränke:** `Q` Heiltrank, `E` Manatrank. *(Vorschlag)*
 
 ## 3. Perspektive & Grafik
@@ -208,7 +209,19 @@ nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 **Reihenfolge nach V1** *(Vorschlag)*: Talentbaum → Quests + Stadt ausbauen → Aufwerten
 (Schmied) → Zone 2 → zweite Klasse + Charakter-Slots → Weltbosse → Endlos-Turm.
 
-## 13. Offene Punkte
+## 13. Geplante Features
+
+Von dir gewünscht, noch nicht umgesetzt. *(Entschieden)*
+
+| Feature | Wann | Inhalt |
+|---|---|---|
+| Minimap | direkt nach Meilenstein 3 (Kampf) | Kleine Übersichtskarte oben rechts im Bild: Gelände, eigene Position, Gegner in der Nähe |
+| Große Karte | sobald es mehrere Zonen gibt | Taste `M` öffnet und schließt die Karte der ganzen Zone |
+| Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
+
+Die Ecke oben rechts bleibt im HUD für die Minimap frei.
+
+## 14. Offene Punkte
 
 1. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe (Balancing, nach V1).
 2. Lauf-Animation: Das Pack hat keine. Reicht das Hüpfen, oder später ein anderes
