@@ -1,20 +1,26 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
+import { WorldScene } from './scenes/WorldScene';
 
-// Interne Auflösung des Spiels. Phaser skaliert das Bild passend ins Browserfenster.
-export const GAME_WIDTH = 960;
-export const GAME_HEIGHT = 540;
-
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  width: GAME_WIDTH,
-  height: GAME_HEIGHT,
   backgroundColor: '#1b2a1f',
-  pixelArt: true, // keine Weichzeichnung beim Hochskalieren
+  pixelArt: true, // keine Weichzeichnung beim Vergrößern
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
+    // Die Spielfläche ist immer genau so groß wie das Browserfenster.
+    // Größeres Fenster = man sieht mehr von der Welt, nichts wird verzerrt.
+    mode: Phaser.Scale.RESIZE,
+    width: '100%',
+    height: '100%',
   },
-  scene: [BootScene],
+  scene: [BootScene, WorldScene],
 });
+
+const versionLabel = document.getElementById('version');
+if (versionLabel) versionLabel.textContent = `v${__APP_VERSION__}`;
+
+// Nur beim lokalen Entwickeln: Spiel in der Browser-Konsole als __rpg erreichbar.
+if (import.meta.env.DEV) {
+  (window as unknown as { __rpg: Phaser.Game }).__rpg = game;
+}
