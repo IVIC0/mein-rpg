@@ -71,30 +71,6 @@ export class Grid {
     return true;
   }
 
-  /**
-   * Sucht ringförmig um (tx, ty) die nächste Kachel, die zum Gebiet `region`
-   * gehört. Für Klicks auf Bäume, Häuser oder unerreichbare Stellen.
-   */
-  nearestInRegion(tx: number, ty: number, region: number, maxRadius: number): { tx: number; ty: number } | null {
-    for (let radius = 0; radius <= maxRadius; radius++) {
-      let best: { tx: number; ty: number } | null = null;
-      let bestDistance = Infinity;
-      for (let dy = -radius; dy <= radius; dy++) {
-        for (let dx = -radius; dx <= radius; dx++) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue; // nur der Rand des Rings
-          if (this.regionAt(tx + dx, ty + dy) !== region) continue;
-          const distance = dx * dx + dy * dy;
-          if (distance < bestDistance) {
-            bestDistance = distance;
-            best = { tx: tx + dx, ty: ty + dy };
-          }
-        }
-      }
-      if (best) return best;
-    }
-    return null;
-  }
-
   private labelRegions(): Int32Array {
     const region = new Int32Array(this.width * this.height).fill(-1);
     let next = 0;

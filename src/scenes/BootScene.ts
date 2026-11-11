@@ -27,8 +27,8 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     // Kleine Hilfsgrafiken, die im Asset-Pack fehlen, direkt als Pixelmuster.
-    pixelTexture(this, 'shadow', '#000000', ['..######..', '.########.', '.########.', '..######..']);
-    pixelTexture(this, 'click-marker', '#fff2b0', [
+    pixelTexture(this, 'shadow', { '#': '#000000' }, ['..######..', '.########.', '.########.', '..######..']);
+    pixelTexture(this, 'click-marker', { '#': '#fff2b0' }, [
       '...###...',
       '.##...##.',
       '.#.....#.',
@@ -39,18 +39,36 @@ export class BootScene extends Phaser.Scene {
       '.##...##.',
       '...###...',
     ]);
+    // Rotes X für Klicks auf nicht begehbare Stellen, mit dunklem Rand,
+    // damit es auch auf roten Dächern und Herbstbäumen zu sehen ist.
+    pixelTexture(this, 'blocked-marker', { '#': '#f0383c', o: '#3a1016' }, [
+      'oooo.oooo',
+      'o##ooo##o',
+      'o###o###o',
+      'oo#####oo',
+      '.oo###oo.',
+      'oo#####oo',
+      'o###o###o',
+      'o##ooo##o',
+      'oooo.oooo',
+    ]);
     this.scene.start('World');
   }
 }
 
-/** Erzeugt eine Textur aus Textzeilen: jedes '#' wird ein Pixel in der Farbe `color`. */
-function pixelTexture(scene: Phaser.Scene, key: string, color: string, rows: string[]): void {
+/**
+ * Erzeugt eine Textur aus Textzeilen. `colors` ordnet Zeichen eine Farbe zu,
+ * jedes dieser Zeichen wird ein Pixel; alle anderen Zeichen bleiben durchsichtig.
+ */
+function pixelTexture(scene: Phaser.Scene, key: string, colors: Record<string, string>, rows: string[]): void {
   const texture = scene.textures.createCanvas(key, rows[0].length, rows.length);
   if (!texture) throw new Error(`Textur "${key}" konnte nicht angelegt werden.`);
-  texture.context.fillStyle = color;
   rows.forEach((row, y) => {
     for (let x = 0; x < row.length; x++) {
-      if (row[x] === '#') texture.context.fillRect(x, y, 1, 1);
+      const color = colors[row[x]];
+      if (!color) continue;
+      texture.context.fillStyle = color;
+      texture.context.fillRect(x, y, 1, 1);
     }
   });
   texture.refresh();

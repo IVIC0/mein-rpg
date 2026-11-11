@@ -24,9 +24,14 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 ## 2. Eingabe & Steuerung
 
 - **Gerät:** PC mit Maus + Tastatur. Kein Touch, kein Handy-Layout. *(Entschieden)*
-- **Bewegung:** Klick auf den Boden = hinlaufen (Wegfindung um Hindernisse). *(Umgesetzt)*
-  - Maustaste halten = Figur folgt dem Mauszeiger.
-  - Klick auf ein Hindernis = Figur läuft zur nächsten erreichbaren Stelle.
+- **Bewegung** mit der linken Maustaste *(Umgesetzt)*:
+  - Klick auf begehbaren Boden = hinlaufen, mit Wegfindung um Hindernisse.
+  - Klick auf eine nicht begehbare Stelle (Baum, Haus …) = keine Bewegung, dort
+    erscheint für etwa 0,5 Sekunden ein rotes X. Ein laufender Weg wird nicht abgebrochen.
+  - Maustaste gedrückt halten = Figur läuft ohne Wegfindung direkt Richtung Mauszeiger
+    und folgt ihm. Hindernisse blockieren, die Figur rutscht aber an ihnen entlang und
+    umrundet kleine Ecken von selbst (wie in Diablo). Loslassen = stehen bleiben.
+  - Als „halten" gilt ein Mausdruck ab 0,25 Sekunden (`HOLD_DELAY_MS` in `src/config.ts`).
 - **Angriff:** Klick auf Gegner = als Ziel wählen, hinlaufen, automatisch angreifen. *(Entschieden)*
 - **Skills:** Tasten `1`–`6`. *(Vorschlag)*
 - **Fenster:** `I` Inventar, `C` Charakter, `T` Talente, `Esc` schließen/Menü. *(Vorschlag)*
