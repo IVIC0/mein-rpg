@@ -1,0 +1,278 @@
+/* Anzeigen über dem Spielbild. Das Grundgerüst dazu steht in index.html. */
+
+/* Das Attribut "hidden" soll immer gewinnen, auch gegen display-Regeln weiter unten. */
+[hidden] {
+  display: none !important;
+}
+
+#hud,
+#floaters {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  /* Klicks gehen durch das HUD hindurch ans Spiel – außer bei den Skill-Knöpfen. */
+  pointer-events: none;
+  user-select: none;
+  font: 13px/1.3 'Trebuchet MS', Verdana, sans-serif;
+  color: #f4ecd2;
+}
+
+/* ---------------------------------------------------------------- Rahmen oben links */
+
+/* Die Ecke oben rechts bleibt frei: dort kommt später die Minimap hin. */
+#frames {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.frame {
+  width: 190px;
+  padding: 6px 8px 8px;
+  background: rgba(22, 26, 22, 0.85);
+  border: 2px solid #0c0f0c;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.frame-title {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-weight: bold;
+  text-shadow: 0 1px 0 #000;
+}
+
+#target-level {
+  font-weight: normal;
+  color: #c9bf9f;
+}
+
+.bar {
+  position: relative;
+  height: 16px;
+  margin-top: 3px;
+  background: #0d0f0d;
+  border: 1px solid #000;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 100%;
+  transition: width 0.12s linear;
+}
+
+.bar-hp .bar-fill {
+  background: linear-gradient(#e2534a, #a92a26);
+}
+
+.bar-mana .bar-fill {
+  background: linear-gradient(#4d8fe6, #2659b4);
+}
+
+.bar span {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font-size: 11px;
+  line-height: 16px;
+  text-shadow: 0 1px 1px #000, 0 0 2px #000;
+}
+
+#player-buffs {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #ffe08a;
+}
+
+#player-buffs:empty {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- Skill-Balken unten */
+
+#skillbar {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(22, 26, 22, 0.85);
+  border: 2px solid #0c0f0c;
+  border-radius: 4px;
+}
+
+.skill {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: #2e342c;
+  border: 2px solid #0c0f0c;
+  border-radius: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.skill:hover {
+  border-color: #e8d9a0;
+}
+
+.skill.active {
+  border-color: #ffd34d;
+  box-shadow: 0 0 8px #ffd34d;
+}
+
+/* Das Symbol ist ein 16 × 16 Pixel großer Ausschnitt aus characters.png, dreifach vergrößert. */
+.skill-icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  background-image: url('/assets/sprites/characters.png');
+  image-rendering: pixelated;
+  transform: scale(3);
+  transform-origin: 0 0;
+}
+
+.skill.no-mana .skill-icon {
+  filter: grayscale(1) brightness(0.6);
+}
+
+/* Dunkler Vorhang, der mit der Abklingzeit von oben nach unten schrumpft. */
+.skill-cooldown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.skill-timer {
+  position: absolute;
+  inset: 0;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 48px;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+}
+
+.skill-key {
+  position: absolute;
+  left: 3px;
+  top: 0;
+  font-size: 11px;
+  font-weight: bold;
+  text-shadow: 0 1px 1px #000, 0 0 2px #000;
+}
+
+.skill-tooltip {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: 62px;
+  transform: translateX(-50%);
+  width: 190px;
+  padding: 6px 8px;
+  text-align: left;
+  background: rgba(12, 14, 12, 0.95);
+  border: 1px solid #e8d9a0;
+  border-radius: 3px;
+}
+
+.skill-tooltip b,
+.skill-tooltip i {
+  display: block;
+}
+
+.skill-tooltip i {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-style: normal;
+  color: #8fc0ff;
+}
+
+.skill:hover .skill-tooltip {
+  display: block;
+}
+
+/* ---------------------------------------------------------------- Hinweise */
+
+#message {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  font-size: 15px;
+  font-weight: bold;
+  color: #ff8d7a;
+  text-shadow: 0 1px 2px #000, 0 0 4px #000;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+#message.show {
+  opacity: 1;
+  transition: none;
+}
+
+#death-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* Der Text sitzt im oberen Drittel, damit die gefallene Figur in der Bildmitte zu sehen bleibt. */
+  padding-bottom: 30vh;
+  box-sizing: border-box;
+  font-size: 16px;
+  text-shadow: 0 2px 4px #000;
+  background: rgba(60, 0, 0, 0.45);
+}
+
+.death-title {
+  font-size: 40px;
+  font-weight: bold;
+  color: #ff5046;
+}
+
+/* ---------------------------------------------------------------- Schadenszahlen */
+
+.floater {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 16px;
+  font-weight: bold;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
+  will-change: transform;
+}
+
+.floater-crit {
+  font-size: 22px;
+  color: #ffd34d;
+}
+
+.floater-hurt {
+  color: #ff5046;
+}
+
+.floater-info {
+  font-size: 14px;
+  color: #ffe08a;
+}

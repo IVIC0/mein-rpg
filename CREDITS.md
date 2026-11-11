@@ -5,7 +5,7 @@
 | Paket | Urheber | Lizenz | Verwendet für |
 |---|---|---|---|
 | [Tiny Town](https://kenney.nl/assets/tiny-town) (Version 1.1) | Kenney (www.kenney.nl) | [CC0 1.0](http://creativecommons.org/publicdomain/zero/1.0/) | Landschaft, Häuser, Zäune, Ruine |
-| [Tiny Dungeon](https://kenney.nl/assets/tiny-dungeon) (Version 1.0) | Kenney (www.kenney.nl) | [CC0 1.0](http://creativecommons.org/publicdomain/zero/1.0/) | Spielfigur, später Gegner und Items |
+| [Tiny Dungeon](https://kenney.nl/assets/tiny-dungeon) (Version 1.0) | Kenney (www.kenney.nl) | [CC0 1.0](http://creativecommons.org/publicdomain/zero/1.0/) | Spielfigur, Gegner, Skill-Symbole; später Items |
 
 Die unveränderten Originaldateien liegen mit ihrer jeweiligen `License.txt` unter
 `assets-src/kenney/`.

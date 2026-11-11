@@ -52,6 +52,17 @@ export class BootScene extends Phaser.Scene {
       'o##ooo##o',
       'oooo.oooo',
     ]);
+    // Roter Ring unter dem angewählten Gegner.
+    pixelTexture(this, 'target-ring', { '#': '#ff5046', o: '#5a1418' }, [
+      '....oooooooo....',
+      '..oo########oo..',
+      '.o###oooooo###o.',
+      'o##oo......oo##o',
+      'o##oo......oo##o',
+      '.o###oooooo###o.',
+      '..oo########oo..',
+      '....oooooooo....',
+    ]);
     this.scene.start('World');
   }
 }

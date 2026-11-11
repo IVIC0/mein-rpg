@@ -42,6 +42,17 @@ const ROADS = [
   { width: 2, points: [[46, 52], [56, 60]] }, // Abzweig zur Westlichtung
 ];
 
+// Gegnergruppen je Lichtung: Gegnertyp → Anzahl. Die Typen mit ihren Werten
+// stehen in src/data/enemies.ts. Die genauen Plätze werden unten ausgewürfelt.
+const ENEMY_GROUPS = {
+  westlichtung: { ratte: 4 },
+  pilzhain: { ratte: 3, spinne: 3 },
+  lichtung: { ratte: 4, spinne: 3 },
+  suedlichtung: { spinne: 4 },
+  ostlichtung: { spinne: 3, wegelagerer: 2 },
+  ruine: { wegelagerer: 5 },
+};
+
 // ---------------------------------------------------------------- Helfer
 
 function mulberry32(seed) {
@@ -420,16 +431,51 @@ const walkableCells = sizes.reduce((sum, n) => sum + n, 0);
 const unreachable = walkableCells - sizes[mainRegion];
 if (unreachable > 0) throw new Error(`${unreachable} begehbare Kacheln sind nicht erreichbar.`);
 
+// ---------------------------------------------------------------- Gegner
+
+// Eigener Zufallsgenerator: so ändert sich die Landschaft nicht, wenn man Gegner umstellt.
+const enemyRng = mulberry32(SEED + 11);
+const enemySpawns = [];
+for (const [marker, group] of Object.entries(ENEMY_GROUPS)) {
+  const clearing = CLEARINGS.find((c) => c.marker === marker);
+  if (!clearing) throw new Error(`Gegnergruppe "${marker}": diese Lichtung gibt es nicht.`);
+  const placed = [];
+  for (const [type, count] of Object.entries(group)) {
+    for (let n = 0; n < count; n++) {
+      // Erst mit großem Abstand zueinander versuchen, dann enger werden.
+      let spot = null;
+      for (let spacing = 5; spacing >= 2 && !spot; spacing -= 0.5) {
+        for (let attempt = 0; attempt < 60 && !spot; attempt++) {
+          const angle = enemyRng() * Math.PI * 2;
+          const radius = Math.sqrt(enemyRng()) * 0.8;
+          const x = Math.round(clearing.cx + Math.cos(angle) * clearing.rx * radius);
+          const y = Math.round(clearing.cy + Math.sin(angle) * clearing.ry * radius);
+          // Rundherum muss Platz sein, und der Platz muss vom Dorf aus erreichbar sein.
+          let free = label[idx(x, y)] === mainRegion;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!walkable(x + dx, y + dy)) free = false;
+          if (free && placed.every((p) => Math.hypot(p.x - x, p.y - y) >= spacing)) spot = { x, y };
+        }
+      }
+      if (!spot) throw new Error(`Gegnergruppe "${marker}": kein Platz für "${type}".`);
+      placed.push(spot);
+      enemySpawns.push({ name: type, type: 'gegner', x: spot.x, y: spot.y });
+    }
+  }
+}
+
 // ---------------------------------------------------------------- Schreiben
 
 const center = (v) => v * TILE + TILE / 2;
+let nextObjectId = 1;
+const toPoint = (m) => ({
+  id: nextObjectId++, name: m.name, type: m.type, x: center(m.x), y: center(m.y),
+  width: 0, height: 0, point: true, rotation: 0, visible: true,
+});
 const markers = [
   { name: 'spawn', type: 'spawn', x: SPAWN.x, y: SPAWN.y },
   ...CLEARINGS.map((c) => ({ name: c.marker, type: 'gebiet', x: Math.round(c.cx), y: Math.round(c.cy) })),
-].map((m, i) => ({
-  id: i + 1, name: m.name, type: m.type, x: center(m.x), y: center(m.y),
-  width: 0, height: 0, point: true, rotation: 0, visible: true,
-}));
+].map(toPoint);
+const enemyPoints = enemySpawns.map(toPoint);
 
 const layerRows = (data) => {
   const rows = [];
@@ -443,7 +489,7 @@ const map = {
   width: W, height: H, tilewidth: TILE, tileheight: TILE,
   infinite: false, orientation: 'orthogonal', renderorder: 'right-down',
   type: 'map', version: '1.10', tiledversion: '1.11.0',
-  nextlayerid: 5, nextobjectid: markers.length + 1,
+  nextlayerid: 6, nextobjectid: nextObjectId,
   layers: [
     { id: 1, name: 'Boden', data: '@@Boden@@' },
     { id: 2, name: 'Deko', data: '@@Deko@@' },
@@ -460,6 +506,11 @@ map.layers.push({
   id: 4, name: 'Marker', type: 'objectgroup', draworder: 'topdown',
   x: 0, y: 0, opacity: 1, visible: true, objects: markers,
 });
+// Ein Punkt je Gegner; der Name ist der Gegnertyp aus src/data/enemies.ts.
+map.layers.push({
+  id: 5, name: 'Gegner', type: 'objectgroup', draworder: 'topdown',
+  x: 0, y: 0, opacity: 1, visible: true, objects: enemyPoints,
+});
 
 const json = JSON.stringify(map, null, 1)
   .replace('"@@Boden@@"', layerRows(ground))
@@ -473,6 +524,7 @@ fs.writeFileSync(outFile, json + '\n');
 const percent = (n) => `${Math.round((n / (W * H)) * 100)} %`;
 console.log(`Karte ${W}×${H} geschrieben: ${outFile}`);
 console.log(`  begehbar ${percent(walkableCells)}, Wald ${percent(forest.reduce((a, b) => a + b, 0))}`);
+console.log(`  Gegner: ${enemySpawns.length}`);
 console.log(`  Wiesen zugeforstet: ${pocketsFilled}, angebunden: ${pocketsOpened}, unsaubere Wegkacheln: ${roughDirtCells}`);
 
 // ---------------------------------------------------------------- Vorschau

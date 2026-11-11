@@ -34,6 +34,47 @@
   </head>
   <body>
     <div id="game"></div>
+
+    <!-- Schadenszahlen, die über der Welt aufsteigen (füllt src/ui/FloatingText.ts). -->
+    <div id="floaters"></div>
+
+    <!-- Anzeigen über dem Spielbild. Aussehen: src/ui/hud.css, Werte: src/ui/Hud.ts. -->
+    <div id="hud">
+      <div id="frames">
+        <div class="frame">
+          <div class="frame-title">Krieger</div>
+          <div class="bar bar-hp">
+            <div class="bar-fill" id="player-hp-fill"></div>
+            <span id="player-hp-text"></span>
+          </div>
+          <div class="bar bar-mana">
+            <div class="bar-fill" id="player-mana-fill"></div>
+            <span id="player-mana-text"></span>
+          </div>
+          <div id="player-buffs"></div>
+        </div>
+
+        <div class="frame" id="target-frame" hidden>
+          <div class="frame-title">
+            <span id="target-name"></span>
+            <span id="target-level"></span>
+          </div>
+          <div class="bar bar-hp">
+            <div class="bar-fill" id="target-hp-fill"></div>
+            <span id="target-hp-text"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="message"></div>
+      <div id="skillbar"></div>
+
+      <div id="death-screen" hidden>
+        <div class="death-title">Du bist gestorben</div>
+        <div>Du erwachst gleich im Dorf …</div>
+      </div>
+    </div>
+
     <div id="version"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

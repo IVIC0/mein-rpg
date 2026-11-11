@@ -14,14 +14,27 @@ Spielkonzept und Fahrplan stehen in [GAME.md](GAME.md), Lizenzen in [CREDITS.md]
 
 Jeder Push auf `main` veröffentlicht das Spiel automatisch auf GitHub Pages.
 
+## Steuerung
+
+| Eingabe | Wirkung |
+|---|---|
+| Linksklick auf den Boden | hinlaufen |
+| Linke Maustaste halten | dem Mauszeiger nachlaufen |
+| Linksklick auf einen Gegner | als Ziel wählen, hinlaufen, automatisch angreifen |
+| `1`–`4` | Skills (auch per Klick auf den Skill-Balken) |
+| `Esc` | Zielauswahl aufheben |
+
 ## Aufbau
 
 | Ordner | Inhalt |
 |---|---|
 | `src/scenes/` | Szenen: `BootScene` lädt alles, `WorldScene` ist die Spielwelt |
-| `src/entities/` | Spielfigur, später Gegner |
+| `src/entities/` | Spielfigur und Gegner; `Actor` ist die gemeinsame Basis |
+| `src/combat/` | Kampfregeln (`Combat`) und Schadensformel |
+| `src/data/` | Werte zum Einstellen: Krieger mit Skills, Gegnertypen |
+| `src/ui/` | Anzeigen über dem Spielbild (HTML/CSS): Leben, Mana, Ziel, Skill-Balken, Schadenszahlen |
 | `src/world/` | Kollisionsraster, Wegfindung (Klick) und direkte Bewegung (Maustaste halten) |
-| `src/config.ts` | Stellschrauben wie Laufgeschwindigkeit und Zoom |
+| `src/config.ts` | Stellschrauben wie Laufgeschwindigkeit, Zoom, Reichweiten und Respawn-Zeiten |
 | `public/assets/` | Grafiken und Karten, die das Spiel lädt (erzeugt, nicht von Hand ändern) |
 | `assets-src/` | Original-Grafikpakete mit Lizenzdateien |
 | `tools/` | Werkzeuge, die Tilesets und Karten bauen |
@@ -37,3 +50,9 @@ npm run assets
 
 Mit `node tools/build-map.mjs --preview karte.png` gibt es zusätzlich ein
 Übersichtsbild der ganzen Karte.
+
+## Gegner ändern
+
+- Werte eines Gegnertyps (Leben, Angriff, Tempo …): `src/data/enemies.ts`.
+- Welche Gegner auf welcher Lichtung stehen: Liste `ENEMY_GROUPS` oben in
+  `tools/build-map.mjs`, danach `npm run assets`.

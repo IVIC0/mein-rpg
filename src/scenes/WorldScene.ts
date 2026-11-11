@@ -1,21 +1,40 @@
 import Phaser from 'phaser';
+import { Combat } from '../combat/Combat';
 import { HOLD_DELAY_MS, TILE, zoomForViewport } from '../config';
+import { ENEMIES } from '../data/enemies';
+import { SKILLS } from '../data/warrior';
+import { Actor } from '../entities/Actor';
+import { Enemy } from '../entities/Enemy';
 import { Player } from '../entities/Player';
+import { FloatingText } from '../ui/FloatingText';
+import { Hud } from '../ui/Hud';
 import { Grid, type Point } from '../world/Grid';
 import { findWaypoints } from '../world/pathfinding';
 
+/** Tasten für die Skills in der Reihenfolge des Skill-Balkens. */
+const SKILL_KEYS = ['ONE', 'TWO', 'THREE', 'FOUR'];
+
+/** Längere Aussetzer (z. B. Tab im Hintergrund) zählen höchstens so viel (Millisekunden). */
+const MAX_FRAME_MS = 100;
+
 /**
- * Die Spielwelt: Karte, Spielfigur, Kamera und Maus-Steuerung.
+ * Die Spielwelt: Karte, Spielfigur, Gegner, Kamera und Steuerung.
+ * Die Kampfregeln selbst stehen in src/combat/Combat.ts.
  *
  * Steuerung mit der linken Maustaste:
+ * - Klick auf einen Gegner: als Ziel wählen, hinlaufen, automatisch angreifen.
  * - Klick auf begehbaren Boden: Figur läuft mit Wegfindung dorthin.
  * - Klick auf ein Hindernis: nichts passiert, ein rotes X zeigt das an.
  * - Gedrückt halten: Figur läuft direkt dem Mauszeiger nach und rutscht an
  *   Hindernissen entlang. Loslassen = stehen bleiben.
+ *
+ * Tasten: 1–4 Skills, Esc hebt die Zielauswahl auf.
  */
 export class WorldScene extends Phaser.Scene {
   private grid!: Grid;
   private player!: Player;
+  private combat!: Combat;
+  private floaters!: FloatingText;
   private clickMarker!: Phaser.GameObjects.Image;
   private blockedMarker!: Phaser.GameObjects.Image;
 
@@ -50,7 +69,20 @@ export class WorldScene extends Phaser.Scene {
 
     const spawn = map.findObject('Marker', (object) => object.name === 'spawn');
     if (!spawn || spawn.x === undefined || spawn.y === undefined) throw new Error('Marker "spawn" fehlt in der Karte.');
-    this.player = new Player(this, spawn.x, spawn.y).setDepth(10);
+    this.player = new Player(this, spawn.x, spawn.y);
+
+    // Jeder Punkt auf der Ebene "Gegner" ist ein Gegner; der Name des Punkts ist sein Typ.
+    const enemies = (map.getObjectLayer('Gegner')?.objects ?? []).map((object) => {
+      const def = ENEMIES[object.name];
+      if (!def || object.x === undefined || object.y === undefined) throw new Error(`Unbekannter Gegner "${object.name}" in der Karte.`);
+      return new Enemy(this, def, object.x, object.y);
+    });
+
+    const floaterRoot = document.getElementById('floaters');
+    if (!floaterRoot) throw new Error('Element #floaters fehlt in index.html.');
+    this.floaters = new FloatingText(floaterRoot);
+    const hud = new Hud(SKILLS, (id) => this.combat.useSkill(id));
+    this.combat = new Combat(this, this.grid, this.player, enemies, hud, this.floaters, { x: spawn.x, y: spawn.y });
 
     this.clickMarker = this.add.image(0, 0, 'click-marker').setOrigin(0).setDepth(5).setVisible(false);
     this.blockedMarker = this.add.image(0, 0, 'blocked-marker').setOrigin(0).setDepth(20).setVisible(false);
@@ -72,27 +104,54 @@ export class WorldScene extends Phaser.Scene {
     // Fenster verliert den Fokus (z. B. Alt+Tab): Maustaste gilt als losgelassen.
     this.game.events.on(Phaser.Core.Events.BLUR, this.cancelPress, this);
 
+    SKILLS.forEach((skill, i) => this.input.keyboard?.on(`keydown-${SKILL_KEYS[i]}`, () => this.combat.useSkill(skill.id)));
+    this.input.keyboard?.on('keydown-ESC', () => this.combat.clearTarget());
+
+    // Schadenszahlen erst nach dem Zeichnen platzieren: dann steht die Kamera für diesen Frame fest.
+    this.events.on(Phaser.Scenes.Events.RENDER, this.renderFloaters, this);
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.applyZoom, this);
       this.game.events.off(Phaser.Core.Events.BLUR, this.cancelPress, this);
+      this.events.off(Phaser.Scenes.Events.RENDER, this.renderFloaters, this);
     });
   }
 
-  update(time: number, delta: number): void {
-    if (this.pressedAt >= 0 && time - this.pressedAt >= HOLD_DELAY_MS) {
+  update(time: number, rawDelta: number): void {
+    const delta = Math.min(rawDelta, MAX_FRAME_MS);
+    const cursor = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+
+    // Erst die Kampfregeln (Gegner, Angriffe, Ziel verfolgen), dann die Bewegung der Figur.
+    this.combat.update(delta);
+
+    if (!this.player.alive) {
+      this.cancelPress();
+      this.player.step(delta);
+    } else if (this.pressedAt >= 0 && time - this.pressedAt >= HOLD_DELAY_MS) {
       // Maustaste wird gehalten: direkt dem Mauszeiger nachlaufen.
       this.steering = true;
-      const cursor = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+      this.combat.disengage();
       this.player.steerToward(cursor, this.grid, delta);
     } else {
       this.player.step(delta);
     }
     this.followPlayer();
+
+    // Über einem Gegner wird der Mauszeiger zur Hand.
+    this.input.setDefaultCursor(this.player.alive && this.combat.enemyAt(cursor) ? 'pointer' : 'default');
   }
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
-    if (!pointer.leftButtonDown()) return;
+    if (!pointer.leftButtonDown() || !this.player.alive) return;
     const world = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+
+    const enemy = this.combat.enemyAt(world);
+    if (enemy) {
+      this.cancelPress();
+      this.combat.engage(enemy);
+      return;
+    }
+
     this.pressedAt = this.time.now;
     this.pressPoint = { x: world.x, y: world.y };
     this.pressStartedWalk = this.walkTo(this.pressPoint);
@@ -113,10 +172,14 @@ export class WorldScene extends Phaser.Scene {
     this.steering = false;
   }
 
+  private renderFloaters(): void {
+    this.floaters.render(this.cameras.main);
+  }
+
   private applyZoom(): void {
     const zoom = zoomForViewport(this.scale.width, this.scale.height);
     this.cameras.main.setZoom(zoom);
-    this.player.pixelStep = 1 / zoom;
+    Actor.pixelStep = 1 / zoom;
   }
 
   /** Hält die Figur in der Bildmitte; am Kartenrand stoppt die Kamera von selbst. */
@@ -132,6 +195,7 @@ export class WorldScene extends Phaser.Scene {
   private walkTo(target: Point): boolean {
     const waypoints = findWaypoints(this.grid, this.player.pos, target);
     if (!waypoints || waypoints.length === 0) return false;
+    this.combat.disengage(); // ab jetzt bestimmt der Klick den Weg, nicht mehr das Ziel
     this.player.walkAlong(waypoints);
     this.flashMarker(this.clickMarker, waypoints[waypoints.length - 1], 0, 450);
     return true;
