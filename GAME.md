@@ -19,7 +19,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 | Sprache im Spiel | Deutsch (UI, Itemnamen, Quests) | Entschieden |
 | Deploy | GitHub Action baut und veröffentlicht bei Push auf `main` | Vorschlag |
 | UI-Fenster (Inventar, Tooltips, Talente) | Als HTML/CSS über dem Spiel-Canvas statt in Phaser gezeichnet – Text bleibt scharf, Tooltips sind viel einfacher | Vorschlag |
-| Karten | Tilemaps im Tiled-Format (JSON) | Vorschlag |
+| Karten | Tilemaps im Tiled-Format (JSON), Zonen werden von Claude gebaut | Entschieden |
 
 ## 2. Eingabe & Steuerung
 
@@ -72,9 +72,7 @@ Krieger-Skills für V1 *(Vorschlag)*:
 - 1 Talentpunkt pro Level ab Level 2 (59 Punkte auf 60). *(Vorschlag)*
 - Pro Klasse 3 Bäume (Krieger z. B. Waffen / Wut / Schutz) mit passiven Boni und
   Skill-Verbesserungen. *(Vorschlag)*
-- Aktive Skills werden auf festen Stufen freigeschaltet, der Talentbaum verbessert sie.
-  *(Vorschlag – du hattest „Skills per Level" nicht angekreuzt, aber irgendwoher müssen
-  die Skills kommen. Alternative: Skills komplett im Talentbaum freischalten.)*
+- Aktive Skills werden auf festen Stufen freigeschaltet, der Talentbaum verbessert sie. *(Entschieden)*
 - Talente gegen Gold zurücksetzbar. *(Vorschlag)*
 - Zieltempo: ca. 40–60 Spielstunden bis Level 60. *(Vorschlag, wird durch Balancing eingestellt)*
 
@@ -87,9 +85,13 @@ Lebens-/Manaregeneration.
 - **Affix-System im Diablo-Stil:** Basis-Item + zufällige Prä-/Suffixe mit gewürfelten
   Werten. *(Entschieden)*
 - **6 Seltenheiten:** Gewöhnlich, Ungewöhnlich, Selten, Episch, Legendär, Mythisch. *(Entschieden)*
-- **Händler + Gold:** Items verkaufen, Tränke und Basis-Ausrüstung kaufen. *(Entschieden)*
-- **Aufwerten:** Items mit Material/Gold auf +1, +2 … verstärken. *(Entschieden)*
-  - Obergrenze (+9?) und ob es ein Fehlschlag-Risiko gibt: *(offen)*
+- **Händler + Gold:** Items verkaufen, Tränke und Basis-Ausrüstung kaufen. Ein einfacher
+  Händler ist schon in V1 dabei. *(Entschieden)*
+- **Aufwerten:** Items mit Material/Gold bis maximal **+10** verstärken. *(Entschieden)*
+  - +1 bis +5: gelingt immer.
+  - Ab +6: Fehlschlag-Risiko. Bei Fehlschlag fällt das Item **eine Stufe zurück**,
+    es geht nie kaputt. Material/Gold sind in beiden Fällen verbraucht.
+  - Erfolgschancen pro Stufe und Kosten: *(Balancing, kommt mit dem Schmied nach V1)*
 - Kein Crafting, kein Neu-Würfeln einzelner Affixe. *(Entschieden – nicht gewählt)*
 
 Seltenheiten *(Farben entschieden, Zahlen Vorschlag – Startwerte fürs Balancing)*:
@@ -189,7 +191,5 @@ nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 
 ## 13. Offene Punkte
 
-1. Aufwerten: Obergrenze und Fehlschlag-Risiko (ja/nein, Item zerstörbar oder nur Stufe runter)?
-2. Skills: auf festen Stufen freischalten (Vorschlag) oder komplett über den Talentbaum?
-3. Händler schon in V1 (Vorschlag) oder später?
-4. Karten: Baue ich die Zonen, oder willst du sie selbst im Tiled-Editor zeichnen?
+1. Asset-Packs: Auswahl und Lizenzprüfung bei Meilenstein 2.
+2. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe (Balancing, nach V1).
