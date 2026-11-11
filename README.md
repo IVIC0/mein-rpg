@@ -20,7 +20,7 @@ Jeder Push auf `main` veröffentlicht das Spiel automatisch auf GitHub Pages.
 |---|---|
 | `src/scenes/` | Szenen: `BootScene` lädt alles, `WorldScene` ist die Spielwelt |
 | `src/entities/` | Spielfigur, später Gegner |
-| `src/world/` | Kollisionsraster und Wegfindung |
+| `src/world/` | Kollisionsraster, Wegfindung (Klick) und direkte Bewegung (Maustaste halten) |
 | `src/config.ts` | Stellschrauben wie Laufgeschwindigkeit und Zoom |
 | `public/assets/` | Grafiken und Karten, die das Spiel lädt (erzeugt, nicht von Hand ändern) |
 | `assets-src/` | Original-Grafikpakete mit Lizenzdateien |

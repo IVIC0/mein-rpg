@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { PLAYER_SPEED } from '../config';
-import type { Point } from '../world/Grid';
+import { BODY_RADIUS, PLAYER_SPEED } from '../config';
+import type { Grid, Point } from '../world/Grid';
+import { moveToward } from '../world/movement';
 
 /** Bild-Nummer des Ritters in assets/sprites/characters.png. */
 const KNIGHT_FRAME = 96;
@@ -33,7 +34,8 @@ export class Player extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
-  get isMoving(): boolean {
+  /** Läuft die Figur gerade einen berechneten Weg ab? */
+  get hasPath(): boolean {
     return this.waypoints.length > 0;
   }
 
@@ -45,7 +47,20 @@ export class Player extends Phaser.GameObjects.Container {
     this.waypoints = [];
   }
 
-  /** Einmal pro Frame aufrufen. `deltaMs` = vergangene Zeit seit dem letzten Frame. */
+  /**
+   * Direkte Steuerung für einen Frame: läuft ohne Wegfindung geradewegs auf
+   * `target` zu und rutscht an Hindernissen entlang. Ein laufender Weg wird verworfen.
+   */
+  steerToward(target: Point, grid: Grid, deltaMs: number): void {
+    this.waypoints = [];
+    const next = moveToward(grid, this.pos, target, (PLAYER_SPEED * deltaMs) / 1000, BODY_RADIUS);
+    const moved = Math.hypot(next.x - this.pos.x, next.y - this.pos.y) > 0.01;
+    if (Math.abs(target.x - this.pos.x) > 2) this.sprite.setFlipX(target.x < this.pos.x);
+    this.pos.set(next.x, next.y);
+    this.animate(moved, deltaMs);
+  }
+
+  /** Einen Frame lang dem berechneten Weg folgen. `deltaMs` = Zeit seit dem letzten Frame. */
   step(deltaMs: number): void {
     let budget = (PLAYER_SPEED * deltaMs) / 1000; // so weit darf die Figur in diesem Frame laufen
     while (budget > 0 && this.waypoints.length > 0) {
@@ -64,9 +79,13 @@ export class Player extends Phaser.GameObjects.Container {
       }
     }
 
+    this.animate(this.hasPath, deltaMs);
+  }
+
+  private animate(walking: boolean, deltaMs: number): void {
     // Kleines Hüpfen beim Laufen – das Asset-Pack hat keine Lauf-Animation.
     let hop = 0;
-    if (this.isMoving) {
+    if (walking) {
       this.walkTime += deltaMs;
       hop = Math.abs(Math.sin(this.walkTime * 0.014)) * 1.5;
     } else {

@@ -12,8 +12,11 @@ export const PLAYER_SPEED = 72;
  */
 export const BODY_RADIUS = 5;
 
-/** So weit (in Kacheln) wird bei einem Klick auf ein Hindernis nach einem erreichbaren Feld gesucht. */
-export const CLICK_SEARCH_RADIUS = 16;
+/**
+ * Ab dieser Dauer (Millisekunden) gilt ein Mausdruck nicht mehr als Klick,
+ * sondern als "gedrückt halten": die Figur läuft dann direkt dem Mauszeiger nach.
+ */
+export const HOLD_DELAY_MS = 250;
 
 /**
  * Kamera-Zoom passend zur Fenstergröße: immer ganzzahlig, damit Pixel scharf
