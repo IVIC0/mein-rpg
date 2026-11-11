@@ -24,7 +24,9 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 ## 2. Eingabe & Steuerung
 
 - **Gerät:** PC mit Maus + Tastatur. Kein Touch, kein Handy-Layout. *(Entschieden)*
-- **Bewegung:** Klick auf den Boden = hinlaufen (Wegfindung um Hindernisse). *(Entschieden)*
+- **Bewegung:** Klick auf den Boden = hinlaufen (Wegfindung um Hindernisse). *(Umgesetzt)*
+  - Maustaste halten = Figur folgt dem Mauszeiger.
+  - Klick auf ein Hindernis = Figur läuft zur nächsten erreichbaren Stelle.
 - **Angriff:** Klick auf Gegner = als Ziel wählen, hinlaufen, automatisch angreifen. *(Entschieden)*
 - **Skills:** Tasten `1`–`6`. *(Vorschlag)*
 - **Fenster:** `I` Inventar, `C` Charakter, `T` Talente, `Esc` schließen/Menü. *(Vorschlag)*
@@ -35,8 +37,14 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 - Top-down Pixel-Art. *(Entschieden)*
 - Freie Asset-Packs mit CC0-Lizenz; Quelle und Lizenz jedes Packs werden in
   `CREDITS.md` dokumentiert. *(Entschieden)*
-- 16×16-Tiles, ganzzahlig hochskaliert (×3 oder ×4), damit Pixel scharf bleiben. *(Vorschlag)*
-- Welche Packs genau: wird beim Setup ausgesucht und geprüft (Kandidaten z. B. Kenney). *(offen)*
+- **Packs:** Kenney „Tiny Town" (Landschaft, Gebäude) und „Tiny Dungeon" (Figuren,
+  Gegner, Items), beide CC0. *(Umgesetzt)*
+- 16×16-Tiles, ganzzahlig hochskaliert, damit Pixel scharf bleiben. Der Zoom richtet
+  sich nach der Fenstergröße (×2 bis ×4), sichtbar sind rund 40 × 22 Kacheln. *(Umgesetzt)*
+- Das Spielfeld füllt immer das ganze Browserfenster; ein größeres Fenster zeigt
+  mehr von der Welt. *(Umgesetzt)*
+- Einschränkungen der Packs: keine Lauf-Animationen (Figur hüpft stattdessen leicht)
+  und keine Wasser-Kacheln (Grünwald hat deshalb keinen Fluss oder See).
 
 ## 4. Kampfsystem
 
@@ -139,12 +147,18 @@ Zonen-Skizze *(Vorschlag)*:
 
 | Zone | Level | Gegner |
 |---|---|---|
-| Stadt (Hub) | – | Händler, Schmied, Questgeber |
+| Stadt (Hub) | – | Händler, Schmied, Questgeber (in V1 ein Dorf am Rand von Grünwald) |
 | Grünwald | 1–10 | Wölfe, Wildschweine, Goblins |
 | Orkhügel | 10–20 | Orks, Schamanen |
 | Sumpf / Friedhof | 20–35 | Untote |
 | Burgruine | 35–50 | Ritter-Geister, Dämonen |
 | Drachenberge | 50–60 | Drachlinge, Drache als Weltboss |
+
+Grünwald, Stand V1 *(Umgesetzt)*: 120 × 90 Kacheln, vom Dorf bis zur Ruine läuft man rund
+20 Sekunden. Dorf mit Startpunkt im Südwesten, sechs Lichtungen als Plätze für
+Gegnergruppen (Pilzhain, Westlichtung, Große Lichtung, Ostlichtung, Südlichtung,
+Ruine im Herbstwald im Nordosten), verbunden durch Erdwege. Die Lichtungen sind in
+der Karte als Marker hinterlegt.
 
 ## 10. Endgame
 
@@ -171,8 +185,8 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 
 | # | Meilenstein | Inhalt | Fertig, wenn … |
 |---|---|---|---|
-| 1 | Setup + Deploy | Vite + TS + Phaser, GitHub-Pages-Action, leere Szene | die Seite unter der Pages-URL lädt |
-| 2 | Karte + Bewegung | Tilemap Grünwald, Kollision, Klick-Laufen mit Wegfindung, Kamera folgt | man um Bäume herum durch die Zone laufen kann |
+| 1 ✅ | Setup + Deploy | Vite + TS + Phaser, GitHub-Pages-Action, leere Szene | die Seite unter der Pages-URL lädt |
+| 2 ✅ | Karte + Bewegung | Tilemap Grünwald, Kollision, Klick-Laufen mit Wegfindung, Kamera folgt | man um Bäume herum durch die Zone laufen kann |
 | 3 | Kampf | Ziel wählen, Auto-Angriff, 3 Gegnertypen mit Aggro/Leash/Respawn, Leben/Mana-Balken, 4 Krieger-Skills, Tod + Respawn | man Gegner töten und sterben kann |
 | 4 | Leveln | EP, Levelkurve 1–10, Wertezuwachs, Skill-Freischaltung auf festen Stufen | Level 10 erreichbar ist und sich stärker anfühlt |
 | 5 | Loot | Item-Generator (Affixe, 6 Seltenheiten, Itemlevel), Drops, Inventar, Ausrüstung, Tooltip mit Vergleich | ein Fund die Werte sichtbar verbessert |
@@ -191,5 +205,6 @@ nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 
 ## 13. Offene Punkte
 
-1. Asset-Packs: Auswahl und Lizenzprüfung bei Meilenstein 2.
-2. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe (Balancing, nach V1).
+1. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe (Balancing, nach V1).
+2. Lauf-Animation: Das Pack hat keine. Reicht das Hüpfen, oder später ein anderes
+   Figuren-Pack mit Animationen suchen?
