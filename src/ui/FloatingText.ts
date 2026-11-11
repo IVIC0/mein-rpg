@@ -1,7 +1,11 @@
 import type Phaser from 'phaser';
 
-/** hit = Treffer am Gegner, crit = kritischer Treffer, hurt = Schaden an der Figur, info = Hinweis. */
-export type FloatKind = 'hit' | 'crit' | 'hurt' | 'info';
+/**
+ * hit = eigener Treffer (weiß-gelb), crit = eigener kritischer Treffer (orange, größer),
+ * hurt = erlittener Schaden (rot), heal = Heilung (grün), xp = erhaltene EP,
+ * level = Stufenaufstieg, info = Hinweis. Die Farben stehen in hud.css (.floater-…).
+ */
+export type FloatKind = 'hit' | 'crit' | 'hurt' | 'heal' | 'xp' | 'level' | 'info';
 
 /** So lange ist eine Zahl zu sehen (Millisekunden) und so weit steigt sie auf (Welt-Pixel). */
 const LIFETIME_MS = 900;

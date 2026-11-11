@@ -42,15 +42,16 @@ const ROADS = [
   { width: 2, points: [[46, 52], [56, 60]] }, // Abzweig zur Westlichtung
 ];
 
-// Gegnergruppen je Lichtung: Gegnertyp → Anzahl. Die Typen mit ihren Werten
-// stehen in src/data/enemies.ts. Die genauen Plätze werden unten ausgewürfelt.
+// Gegnergruppen je Lichtung: Gegnertyp → Stufen, ein Gegner pro Eintrag.
+// Die Typen mit ihren Werten stehen in src/data/enemies.ts. Je weiter vom Dorf,
+// desto höher die Stufe. Die genauen Plätze werden unten ausgewürfelt.
 const ENEMY_GROUPS = {
-  westlichtung: { ratte: 4 },
-  pilzhain: { ratte: 3, spinne: 3 },
-  lichtung: { ratte: 4, spinne: 3 },
-  suedlichtung: { spinne: 4 },
-  ostlichtung: { spinne: 3, wegelagerer: 2 },
-  ruine: { wegelagerer: 5 },
+  westlichtung: { ratte: [1, 1, 1, 1] },
+  pilzhain: { ratte: [1, 2, 2], spinne: [2, 2, 3] },
+  lichtung: { ratte: [3, 3, 3, 3], spinne: [3, 4, 4] },
+  suedlichtung: { spinne: [5, 5, 5, 6] },
+  ostlichtung: { spinne: [6, 6, 7], wegelagerer: [7, 7] },
+  ruine: { wegelagerer: [8, 8, 9, 9, 10] },
 };
 
 // ---------------------------------------------------------------- Helfer
@@ -440,8 +441,8 @@ for (const [marker, group] of Object.entries(ENEMY_GROUPS)) {
   const clearing = CLEARINGS.find((c) => c.marker === marker);
   if (!clearing) throw new Error(`Gegnergruppe "${marker}": diese Lichtung gibt es nicht.`);
   const placed = [];
-  for (const [type, count] of Object.entries(group)) {
-    for (let n = 0; n < count; n++) {
+  for (const [type, levels] of Object.entries(group)) {
+    for (const level of levels) {
       // Erst mit großem Abstand zueinander versuchen, dann enger werden.
       let spot = null;
       for (let spacing = 5; spacing >= 2 && !spot; spacing -= 0.5) {
@@ -458,7 +459,7 @@ for (const [marker, group] of Object.entries(ENEMY_GROUPS)) {
       }
       if (!spot) throw new Error(`Gegnergruppe "${marker}": kein Platz für "${type}".`);
       placed.push(spot);
-      enemySpawns.push({ name: type, type: 'gegner', x: spot.x, y: spot.y });
+      enemySpawns.push({ name: type, type: 'gegner', x: spot.x, y: spot.y, level });
     }
   }
 }
@@ -470,6 +471,8 @@ let nextObjectId = 1;
 const toPoint = (m) => ({
   id: nextObjectId++, name: m.name, type: m.type, x: center(m.x), y: center(m.y),
   width: 0, height: 0, point: true, rotation: 0, visible: true,
+  // Gegner tragen ihre Stufe als Eigenschaft "level".
+  ...(m.level ? { properties: [{ name: 'level', type: 'int', value: m.level }] } : {}),
 });
 const markers = [
   { name: 'spawn', type: 'spawn', x: SPAWN.x, y: SPAWN.y },
@@ -506,7 +509,7 @@ map.layers.push({
   id: 4, name: 'Marker', type: 'objectgroup', draworder: 'topdown',
   x: 0, y: 0, opacity: 1, visible: true, objects: markers,
 });
-// Ein Punkt je Gegner; der Name ist der Gegnertyp aus src/data/enemies.ts.
+// Ein Punkt je Gegner; der Name ist der Gegnertyp aus src/data/enemies.ts, "level" seine Stufe.
 map.layers.push({
   id: 5, name: 'Gegner', type: 'objectgroup', draworder: 'topdown',
   x: 0, y: 0, opacity: 1, visible: true, objects: enemyPoints,

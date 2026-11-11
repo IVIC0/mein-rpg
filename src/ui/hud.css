@@ -46,9 +46,19 @@
   text-shadow: 0 1px 0 #000;
 }
 
+#player-level,
 #target-level {
   font-weight: normal;
   color: #c9bf9f;
+}
+
+/* Ziel deutlich stärker als die Figur bzw. so schwach, dass es kaum noch EP bringt. */
+#target-level.level-high {
+  color: #ff6a5c;
+}
+
+#target-level.level-low {
+  color: #8a8a80;
 }
 
 .bar {
@@ -73,6 +83,19 @@
 
 .bar-mana .bar-fill {
   background: linear-gradient(#4d8fe6, #2659b4);
+}
+
+.bar-xp {
+  height: 12px;
+}
+
+.bar-xp .bar-fill {
+  background: linear-gradient(#b98be8, #7a4fc0);
+}
+
+.bar-xp span {
+  font-size: 10px;
+  line-height: 12px;
 }
 
 .bar span {
@@ -149,6 +172,28 @@
   filter: grayscale(1) brightness(0.6);
 }
 
+/* Noch nicht freigeschaltet: Symbol dunkel, darüber die Stufe, ab der es den Skill gibt. */
+.skill.locked .skill-icon {
+  filter: grayscale(1) brightness(0.35);
+}
+
+.skill-lock {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  color: #c9bf9f;
+  text-shadow: 0 1px 1px #000, 0 0 2px #000;
+}
+
+.skill.locked .skill-lock {
+  display: block;
+}
+
 /* Dunkler Vorhang, der mit der Abklingzeit von oben nach unten schrumpft. */
 .skill-cooldown {
   position: absolute;
@@ -204,6 +249,17 @@
   color: #8fc0ff;
 }
 
+.skill-tooltip em {
+  display: none;
+  margin-top: 4px;
+  font-style: normal;
+  color: #ff8d7a;
+}
+
+.skill.locked .skill-tooltip em {
+  display: block;
+}
+
 .skill:hover .skill-tooltip {
   display: block;
 }
@@ -226,6 +282,52 @@
 #message.show {
   opacity: 1;
   transition: none;
+}
+
+/* Meldung zum Stufenaufstieg: im oberen Drittel, blendet sich von selbst wieder aus. */
+#levelup {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px #000, 0 0 6px #000;
+  opacity: 0;
+}
+
+#levelup.show {
+  animation: levelup 3.5s ease-out forwards;
+}
+
+#levelup-title {
+  font-size: 38px;
+  font-weight: bold;
+  line-height: 1.2;
+  color: #ffd34d;
+}
+
+@keyframes levelup {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6);
+  }
+  8% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.08);
+  }
+  14% {
+    transform: translateX(-50%) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1);
+  }
 }
 
 #death-screen {
@@ -263,13 +365,35 @@
   will-change: transform;
 }
 
-.floater-crit {
-  font-size: 22px;
-  color: #ffd34d;
+/* Eigener Schaden: weiß-gelb über dem Gegner. */
+.floater-hit {
+  color: #fff3b0;
 }
 
+/* Eigener kritischer Treffer: orange und größer. */
+.floater-crit {
+  font-size: 26px;
+  color: #ff9a2e;
+}
+
+/* Erlittener Schaden: rot über der eigenen Figur. */
 .floater-hurt {
-  color: #ff5046;
+  color: #ff4038;
+}
+
+/* Heilung: grün. */
+.floater-heal {
+  color: #5fe36a;
+}
+
+.floater-xp {
+  font-size: 13px;
+  color: #c9a0ff;
+}
+
+.floater-level {
+  font-size: 22px;
+  color: #ffd34d;
 }
 
 .floater-info {

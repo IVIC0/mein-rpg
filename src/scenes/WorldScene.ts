@@ -75,8 +75,12 @@ export class WorldScene extends Phaser.Scene {
     const enemies = (map.getObjectLayer('Gegner')?.objects ?? []).map((object) => {
       const def = ENEMIES[object.name];
       if (!def || object.x === undefined || object.y === undefined) throw new Error(`Unbekannter Gegner "${object.name}" in der Karte.`);
-      return new Enemy(this, def, object.x, object.y);
+      return new Enemy(this, def, enemyLevel(object), object.x, object.y);
     });
+
+    // Zum Testen: ?stufe=5 an die Adresse hängen, dann startet die Figur auf Stufe 5.
+    const startLevel = Number(new URLSearchParams(window.location.search).get('stufe'));
+    if (startLevel > 1) this.player.setLevel(startLevel);
 
     const floaterRoot = document.getElementById('floaters');
     if (!floaterRoot) throw new Error('Element #floaters fehlt in index.html.');
@@ -214,4 +218,12 @@ export class WorldScene extends Phaser.Scene {
       onComplete: () => marker.setVisible(false),
     });
   }
+}
+
+/** Liest die Stufe eines Gegners aus der Karte (Eigenschaft "level" des Punkts); ohne Angabe Stufe 1. */
+function enemyLevel(object: Phaser.Types.Tilemaps.TiledObject): number {
+  const properties: unknown = object.properties;
+  if (!Array.isArray(properties)) return 1;
+  const level = (properties as { name: string; value: unknown }[]).find((property) => property.name === 'level')?.value;
+  return typeof level === 'number' ? level : 1;
 }

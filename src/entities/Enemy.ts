@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { BODY_RADIUS, ENEMY_RESPAWN_MS, MELEE_APPROACH, MELEE_RANGE } from '../config';
-import type { EnemyDef } from '../data/enemies';
+import { BODY_RADIUS, ENEMY_FIRST_STRIKE_MS, ENEMY_RESPAWN_MS, MELEE_APPROACH, MELEE_RANGE } from '../config';
+import { enemyStats, type EnemyDef } from '../data/enemies';
 import type { Grid, Point } from '../world/Grid';
 import { findRoute, findWaypoints } from '../world/pathfinding';
 import { Actor } from './Actor';
@@ -23,6 +23,9 @@ export class Enemy extends Actor {
   state: EnemyState = 'idle';
   /** Der Platz, an dem der Gegner steht und wieder erscheint. */
   readonly home: Point;
+  /** Angriff und Rüstung auf der Stufe dieses Gegners. */
+  readonly attackPower: number;
+  readonly armor: number;
 
   private attackCooldown = 0;
   private repathIn = 0;
@@ -35,10 +38,14 @@ export class Enemy extends Actor {
   constructor(
     scene: Phaser.Scene,
     readonly def: EnemyDef,
+    readonly level: number,
     x: number,
     y: number,
   ) {
-    super(scene, x, y, def.frame, def.maxHp);
+    const stats = enemyStats(def, level);
+    super(scene, x, y, def.frame, stats.maxHp);
+    this.attackPower = stats.attackPower;
+    this.armor = stats.armor;
     this.home = { x, y };
     // Lebensbalken über dem Kopf: 14 × 3 Pixel dunkler Rahmen, darin 12 × 1 Pixel Füllung.
     this.barBack = scene.add.rectangle(-7, -15, 14, 3, 0x1a1012).setOrigin(0);
@@ -137,7 +144,7 @@ export class Enemy extends Actor {
   private startChase(): void {
     this.state = 'chase';
     this.repathIn = 0;
-    this.attackCooldown = 600; // kurze Schrecksekunde vor dem ersten Schlag
+    this.attackCooldown = ENEMY_FIRST_STRIKE_MS; // kurze Schrecksekunde vor dem ersten Schlag
   }
 
   /** Bricht die Verfolgung ab: zurück zum Platz, dabei wieder volles Leben. */
