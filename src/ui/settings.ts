@@ -1,8 +1,8 @@
 // Alle Einstellungen des Spielers in EINEM Objekt (`Settings`).
-// Es besteht nur aus einfachen Werten (an/aus, Zahlen) und lässt sich deshalb
-// später mit dem Spielstand speichern (Meilenstein 7). Bis dahin merkt es sich der Browser.
+// Es besteht nur aus einfachen Werten (an/aus, Zahlen) und liegt deshalb mit im
+// Spielstand (`settings` in src/save/saveGame.ts) – jeder Slot hat seine eigenen Einstellungen.
 
-import { loadUi, saveUi } from './storage';
+import { loadUi } from './storage';
 
 /** Die HUD-Elemente, die sich verschieben lassen. */
 export const HUD_ITEMS = [
@@ -84,20 +84,27 @@ function mergeDeep(defaults: Plain, stored: unknown): Plain {
   return result;
 }
 
-/** Liest die Einstellungen aus dem Browser. */
-export function loadSettings(): Settings {
+/**
+ * Macht aus gespeicherten Daten vollständige Einstellungen (als eigene Kopie):
+ * Fehlendes kommt aus dem Standard. Ohne Angabe gibt es die Standardwerte.
+ */
+export function normalizeSettings(stored?: unknown): Settings {
+  return mergeDeep(DEFAULT_SETTINGS as unknown as Plain, stored) as unknown as Settings;
+}
+
+/**
+ * Die Einstellungen, die sich der Browser vor Meilenstein 7 gemerkt hat (damals noch ohne
+ * Spielstand). Der erste neue Spielstand übernimmt sie; gibt es keine, kommt der Standard.
+ */
+export function loadLegacySettings(): Settings {
   const stored = loadUi<Plain>(STORAGE_KEY, {});
-  const settings = mergeDeep(DEFAULT_SETTINGS as unknown as Plain, stored) as unknown as Settings;
+  const settings = normalizeSettings(stored);
   // Alte Einstellung aus Schritt 5b übernehmen.
   if (typeof stored.showAllNameplates === 'boolean') settings.enemyPlates.showAll = stored.showAllNameplates;
   return settings;
 }
 
-export function saveSettings(settings: Settings): void {
-  saveUi(STORAGE_KEY, settings);
-}
-
 /** Setzt `settings` auf die Standardwerte zurück. Das Objekt selbst bleibt dasselbe. */
 export function resetSettings(settings: Settings): void {
-  Object.assign(settings, mergeDeep(DEFAULT_SETTINGS as unknown as Plain, {}));
+  Object.assign(settings, normalizeSettings());
 }

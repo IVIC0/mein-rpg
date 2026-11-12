@@ -31,6 +31,9 @@ export class Combat {
   /** Der angewählte Gegner. */
   target: Enemy | null = null;
 
+  /** Wird bei wichtigen Ereignissen aufgerufen (Stufenaufstieg, Tod, Aufwachen, Boss besiegt) – daran hängt das Speichern. */
+  onSaveEvent: () => void = () => {};
+
   /** Läuft die Figur ihrem Ziel von selbst hinterher? (Nach Klick auf einen Gegner.) */
   private engaging = false;
   private repathIn = 0;
@@ -222,6 +225,7 @@ export class Combat {
       this.grantXp(enemy);
       this.loot.dropFrom(enemy);
       if (enemy.hasTrait('explosiv')) this.explode(enemy.pos.x, enemy.pos.y, enemy.baseAttackPower);
+      if (enemy.rank === 'boss') this.onSaveEvent(); // sein Respawn-Timer gehört in den Spielstand
     }
 
     // Ziel besiegt: gleich zum nächsten Angreifer wechseln, falls noch einer da ist.
@@ -248,6 +252,7 @@ export class Combat {
     this.floaters.spawn(player.pos.x, player.pos.y - 26, `Stufe ${player.level}!`, 'level');
     if (missingHp >= 1) this.floaters.spawn(player.pos.x, player.pos.y - 8, `+${Math.round(missingHp)}`, 'heal');
     this.showShockwave(40, 0xffd34d, 600);
+    this.onSaveEvent();
   }
 
   /** Der nächste Gegner, der die Figur gerade verfolgt und schon in ihrer Nähe ist. */
@@ -322,11 +327,13 @@ export class Combat {
     this.player.die();
     this.respawnIn = PLAYER_RESPAWN_MS;
     this.hud.setDead(true, this.player.loseXp(DEATH_XP_LOSS), this.inventory.loseGold(DEATH_GOLD_LOSS));
+    this.onSaveEvent();
   }
 
   private respawnPlayer(): void {
     this.player.revive(this.respawnPoint);
     this.hud.setDead(false, 0, 0);
+    this.onSaveEvent();
   }
 
   /** Schiebt Angreifer auseinander, die aufeinander stehen – so umringen sie die Figur. */

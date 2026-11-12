@@ -1,7 +1,7 @@
 import { EQUIP_SLOTS, type EquipSlot } from '../data/items';
 import { INVENTORY_SIZE } from '../data/loot';
 import { STAT_IDS, emptyStats, type Stats } from '../data/stats';
-import { itemStats, type Item } from './generator';
+import { itemStats, nextItemId, type Item } from './generator';
 
 /**
  * Was die Figur besitzt: das Inventar (feste Zahl von Plätzen), die angelegte
@@ -24,6 +24,16 @@ export class Inventory {
   };
   gold = 0;
   onChange: () => void = () => {};
+
+  /** Übernimmt Inventar, Ausrüstung und Gold aus einem Spielstand. */
+  load(bag: (Item | null)[], equipped: Record<EquipSlot, Item | null>, gold: number): void {
+    // Kopien mit frischer Nummer: so bleibt der geladene Spielstand selbst unverändert.
+    const copy = (item: Item | null | undefined): Item | null => (item ? { ...item, id: nextItemId() } : null);
+    this.bag.forEach((_, index) => (this.bag[index] = copy(bag[index])));
+    for (const slot of EQUIP_SLOTS) this.equipped[slot.id] = copy(equipped[slot.id]);
+    this.gold = gold;
+    this.onChange();
+  }
 
   get isFull(): boolean {
     return !this.bag.includes(null);

@@ -19,7 +19,7 @@ export interface RolledAffix extends RolledValue {
  * damit es sich später ohne Umwege speichern lässt.
  */
 export interface Item {
-  /** Fortlaufende Nummer, eindeutig innerhalb einer Sitzung. */
+  /** Fortlaufende Nummer, eindeutig innerhalb einer Sitzung (wird beim Laden neu vergeben). */
   id: number;
   name: string;
   baseId: string;
@@ -36,16 +36,22 @@ export interface Item {
 
 let nextId = 1;
 
+/** Die nächste freie Item-Nummer – auch für Items, die aus einem Spielstand geladen werden. */
+export function nextItemId(): number {
+  return nextId++;
+}
+
 /**
  * Würfelt ein Item mit dem Itemlevel `level` und der Seltenheit `rarityId`: erst das
  * Basis-Item, dann so viele Affixe, wie die Seltenheit vorgibt.
  * Die Seltenheit eines Drops würfelt vorher `rollRarity`.
+ * `wantedSlot` legt die Art fest (z. B. 'weapon') – ohne Angabe wird sie gewürfelt.
  */
-export function generateItem(level: number, rarityId: RarityId): Item {
+export function generateItem(level: number, rarityId: RarityId, wantedSlot?: ItemSlot): Item {
   const rarity = rarityById(rarityId);
   // Erst die Art würfeln, dann das Basis-Item: sonst gäbe es mehr Waffen als Helme, nur weil es drei Waffen gibt.
   const slots = [...new Set(ITEM_BASES.map((candidate) => candidate.slot))];
-  const slot = pick(slots);
+  const slot = wantedSlot ?? pick(slots);
   const base = pick(ITEM_BASES.filter((candidate) => candidate.slot === slot));
 
   const center = base.base.atLevel1 + base.base.perLevel * (level - 1);
@@ -55,7 +61,7 @@ export function generateItem(level: number, rarityId: RarityId): Item {
   const affixes = possible.slice(0, rarity.affixes).map((affix) => rollAffix(affix, level));
 
   return {
-    id: nextId++,
+    id: nextItemId(),
     name: buildName(base, affixes),
     baseId: base.id,
     slot,
