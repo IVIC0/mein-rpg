@@ -3,6 +3,8 @@
 //
 // Leben, Angriff und Rüstung gelten für Stufe 1 und wachsen mit der Stufe (ENEMY_SCALING).
 
+import type { EnemyRank } from './loot';
+
 export interface EnemyDef {
   name: string;
   /** Bild-Nummer in assets/sprites/characters.png. */
@@ -18,6 +20,8 @@ export interface EnemyDef {
   aggroRadius: number;
   /** Weiter als so weit (Welt-Pixel) entfernt er sich nicht von seinem Platz. */
   leashRadius: number;
+  /** Fester Rang, z. B. 'boss'. Ohne Angabe: normal, mit kleiner Chance Elite (src/data/elites.ts). */
+  rank?: EnemyRank;
 }
 
 export const ENEMIES: Record<string, EnemyDef> = {
@@ -53,6 +57,20 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 54,
     aggroRadius: 72,
     leashRadius: 192,
+  },
+  // Boss der Ruine. Die Grundwerte entsprechen dem Wegelagerer; was ihn zum Boss macht
+  // (6× Leben, mehr Angriff und Rüstung, Größe), steht in RANKS in src/data/elites.ts.
+  raeuberhauptmann: {
+    name: 'Räuberhauptmann',
+    frame: 111,
+    maxHp: 64,
+    attackPower: 9,
+    armor: 11,
+    attackIntervalMs: 2000,
+    speed: 54,
+    aggroRadius: 80,
+    leashRadius: 192,
+    rank: 'boss',
   },
 };
 

@@ -1,3 +1,4 @@
+import { RANKS, traitName } from '../data/elites';
 import { isTrivial } from '../data/progression';
 import { WARRIOR, type SkillDef, type SkillId } from '../data/warrior';
 import { byId, iconPosition } from './dom';
@@ -38,6 +39,7 @@ export class Hud {
   private readonly targetFrame = byId('target-frame');
   private readonly targetName = byId('target-name');
   private readonly targetLevel = byId('target-level');
+  private readonly targetRank = byId('target-rank');
   private readonly targetFill = byId('target-hp-fill');
   private readonly targetText = byId('target-hp-text');
   private readonly message = byId('message');
@@ -103,6 +105,10 @@ export class Hud {
     if (target) {
       setText(this.targetName, target.def.name);
       setText(this.targetLevel, `Stufe ${target.level}`);
+      // Elite/Boss: eigene Rahmenfarbe und eine Zeile mit Rang und Eigenschaften.
+      this.targetFrame.classList.toggle('rank-elite', target.rank === 'elite');
+      this.targetFrame.classList.toggle('rank-boss', target.rank === 'boss');
+      setText(this.targetRank, [RANKS[target.rank].label, ...target.traits.map(traitName)].filter(Boolean).join(' · '));
       // Rot = deutlich stärker als die Figur, grau = bringt nur noch wenig EP.
       this.targetLevel.classList.toggle('level-high', target.level >= player.level + 2);
       this.targetLevel.classList.toggle('level-low', isTrivial(target.level, player.level));

@@ -102,7 +102,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     nach Typ) und kein Hindernis die Sicht versperrt – oder wenn er getroffen wird.
   - Leash: Entfernt er sich mehr als 11–12 Kacheln von seinem Platz, läuft er zurück,
     ist dabei nicht angreifbar und hat wieder volles Leben.
-  - Respawn 30 Sekunden nach dem Tod am selben Platz.
+  - Respawn 30 Sekunden nach dem Tod am selben Platz (Boss: 5 Minuten).
   - Im Leerlauf schlendern Gegner ein paar Schritte um ihren Platz.
 - **Schadensformel** *(Umgesetzt)*: Schaden = Angriffskraft × Skill-Faktor × Streuung
   (85–115 %) × (1 − Schadensreduktion), mindestens 1.
@@ -135,7 +135,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   ein Auto-Angriff alle 1,8 Sekunden. Zuwachs pro Stufe: siehe Abschnitt 6.
 
 Alle Zahlen sind Startwerte fürs Balancing und stehen in `src/config.ts`,
-`src/data/warrior.ts`, `src/data/enemies.ts` und `src/data/progression.ts`
+`src/data/warrior.ts`, `src/data/enemies.ts`, `src/data/elites.ts` und `src/data/progression.ts`
 (Loot: `src/data/items.ts`, `src/data/loot.ts`, `src/data/stats.ts`).
 
 ## 5. Klassen
@@ -184,7 +184,7 @@ Intelligenz und Mana gibt es beim Krieger nicht – sie kommen eventuell mit dem
 
 - **EP** gibt es für jeden besiegten Gegner: 10 + 5 × Stufe des Gegners (Stufe 1 = 15 EP,
   Stufe 10 = 60 EP). Liegt die Figur 3 / 4 / 5 Stufen über dem Gegner, gibt es nur noch
-  75 % / 50 % / 25 %, darüber 10 %.
+  75 % / 50 % / 25 %, darüber 10 %. Elite geben das 3-Fache, Bosse das 10-Fache *(Startwert)*.
 - **Levelkurve** – ausgelegt auf rund 500 Gegner bzw. 2–3 Stunden bis Stufe 10:
 
   | Aufstieg auf Stufe | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
@@ -202,8 +202,8 @@ Intelligenz und Mana gibt es beim Krieger nicht – sie kommen eventuell mit dem
 - Leben, Angriffskraft und Rüstung steigen pro Stufe direkt. Die Attribute (Stärke,
   Ausdauer, Geschick) kommen nur von der Ausrüstung. *(Vorschlag)*
 - **Zum Testen:** `?stufe=5` an die Adresse hängen, dann startet die Figur auf Stufe 5.
-  `?beute=12` legt 12 gewürfelte Items ins Inventar (jede Seltenheit reihum); beides
-  zusammen: `?stufe=5&beute=12`. Solange es kein Speichern gibt (Meilenstein 7), beginnt
+  `?beute=12` legt 12 gewürfelte Items ins Inventar (jede Seltenheit reihum), `?elite=1`
+  macht jeden normalen Gegner zur Elite; alles zusammen: `?stufe=5&beute=12&elite=1`. Solange es kein Speichern gibt (Meilenstein 7), beginnt
   jedes Neuladen wieder auf Stufe 1 und mit leerem Inventar.
 
 Alle Werte stehen in `src/data/progression.ts` (Kurve, EP) und `src/data/warrior.ts` (Zuwachs).
@@ -252,8 +252,8 @@ gewürfelt, ob ein Item fällt, dann die Seltenheit.
 - Vorher (30 %, Anteile 60 / 28 / 9 / 2,5 / 0,45 / 0,05) waren 88 % aller Drops weiß oder grün.
   Bei nur noch 10 % Drop-Chance wäre das zu viel Ausschuss, deshalb sind die Anteile leicht
   nach oben verschoben (jetzt 82 %).
-- Elite und Boss sind vorbereitet, greifen aber erst, wenn es sie gibt (Elites: Meilenstein 6,
-  Bosse nach V1). Bis dahin haben alle Gegner den Rang „normal".
+- Elite und Boss nutzen ihre Spalten seit Meilenstein 6 (siehe Abschnitt 8): sie lassen immer
+  genau ein Item fallen und geben mehr Gold (Elite ×3, Boss ×10 – *Startwert*).
 
 Weitere Regeln *(Vorschlag)*:
 
@@ -321,21 +321,74 @@ Weitere Regeln *(Vorschlag)*:
   angelegte Waffe ist auch beim Zuschlagen zu sehen.
 - **Symbole:** Waffen und Schilde stammen aus „Tiny Dungeon". Helm, Rüstung, Handschuhe,
   Stiefel, Amulett und Ring fehlen dort und sind selbst gezeichnet (`tools/lib/item-icons.mjs`).
-- Noch nicht dabei: Verkaufen und Tränke (Händler, Meilenstein 8), besseres Loot von
-  Elites (Meilenstein 6), Speichern des Inventars (Meilenstein 7).
+- Noch nicht dabei: Verkaufen und Tränke (Händler, Meilenstein 8), Speichern des Inventars
+  (Meilenstein 7).
 
 Alle Werte stehen in `src/data/items.ts` (Seltenheiten, Basis-Items, Affixe),
 `src/data/loot.ts` (Drop-Tabellen je Gegnerrang, Gold, Inventargröße) und `src/data/stats.ts` (Attribute).
 
-## 8. Elite-Gegner
+## 8. Elite- und Boss-Gegner
 
 - Normale Gegner spawnen mit kleiner Chance als Elite mit 1–3 zufälligen Eigenschaften,
-  mehr Leben und deutlich besserem Loot. *(Entschieden)*
-- Startwerte *(Vorschlag)*: 5 % Elite-Chance, 3× Leben, höhere Seltenheits-Chancen,
-  garantiert mindestens 1 Item.
-- Erste Elite-Eigenschaften *(Vorschlag)*: Schnell, Gepanzert, Vampirisch, Explosiv
-  (Schaden beim Tod), Rasend (stärker bei wenig Leben), Regenerierend.
-- Elites sind optisch erkennbar (Färbung/Aura + Name mit Eigenschaften).
+  mehr Leben und deutlich besserem Loot. *(Entschieden, umgesetzt in Meilenstein 6)*
+- Elite und Boss lassen immer ein Item fallen, mit höheren Seltenheiten (Drop-Tabelle in
+  Abschnitt 7). *(Entschieden in Schritt 5b)*
+
+Alles Folgende habe ich mir ausgedacht – **Startwerte fürs Balancing**, alle in
+`src/data/elites.ts` (Boss-Respawn in `src/config.ts`):
+
+**Elite**
+- Jeder normale Gegner wird beim Erscheinen mit **5 %** Chance zur Elite – auch bei jedem
+  Respawn wird neu gewürfelt. Bei 31 normalen Gegnern steht im Schnitt 1–2 Elites auf der Karte.
+- Anzahl Eigenschaften: 1 (60 %), 2 (30 %), 3 (10 %); jede höchstens einmal.
+- EP ×3, Gold ×3.
+
+**Boss:** der **Räuberhauptmann** (Stufe 10) steht fest in der Ruine, hat keine Eigenschaften
+und erscheint 5 Minuten nach seinem Tod wieder. EP ×10, Gold ×10. Bosse waren erst nach V1
+geplant; dieser eine ist auf deinen Wunsch vorgezogen. Seine Grundwerte sind die des Wegelagerers.
+
+**Werte je Rang** – auf die Werte des Gegnertyps (Abschnitt 9) gerechnet:
+
+| Rang | Leben | Angriff | Rüstung | Größe | Schein |
+|---|---|---|---|---|---|
+| Normal | ×1 | ×1 | +0 | ×1 | – |
+| Elite | ×3 | ×1,25 | +15 | ×1,5 | gold |
+| Boss | ×6 | ×1,6 | +30 | ×2 | lila |
+
+Die Rüstung ist ein fester Zuschlag statt eines Faktors, weil die Formel aus 5b (75 % × Rüstung /
+(Rüstung + 100)) weitere Punkte immer schwächer wertet – so bleibt der Unterschied spürbar,
+ohne dass ein Gegner zur Wand wird. Beispiel Stufe 10:
+
+| Gegner (Stufe 10) | Leben | Angriff | Rüstung | Schadensreduktion |
+|---|---|---|---|---|
+| Wegelagerer | 179 | 21,2 | 29 | 17 % |
+| Wegelagerer, Elite | 537 | 26,4 | 44 | 23 % |
+| … mit „Gepanzert" | 537 | 26,4 | 94 | 36 % |
+| Räuberhauptmann (Boss) | 1 074 | 33,8 | 59 | 28 % |
+
+Zum Vergleich unten: Riesenratte Stufe 1 als Elite = 90 Leben, 6,3 Angriff, 15 Rüstung (10 %).
+
+Gedachte Auslegung (grob gerechnet, nicht ausgespielt): Eine Elite auf eigener Stufe dauert
+etwa dreimal so lang wie ein normaler Gegner und kostet ohne Ausrüstung den Großteil des
+Lebens – mit Ausrüstung gut machbar. Der Boss ist ohne Ausrüstung nicht zu schaffen und mit
+voller Ausrüstung auf Stufe 10 ein knapper Kampf von rund 30–40 Sekunden.
+
+**Eigenschaften**
+
+| Eigenschaft | Wirkung |
+|---|---|
+| Schnell | läuft 15 % schneller (bleibt langsamer als die Figur), schlägt 20 % öfter zu |
+| Gepanzert | +20 Rüstung, dazu +3 pro Stufe (Stufe 10: +50) |
+| Vampirisch | heilt sich um 50 % des ausgeteilten Schadens |
+| Explosiv | 1,5 Sekunden nach dem Tod Explosion im Umkreis von 30 Pixeln (knapp 2 Kacheln): ein Treffer mit 250 % Angriff, die eigene Rüstung zählt. Ein roter Kreis warnt – weglaufen hilft |
+| Rasend | unter 30 % Leben +50 % Angriff, die Elite färbt sich rot |
+| Regenerierend | heilt 1 % des maximalen Lebens pro Sekunde, auch im Kampf |
+
+**Erkennbar** *(Umgesetzt)*: Elite und Boss sind größer und stehen in einem pulsierenden Schein.
+Das Namensschild ist größer und farbig (Elite gold mit ★ und den Eigenschaften unter dem Namen,
+Boss lila mit ☠), der Lebensbalken breiter. Der Zielrahmen bekommt einen farbigen Rand und eine
+Zeile „Elite · Schnell · Gepanzert" bzw. „Boss". Namensschilder sieht man auch bei der
+Einstellung „nur Ziel, Angreifer und Verletzte" erst dann – der Schein und die Größe bleiben.
 
 ## 9. Welt & Setting
 
@@ -362,7 +415,7 @@ Gegnergruppen (Pilzhain, Westlichtung, Große Lichtung, Ostlichtung, Südlichtun
 Ruine im Herbstwald im Nordosten), verbunden durch Erdwege. Die Lichtungen sind in
 der Karte als Marker hinterlegt.
 
-Gegner in Grünwald *(Umgesetzt)* – 31 Stück, je weiter vom Dorf, desto höher die Stufe.
+Gegner in Grünwald *(Umgesetzt)* – 31 Stück plus ein Boss, je weiter vom Dorf, desto höher die Stufe.
 Jeder Gegnertyp hat Grundwerte für Stufe 1; pro Stufe darüber kommen +20 % Leben,
 +15 % Angriff und +2 Rüstung dazu *(Vorschlag, Startwerte fürs Balancing)*:
 
@@ -379,12 +432,13 @@ Jeder Gegnertyp hat Grundwerte für Stufe 1; pro Stufe darüber kommen +20 % Leb
 | Große Lichtung | 4 Riesenratten (3), 3 Waldspinnen (3, 4, 4) |
 | Südlichtung | 4 Waldspinnen (5, 5, 5, 6) |
 | Ostlichtung | 3 Waldspinnen (6, 6, 7), 2 Wegelagerer (7) |
-| Ruine | 5 Wegelagerer (8, 8, 9, 9, 10) |
+| Ruine | 5 Wegelagerer (8, 8, 9, 9, 10), Boss Räuberhauptmann (10) – Werte in Abschnitt 8 |
 
 Die Stufen je Lichtung stehen in `tools/build-map.mjs` (Liste `ENEMY_GROUPS`), die
 Grundwerte und der Zuwachs in `src/data/enemies.ts`.
 
-Alle Gegner sind etwas langsamer als die Figur – weglaufen geht also immer.
+Alle Gegner sind etwas langsamer als die Figur – weglaufen geht also immer (auch vor
+„schnellen" Elites: die schnellste, eine Riesenratte, kommt auf 71 gegenüber 72 Pixeln pro Sekunde).
 
 ## 10. Endgame
 
@@ -417,12 +471,12 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 | 4 ✅ | Leveln | EP, Levelkurve 1–10, Wertezuwachs, Skill-Freischaltung auf festen Stufen | Level 10 erreichbar ist und sich stärker anfühlt |
 | 5 ✅ | Loot | Item-Generator (Affixe, 6 Seltenheiten, Itemlevel), Drops, Inventar, Ausrüstung, Tooltip mit Vergleich | ein Fund die Werte sichtbar verbessert |
 | 5b ✅ | Feinschliff Loot | Drop-Chance 10 % und Drop-Tabellen je Gegnerrang, Rüstung abgeflacht (max. 75 %), Inventarfenster verschiebbar/anpinnbar, Knopf-Leiste, Namensschilder über Gegnern | Loot seltener, aber wertiger ist und das Fenster beim Kämpfen nicht stört |
-| 6 | Elites | Zufällige Elite-Spawns mit 1–3 Eigenschaften und besserem Loot | Elites erkennbar gefährlicher und lohnender sind |
+| 6 ✅ | Elites | Zufällige Elite-Spawns mit 1–3 Eigenschaften und besserem Loot, dazu ein Boss in der Ruine | Elites erkennbar gefährlicher und lohnender sind |
 | 7 | Speichern | Auto-Save, Export/Import, Versionsnummer | Seite neu laden nichts verliert |
 | 8 | Händler + Feinschliff | 1 Händler (verkaufen, Tränke kaufen), Balancing, `CREDITS.md` | Gold und volles Inventar einen Zweck haben |
 
 **Bewusst nicht in V1:** Talentbaum, Aufwerten, Quests, weitere Zonen und Klassen,
-Endlos-Turm, Weltbosse, Sound.
+Endlos-Turm, Weltbosse, Sound. (Der Räuberhauptmann ist ein fester Zonen-Boss, kein Weltboss.)
 
 Der Talentbaum ist das Erste nach V1 – bei nur 10 Leveln und 9 Punkten trägt er noch
 nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
@@ -467,3 +521,9 @@ Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap f
 9. Vielfalt: Jede Item-Art außer der Waffe hat erst 5–7 mögliche Affixe, die drei Waffen
    unterscheiden sich nur im Aussehen. Mehr Affixe und eigene Waffenwerte (z. B. Dolch
    schneller, Axt stärker) wären ein möglicher Ausbau.
+10. Elite/Boss-Balancing: Alle Werte in Abschnitt 8 (Chance, Faktoren, Eigenschaften, EP und
+    Gold, Boss-Respawn) sind von mir gesetzte Startwerte und nur grob gerechnet. Zu prüfen im
+    Spiel: Sind 5 % zu selten? Ist der Boss mit Ausrüstung schaffbar? Ist ein einzelnes Item
+    für den Boss-Kampf Lohn genug (oder besser 2–3 Items)?
+11. Namen von Elites: Die Eigenschaften stehen unter dem Namen statt davor („Schnelle
+    Waldspinne") – dafür müsste jede Eigenschaft nach dem Geschlecht des Gegners gebeugt werden.

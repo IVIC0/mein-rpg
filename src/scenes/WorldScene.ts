@@ -80,6 +80,9 @@ export class WorldScene extends Phaser.Scene {
     if (!spawn || spawn.x === undefined || spawn.y === undefined) throw new Error('Marker "spawn" fehlt in der Karte.');
     this.player = new Player(this, spawn.x, spawn.y);
 
+    // Zum Testen: ?elite=1 macht jeden normalen Gegner zur Elite.
+    if (new URLSearchParams(window.location.search).get('elite') === '1') Enemy.eliteChance = 1;
+
     // Jeder Punkt auf der Ebene "Gegner" ist ein Gegner; der Name des Punkts ist sein Typ.
     const enemies = (map.getObjectLayer('Gegner')?.objects ?? []).map((object) => {
       const def = ENEMIES[object.name];

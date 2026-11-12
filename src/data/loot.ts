@@ -5,7 +5,7 @@ import type { RarityId } from './items';
 /** So viele Plätze hat das Inventar. */
 export const INVENTORY_SIZE = 40;
 
-/** Rang eines Gegners. Elites kommen mit Meilenstein 6, Bosse später – ihre Werte stehen schon hier. */
+/** Rang eines Gegners. Wie stark Elite und Boss sind, steht in src/data/elites.ts. */
 export type EnemyRank = 'normal' | 'elite' | 'boss';
 
 export interface DropTable {
@@ -30,6 +30,9 @@ export const DROP_TABLES: Record<EnemyRank, DropTable> = {
  * Stufe 1 = 2–5 Gold, Stufe 10 = 11–14 Gold.
  */
 export const GOLD_DROP = { min: 1, max: 4, perLevel: 1 };
+
+/** Elite und Boss geben ein Vielfaches an Gold. */
+export const GOLD_RANK_FACTOR: Record<EnemyRank, number> = { normal: 1, elite: 3, boss: 10 };
 
 /** So nah (Welt-Pixel) muss die Figur an ein Item am Boden heran, um es aufzuheben. */
 export const LOOT_PICKUP_RADIUS = 12;

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { RARITIES } from '../data/items';
-import { DROP_TABLES, GOLD_DROP, LOOT_DESPAWN_MS, LOOT_PICKUP_DELAY_MS, LOOT_PICKUP_RADIUS, LOOT_SCATTER } from '../data/loot';
+import { DROP_TABLES, GOLD_DROP, GOLD_RANK_FACTOR, LOOT_DESPAWN_MS, LOOT_PICKUP_DELAY_MS, LOOT_PICKUP_RADIUS, LOOT_SCATTER } from '../data/loot';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 import type { FloatingText } from '../ui/FloatingText';
@@ -44,7 +44,7 @@ export class GroundLoot {
 
   /** Ein Gegner wurde besiegt: Gold gutschreiben und vielleicht ein Item fallen lassen. */
   dropFrom(enemy: Enemy): void {
-    const gold = Phaser.Math.Between(GOLD_DROP.min, GOLD_DROP.max) + GOLD_DROP.perLevel * enemy.level;
+    const gold = (Phaser.Math.Between(GOLD_DROP.min, GOLD_DROP.max) + GOLD_DROP.perLevel * enemy.level) * GOLD_RANK_FACTOR[enemy.rank];
     this.inventory.addGold(gold);
     this.floaters.spawn(enemy.pos.x, enemy.pos.y - 4, `+${gold} Gold`, 'gold');
 

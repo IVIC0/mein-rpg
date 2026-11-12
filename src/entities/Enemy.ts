@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { BODY_RADIUS, ENEMY_FIRST_STRIKE_MS, ENEMY_RESPAWN_MS, MELEE_APPROACH, MELEE_RANGE } from '../config';
+import { BODY_RADIUS, BOSS_RESPAWN_MS, ENEMY_FIRST_STRIKE_MS, ENEMY_RESPAWN_MS, MELEE_APPROACH, MELEE_RANGE } from '../config';
+import { ELITE_CHANCE, RANKS, TRAIT_VALUES, rollTraits, type TraitId } from '../data/elites';
 import { enemyStats, type EnemyDef } from '../data/enemies';
 import type { EnemyRank } from '../data/loot';
 import type { Grid, Point } from '../world/Grid';
@@ -24,11 +25,25 @@ export class Enemy extends Actor {
   state: EnemyState = 'idle';
   /** Der Platz, an dem der Gegner steht und wieder erscheint. */
   readonly home: Point;
-  /** Angriff und Rüstung auf der Stufe dieses Gegners. */
-  readonly attackPower: number;
-  readonly armor: number;
-  /** Rang: bestimmt die Drop-Tabelle (src/data/loot.ts). Bis es Elites gibt (Meilenstein 6), sind alle normal. */
-  readonly rank: EnemyRank = 'normal';
+  /** Chance auf eine Elite beim Erscheinen. Zum Testen stellt ?elite=1 sie auf 100 % (WorldScene). */
+  static eliteChance = ELITE_CHANCE;
+
+  /**
+   * Rang und Eigenschaften werden bei jedem Erscheinen neu gewürfelt (siehe rollRank),
+   * ebenso die Werte darunter. Der Rang bestimmt auch die Drop-Tabelle (src/data/loot.ts).
+   */
+  rank: EnemyRank = 'normal';
+  traits: TraitId[] = [];
+  armor = 0;
+  /** Angriff ohne den Bonus von "Rasend". */
+  baseAttackPower = 0;
+  /** Zählt jedes Erscheinen mit – daran merken die Namensschilder, dass sich der Rang geändert haben kann. */
+  spawnCount = 0;
+
+  private speed = 0;
+  private attackIntervalMs = 0;
+  private aura: Phaser.GameObjects.Ellipse | null = null;
+  private enragedShown = false;
 
   private attackCooldown = 0;
   private repathIn = 0;
@@ -42,12 +57,63 @@ export class Enemy extends Actor {
     x: number,
     y: number,
   ) {
-    const stats = enemyStats(def, level);
-    super(scene, x, y, def.frame, stats.maxHp);
-    this.attackPower = stats.attackPower;
-    this.armor = stats.armor;
+    super(scene, x, y, def.frame, 1);
     this.home = { x, y };
+    this.rollRank();
     // Name, Stufe und Lebensbalken über dem Kopf zeichnet src/ui/Nameplates.ts.
+  }
+
+  hasTrait(id: TraitId): boolean {
+    return this.traits.includes(id);
+  }
+
+  /** "Rasend": unter der Lebens-Schwelle schlägt die Elite härter zu. */
+  get enraged(): boolean {
+    return this.hasTrait('rasend') && this.alive && this.hp < this.maxHp * TRAIT_VALUES.rasend.hpFraction;
+  }
+
+  /** Aktueller Angriff – mit Bonus, wenn die Elite gerade rast. */
+  get attackPower(): number {
+    return this.baseAttackPower * (this.enraged ? 1 + TRAIT_VALUES.rasend.attackBonus : 1);
+  }
+
+  heal(amount: number): void {
+    if (this.alive) this.hp = Math.min(this.maxHp, this.hp + amount);
+  }
+
+  /**
+   * Würfelt Rang und Eigenschaften und rechnet daraus die Werte aus:
+   * Grundwerte des Typs auf seiner Stufe × Rang (RANKS) + Eigenschaften (TRAIT_VALUES).
+   */
+  private rollRank(): void {
+    const def = this.def;
+    this.rank = def.rank ?? (Math.random() < Enemy.eliteChance ? 'elite' : 'normal');
+    this.traits = this.rank === 'elite' ? rollTraits() : [];
+
+    const rank = RANKS[this.rank];
+    const stats = enemyStats(def, this.level);
+    this.maxHp = Math.round(stats.maxHp * rank.hpFactor);
+    this.hp = this.maxHp;
+    this.baseAttackPower = stats.attackPower * rank.attackFactor;
+    this.armor = stats.armor + rank.armorBonus;
+    if (this.hasTrait('gepanzert')) this.armor += TRAIT_VALUES.gepanzert.base + TRAIT_VALUES.gepanzert.perLevel * this.level;
+    const fast = this.hasTrait('schnell');
+    this.speed = def.speed * (fast ? TRAIT_VALUES.schnell.speedFactor : 1);
+    this.attackIntervalMs = def.attackIntervalMs * (fast ? TRAIT_VALUES.schnell.attackIntervalFactor : 1);
+
+    // Aussehen: Elite und Boss sind größer und stehen in einem pulsierenden Schein.
+    this.setBodyScale(rank.scale);
+    if (this.aura) {
+      this.scene.tweens.killTweensOf(this.aura);
+      this.aura.destroy();
+      this.aura = null;
+    }
+    if (rank.auraColor !== null) {
+      this.aura = this.scene.add.ellipse(0, 5, 20 * rank.scale, 9 * rank.scale, rank.auraColor, 0.7);
+      this.addAt(this.aura, 0); // ganz nach unten, unter Schatten und Bild
+      this.scene.tweens.add({ targets: this.aura, alpha: 0.25, duration: 800, yoyo: true, repeat: -1 });
+    }
+    this.spawnCount++;
   }
 
   /** Kann die Spielfigur diesen Gegner gerade anwählen und treffen? */
@@ -73,6 +139,14 @@ export class Enemy extends Actor {
    */
   update(deltaMs: number, grid: Grid, player: Actor, strike: (enemy: Enemy) => void): void {
     let walking = false;
+    if (this.state === 'idle' || this.state === 'chase') {
+      if (this.hasTrait('regenerierend')) this.heal((this.maxHp * TRAIT_VALUES.regenerierend.hpPerSecond * deltaMs) / 1000);
+      // Rasende Elites färben sich rot, solange sie unter der Schwelle sind.
+      if (this.enraged !== this.enragedShown) {
+        this.enragedShown = this.enraged;
+        this.setBaseTint(this.enraged ? TRAIT_VALUES.rasend.tint : null);
+      }
+    }
     switch (this.state) {
       case 'dead':
         this.respawnIn -= deltaMs;
@@ -84,7 +158,7 @@ export class Enemy extends Actor {
           this.startChase();
         } else {
           this.wander(deltaMs, grid);
-          walking = this.followPath(this.def.speed * 0.4, deltaMs);
+          walking = this.followPath(this.speed * 0.4, deltaMs);
         }
         break;
 
@@ -108,17 +182,17 @@ export class Enemy extends Actor {
         if (distance <= MELEE_RANGE) {
           this.face(player.pos.x);
           if (this.attackCooldown <= 0) {
-            this.attackCooldown = this.def.attackIntervalMs;
+            this.attackCooldown = this.attackIntervalMs;
             this.lungeAt(player.pos);
             strike(this);
           }
         }
-        walking = this.followPath(this.def.speed, deltaMs);
+        walking = this.followPath(this.speed, deltaMs);
         break;
       }
 
       case 'return':
-        walking = this.followPath(this.def.speed * 1.5, deltaMs);
+        walking = this.followPath(this.speed * 1.5, deltaMs);
         if (!walking) this.state = 'idle';
         break;
     }
@@ -164,14 +238,16 @@ export class Enemy extends Actor {
 
   private die(): void {
     this.state = 'dead';
-    this.respawnIn = ENEMY_RESPAWN_MS;
+    this.respawnIn = this.rank === 'boss' ? BOSS_RESPAWN_MS : ENEMY_RESPAWN_MS;
     this.stop();
     this.scene.tweens.add({ targets: this, alpha: 0, duration: 350, onComplete: () => this.setVisible(false) });
   }
 
   private respawn(): void {
     this.state = 'idle';
-    this.hp = this.maxHp;
+    this.rollRank(); // neu würfeln: mit kleiner Chance steht jetzt eine Elite hier
+    this.enragedShown = false;
+    this.setBaseTint(null);
     this.pos.set(this.home.x, this.home.y);
     this.wanderIn = randomBetween(2000, 6000);
     this.draw(false, 1000); // 1000 ms: setzt auch ein hängengebliebenes Aufblitzen zurück

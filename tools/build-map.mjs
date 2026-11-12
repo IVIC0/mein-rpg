@@ -51,7 +51,7 @@ const ENEMY_GROUPS = {
   lichtung: { ratte: [3, 3, 3, 3], spinne: [3, 4, 4] },
   suedlichtung: { spinne: [5, 5, 5, 6] },
   ostlichtung: { spinne: [6, 6, 7], wegelagerer: [7, 7] },
-  ruine: { wegelagerer: [8, 8, 9, 9, 10] },
+  ruine: { wegelagerer: [8, 8, 9, 9, 10], raeuberhauptmann: [10] }, // der Hauptmann ist der Boss (src/data/enemies.ts)
 };
 
 // ---------------------------------------------------------------- Helfer

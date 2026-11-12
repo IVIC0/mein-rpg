@@ -62,6 +62,35 @@
   color: #8a8a80;
 }
 
+/* Zeile unter dem Namen: Rang und Eigenschaften einer Elite bzw. "Boss". Bei normalen Gegnern leer. */
+#target-rank {
+  font-size: 11px;
+  font-weight: bold;
+  text-shadow: 0 1px 0 #000;
+}
+
+#target-rank:empty {
+  display: none;
+}
+
+#target-frame.rank-elite {
+  border-color: #ffc83d;
+}
+
+#target-frame.rank-elite #target-name,
+#target-frame.rank-elite #target-rank {
+  color: #ffc83d;
+}
+
+#target-frame.rank-boss {
+  border-color: #d23bff;
+}
+
+#target-frame.rank-boss #target-name,
+#target-frame.rank-boss #target-rank {
+  color: #e69bff;
+}
+
 .bar {
   position: relative;
   height: 16px;
@@ -588,6 +617,45 @@
 
 .nameplate.selected .nameplate-bar {
   border-color: #e8d9a0;
+}
+
+/* Elite: goldener Name, Eigenschaften darunter, breiterer Balken. */
+.nameplate-traits {
+  font-size: 10px;
+}
+
+.nameplate-traits:empty {
+  display: none;
+}
+
+.nameplate.rank-elite {
+  font-size: 12px;
+}
+
+.nameplate.rank-elite .nameplate-name,
+.nameplate.rank-elite .nameplate-traits {
+  color: #ffc83d;
+}
+
+.nameplate.rank-elite .nameplate-bar {
+  width: 60px;
+  height: 7px;
+  border-color: #ffc83d;
+}
+
+/* Boss: noch größer, lila. */
+.nameplate.rank-boss {
+  font-size: 15px;
+}
+
+.nameplate.rank-boss .nameplate-name {
+  color: #e69bff;
+}
+
+.nameplate.rank-boss .nameplate-bar {
+  width: 96px;
+  height: 9px;
+  border-color: #d23bff;
 }
 
 /* ---------------------------------------------------------------- Fenster "Charakter & Inventar" */

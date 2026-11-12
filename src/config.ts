@@ -48,6 +48,9 @@ export const ARMOR = { maxReduction: 0.75, halfAt: 100 };
 /** Ein getöteter Gegner erscheint nach dieser Zeit wieder an seinem Platz. */
 export const ENEMY_RESPAWN_MS = 30000;
 
+/** Ein Boss braucht länger, bis er wieder da ist (5 Minuten). */
+export const BOSS_RESPAWN_MS = 300000;
+
 /** So lange bleibt die Figur nach dem Tod liegen, bevor sie im Dorf aufwacht. */
 export const PLAYER_RESPAWN_MS = 3000;
 

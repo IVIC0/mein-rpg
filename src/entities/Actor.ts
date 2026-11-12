@@ -25,6 +25,9 @@ export abstract class Actor extends Phaser.GameObjects.Container {
   maxHp: number;
 
   protected readonly sprite: Phaser.GameObjects.Sprite;
+  private readonly shadow: Phaser.GameObjects.Image;
+  /** Größe des Bildes (1 = normal). Elite und Boss sind größer – siehe setBodyScale. */
+  bodyScale = 1;
   /** Größer als 0 = die Figur wird vor allen anderen gezeichnet (z. B. während des Waffenschwungs). */
   protected depthBias = 0;
   private waypoints: Point[] = [];
@@ -47,9 +50,9 @@ export abstract class Actor extends Phaser.GameObjects.Container {
     this.pos = new Phaser.Math.Vector2(x, y);
     this.maxHp = maxHp;
     this.hp = maxHp;
-    const shadow = scene.add.image(0, 5, 'shadow').setAlpha(0.25);
+    this.shadow = scene.add.image(0, 5, 'shadow').setAlpha(0.25);
     this.sprite = scene.add.sprite(0, SPRITE_OFFSET_Y, 'characters', frame);
-    this.add([shadow, this.sprite]);
+    this.add([this.shadow, this.sprite]);
     scene.add.existing(this);
     this.draw(false, 0);
   }
@@ -97,6 +100,13 @@ export abstract class Actor extends Phaser.GameObjects.Container {
       ease: 'Quad.easeOut',
       yoyo: true,
     });
+  }
+
+  /** Macht das Bild größer oder kleiner. Die Füße bleiben dabei am Standpunkt. */
+  protected setBodyScale(scale: number): void {
+    this.bodyScale = scale;
+    this.sprite.setScale(scale);
+    this.shadow.setScale(scale);
   }
 
   /** Lässt die Figur kurz weiß aufblitzen (Treffer). */
@@ -167,7 +177,9 @@ export abstract class Actor extends Phaser.GameObjects.Container {
       this.flashMs -= deltaMs;
       if (this.flashMs <= 0) this.applyTint();
     }
-    this.sprite.setPosition(snap(this.lunge.x + this.recoil.x), SPRITE_OFFSET_Y - snap(hop) + snap(this.lunge.y + this.recoil.y));
+    // Das Bild ist 16 Pixel hoch; bei größeren Figuren rückt es nach oben, damit die Füße unten bleiben.
+    const baseY = SPRITE_OFFSET_Y - 8 * (this.bodyScale - 1);
+    this.sprite.setPosition(snap(this.lunge.x + this.recoil.x), baseY - snap(hop) + snap(this.lunge.y + this.recoil.y));
     this.setPosition(snap(this.pos.x), snap(this.pos.y));
     this.setDepth(BASE_DEPTH + this.depthBias + this.pos.y / 10000);
   }
