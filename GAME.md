@@ -40,9 +40,11 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     das Ziel, wechselt sie zum nächsten Angreifer.
 - **Skills:** lösen automatisch aus, es gibt keine Skill-Tasten. Die Tasten `1`–`6`
   entfallen. *(Entschieden, umgesetzt – siehe Abschnitt 4 und 5)*
-- **Fenster:** `I` Inventar, `C` Charakter, `T` Talente, `Esc` schließen/Menü. *(Vorschlag)*
+- **Fenster:** `I` oder `C` öffnet „Charakter & Inventar" (ein gemeinsames Fenster), `Esc`
+  schließt es. Unten rechts gibt es dafür auch einen Knopf. *(Umgesetzt)*
+  `T` Talente kommt mit dem Talentbaum. *(Vorschlag)*
 - **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
-- **Tränke:** `Q` Heiltrank, `E` Manatrank. *(Vorschlag)*
+- **Tränke:** `Q` Heiltrank. *(Vorschlag, kommt mit dem Händler)* Einen Manatrank gibt es nicht.
 
 ## 3. Perspektive & Grafik
 
@@ -63,8 +65,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 - **Stil:** sehr simpel – Ziel anwählen + Auto-Angriff, die Skills lösen von selbst aus. *(Entschieden, umgesetzt)*
   - Der Auto-Angriff ist unverändert: Ziel anklicken, die Figur läuft hin und schlägt zu.
   - Skills werden nie gedrückt. Jeder Skill hat eine Auslöse-Bedingung (z. B. „jeder
-    5. Schlag"); trifft sie zu, löst er aus – sofern er freigeschaltet und abgeklungen ist
-    und das Mana reicht.
+    5. Schlag"); trifft sie zu, löst er aus – sofern er freigeschaltet und abgeklungen ist.
   - Angriffs-Skills (Wuchtschlag, Rundumschlag) ersetzen einen Auto-Angriff: der Schlag
     *wird* zum Skill. Treffen bei einem Schlag beide zu, gewinnt der Wuchtschlag (er steht
     im Skill-Balken weiter vorn).
@@ -74,19 +75,18 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     Skills auf.
   - Bedingungen und Werte stehen pro Skill in `src/data/warrior.ts` (`trigger`, `effect`),
     damit Loot und Talente sie später verbessern können (z. B. jeder 4. statt jeder 5. Schlag).
-- **Ressource:** Mana + Cooldowns. Mana regeneriert sich, schneller außerhalb des Kampfes. *(Entschieden, umgesetzt)*
-  - Auch automatisch ausgelöste Skills kosten Mana; reicht es nicht, löst der Skill nicht aus
-    (im Balken grau). *(Vorschlag – siehe Offene Punkte)*
-  - 1 Mana pro Sekunde im Kampf, 5 außerhalb. Außerhalb des Kampfes kommen auch 5 % des
-    Lebens pro Sekunde zurück. „Im Kampf" heißt: der letzte Treffer (ausgeteilt oder
-    kassiert) ist höchstens 5 Sekunden her.
+- **Ressource:** Der Krieger hat **kein Mana**. Skills hängen nur an ihrer Bedingung und
+  ihrer Abklingzeit. *(Entschieden, umgesetzt)*
+  - Mana-Balken, Manakosten und Manatrank sind gestrichen. Mana kommt eventuell später
+    als Ressource des Magiers zurück.
+  - Außerhalb des Kampfes kommen 5 % des Lebens pro Sekunde zurück. „Im Kampf" heißt:
+    der letzte Treffer (ausgeteilt oder kassiert) ist höchstens 5 Sekunden her.
 - **Tod:** Respawn in der Stadt mit kleinem Gold-/EP-Verlust, kein Itemverlust. *(Entschieden)*
-  - Umgesetzt: Die Figur bleibt 3 Sekunden liegen und wacht dann mit vollem Leben und
-    Mana im Dorf auf.
+  - Umgesetzt: Die Figur bleibt 3 Sekunden liegen und wacht dann mit vollem Leben im Dorf auf.
   - EP-Abzug *(Umgesetzt)*: 5 % der EP, die die aktuelle Stufe braucht – höchstens so viel,
     wie man in der Stufe schon gesammelt hat, also nie Stufenverlust. Der Todes-Bildschirm
     zeigt den Verlust an.
-  - Gold-Abzug (5 %) *(Vorschlag)* kommt mit Meilenstein 5; vorher gibt es kein Gold.
+  - Gold-Abzug *(Umgesetzt)*: 5 % des Goldes. Items gehen nie verloren.
 - **Gegner-Verhalten** *(Umgesetzt)*:
   - Aggro: Ein Gegner greift an, wenn die Figur in seinem Radius steht (3–4,5 Kacheln je
     nach Typ) und kein Hindernis die Sicht versperrt – oder wenn er getroffen wird.
@@ -96,7 +96,8 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   - Im Leerlauf schlendern Gegner ein paar Schritte um ihren Platz.
 - **Schadensformel** *(Umgesetzt)*: Schaden = Angriffskraft × Skill-Faktor × Streuung
   (85–115 %) × 100 / (100 + Rüstung), mindestens 1. 100 Rüstung halbieren den Schaden.
-  Kritische Treffer (Krieger: 5 % Chance) machen 150 %.
+  Kritische Treffer (Krieger: 5 % Chance) machen 150 %. Ausrüstung erhöht Angriffskraft,
+  Rüstung, Krit-Chance und Krit-Schaden (siehe Abschnitt 7).
 - **Treffer-Feedback** *(Entschieden, umgesetzt)*:
   - Angriff der Figur: kurzer Ausfallschritt Richtung Ziel und ein sichtbarer Waffenschwung
     (Schwert im Bogen mit heller Spur). Wuchtschlag schwingt weiter aus, Rundumschlag
@@ -108,11 +109,12 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     für erhaltene EP. Alle Zahlen sind groß und haben eine kräftige dunkle
     Umrandung, damit sie auf jedem Untergrund lesbar sind.
 - **Nahkampf-Reichweite:** 22 Pixel, also knapp anderthalb Kacheln. *(Umgesetzt)*
-- **Krieger auf Stufe 1** *(Umgesetzt)*: 120 Leben, 50 Mana, 12 Angriffskraft, 10 Rüstung,
+- **Krieger auf Stufe 1** *(Umgesetzt)*: 120 Leben, 12 Angriffskraft, 10 Rüstung,
   ein Auto-Angriff alle 1,8 Sekunden. Zuwachs pro Stufe: siehe Abschnitt 6.
 
 Alle Zahlen sind Startwerte fürs Balancing und stehen in `src/config.ts`,
-`src/data/warrior.ts`, `src/data/enemies.ts` und `src/data/progression.ts`.
+`src/data/warrior.ts`, `src/data/enemies.ts` und `src/data/progression.ts`
+(Loot: `src/data/items.ts`, `src/data/loot.ts`, `src/data/stats.ts`).
 
 ## 5. Klassen
 
@@ -122,16 +124,16 @@ Alle Zahlen sind Startwerte fürs Balancing und stehen in `src/config.ts`,
 
 Krieger-Skills für V1 *(Umgesetzt; Zahlen sind Startwerte fürs Balancing)*:
 
-| Skill | Ab Stufe | Löst aus | Mana | Cooldown | Wirkung |
-|---|---|---|---|---|---|
-| Wuchtschlag | 1 | jeder 5. Schlag | 10 | – | 220 % Schaden auf das Ziel |
-| Rundumschlag | 3 | ab 3 angreifenden Gegnern in Reichweite (28 Pixel) | 15 | 10 s | 130 % Schaden an allen Gegnern in Reichweite |
-| Kriegsschrei | 5 | zu Kampfbeginn | 15 | 30 s | 10 Sekunden lang 30 % mehr Angriffskraft |
-| Schildwall | 8 | unter 30 % Leben (im Kampf) | 20 | 60 s | 8 Sekunden lang 60 % weniger erlittener Schaden |
+| Skill | Ab Stufe | Löst aus | Cooldown | Wirkung |
+|---|---|---|---|---|
+| Wuchtschlag | 1 | jeder 5. Schlag | – | 220 % Schaden auf das Ziel |
+| Rundumschlag | 3 | ab 3 angreifenden Gegnern in Reichweite (28 Pixel) | 10 s | 130 % Schaden an allen Gegnern in Reichweite |
+| Kriegsschrei | 5 | zu Kampfbeginn | 30 s | 10 Sekunden lang 30 % mehr Angriffskraft |
+| Schildwall | 8 | unter 30 % Leben (im Kampf) | 60 s | 8 Sekunden lang 60 % weniger erlittener Schaden |
 
 - Die Bedingungen sind von dir vorgegeben *(Entschieden)*, die Zahlen sind Startwerte fürs Balancing.
 - Wuchtschlag: Der Zähler läuft über Kämpfe hinweg weiter und zählt jeden Schlag (auch
-  einen Rundumschlag). Reicht das Mana beim 5. Schlag nicht, bleibt er bei 4/5 stehen.
+  einen Rundumschlag).
 - Kriegsschrei: löst mit dem ersten Schlag aus (oder wenn die Figur getroffen wird). Dauert
   ein Kampf länger als die Abklingzeit, löst er im selben Kampf erneut aus. *(Vorschlag)*
 - Schildwall: war er beim Unterschreiten noch nicht bereit, löst er aus, sobald er es ist.
@@ -142,7 +144,7 @@ Krieger-Skills für V1 *(Umgesetzt; Zahlen sind Startwerte fürs Balancing)*:
 
 - **Maximallevel 60**, bewusst langsam – mehrere Wochen. *(Entschieden)*
 - **Talentbaum** als einziges Auswahlsystem beim Leveln. *(Entschieden)*
-- Grundwerte (Leben, Mana, Stärke …) steigen pro Level automatisch – keine frei
+- Grundwerte (Leben, Angriffskraft, Rüstung …) steigen pro Level automatisch – keine frei
   verteilbaren Attributpunkte. *(folgt aus deiner Auswahl)*
 - 1 Talentpunkt pro Level ab Level 2 (59 Punkte auf 60). *(Vorschlag)*
 - Pro Klasse 3 Bäume (Krieger z. B. Waffen / Wut / Schutz) mit passiven Boni und
@@ -151,9 +153,10 @@ Krieger-Skills für V1 *(Umgesetzt; Zahlen sind Startwerte fürs Balancing)*:
 - Talente gegen Gold zurücksetzbar. *(Vorschlag)*
 - Zieltempo: ca. 40–60 Spielstunden bis Level 60. *(Vorschlag, wird durch Balancing eingestellt)*
 
-Attribute *(Vorschlag)*: Stärke, Geschick, Intelligenz, Ausdauer. Daraus abgeleitet:
-Leben, Mana, Angriffskraft, Rüstung, Krit-Chance, Krit-Schaden, Angriffstempo,
-Lebens-/Manaregeneration.
+Attribute *(Umgesetzt mit dem Loot, Zahlen sind Startwerte)*: Stärke, Ausdauer, Geschick.
+Sie kommen von der Ausrüstung und werden umgerechnet: 1 Stärke = 1 Angriffskraft,
+1 Ausdauer = 6 Leben, 1 Geschick = 0,5 Prozentpunkte Krit-Chance (`src/data/stats.ts`).
+Intelligenz und Mana gibt es beim Krieger nicht – sie kommen eventuell mit dem Magier.
 
 ### Leveln in V1: Stufe 1–10 *(Umgesetzt, Zahlen sind Startwerte fürs Balancing)*
 
@@ -166,17 +169,19 @@ Lebens-/Manaregeneration.
   |---|---|---|---|---|---|---|---|---|---|
   | EP nötig | 120 | 300 | 625 | 1050 | 1750 | 2600 | 3600 | 5000 | 6600 |
 
-- **Wertezuwachs pro Stufe** (Krieger): +18 Leben, +5 Mana, +3 Angriffskraft, +4 Rüstung.
-  Auf Stufe 10 also 282 Leben, 95 Mana, 39 Angriffskraft, 46 Rüstung.
-- **Stufenaufstieg:** Leben und Mana sind sofort wieder voll, eine Meldung zeigt die neue
+- **Wertezuwachs pro Stufe** (Krieger): +18 Leben, +3 Angriffskraft, +4 Rüstung.
+  Auf Stufe 10 also 282 Leben, 39 Angriffskraft, 46 Rüstung (ohne Ausrüstung).
+- **Stufenaufstieg:** Das Leben ist sofort wieder voll, eine Meldung zeigt die neue
   Stufe, den Zuwachs und neu freigeschaltete Skills.
 - **Anzeige:** Stufe und EP-Balken im Rahmen oben links. Im Zielrahmen ist die Stufe des
   Gegners rot, wenn er 2 oder mehr Stufen über der Figur liegt, und grau, wenn er nur noch
   verringerte EP bringt.
-- Die Attribute (Stärke, Ausdauer …) kommen erst mit dem Loot (Meilenstein 5). Bis dahin
-  steigen Leben, Mana, Angriffskraft und Rüstung direkt. *(Vorschlag)*
+- Leben, Angriffskraft und Rüstung steigen pro Stufe direkt. Die Attribute (Stärke,
+  Ausdauer, Geschick) kommen nur von der Ausrüstung. *(Vorschlag)*
 - **Zum Testen:** `?stufe=5` an die Adresse hängen, dann startet die Figur auf Stufe 5.
-  Solange es kein Speichern gibt (Meilenstein 7), beginnt jedes Neuladen wieder auf Stufe 1.
+  `?beute=12` legt 12 gewürfelte Items ins Inventar (jede Seltenheit reihum); beides
+  zusammen: `?stufe=5&beute=12`. Solange es kein Speichern gibt (Meilenstein 7), beginnt
+  jedes Neuladen wieder auf Stufe 1 und mit leerem Inventar.
 
 Alle Werte stehen in `src/data/progression.ts` (Kurve, EP) und `src/data/warrior.ts` (Zuwachs).
 
@@ -216,6 +221,66 @@ Weitere Regeln *(Vorschlag)*:
 - Deutsche Itemnamen brauchen das grammatische Geschlecht pro Basis-Item
   („Scharfes Schwert", „Scharfe Axt", „Scharfer Dolch") – der Namensgenerator muss das können.
 - Begrenztes Inventar (z. B. 40 Plätze), damit Händlerbesuche einen Sinn haben.
+
+### Loot in V1 *(Umgesetzt, Zahlen sind Startwerte fürs Balancing)*
+
+- **Drops:** Jeder besiegte Gegner gibt Gold (Stufe 1: 2–5, Stufe 10: 11–14) und lässt mit
+  30 % Chance ein Item fallen. Itemlevel = Stufe des Gegners. Die Seltenheit wird nach der
+  Tabelle oben gewürfelt.
+- **Aufheben:** Das Item liegt mit einem Schein in der Farbe seiner Seltenheit am Boden
+  (ab Selten zusätzlich ein Lichtstrahl). Läuft die Figur darüber, wandert es ins Inventar;
+  der Name steigt über der Figur auf und steht kurz unten links in der Beute-Liste. Ist das
+  Inventar voll, bleibt es liegen. Nach 3 Minuten verschwindet es.
+- **Basis-Items** (11 Stück): Schwert, Axt, Dolch (Angriffskraft) · Holzschild, Rundschild,
+  Helm, Rüstung, Handschuhe, Stiefel (Rüstung) · Amulett (Leben) · Ring (Angriffskraft).
+  Der feste Wert wächst mit dem Itemlevel und streut um ±15 %. Erst wird die Art gewürfelt
+  (jede gleich oft), dann das Basis-Item.
+
+  | Basis-Item | Wert | Itemlevel 1 | Itemlevel 10 |
+  |---|---|---|---|
+  | Schwert, Axt, Dolch | Angriffskraft | 3 | 14 |
+  | Holzschild, Rundschild | Rüstung | 4 | 18 |
+  | Rüstung (Brust) | Rüstung | 5 | 19 |
+  | Helm | Rüstung | 3 | 10 |
+  | Handschuhe, Stiefel | Rüstung | 2 | 7 |
+  | Amulett | Leben | 8 | 35 |
+  | Ring | Angriffskraft | 1 | 4 |
+
+- **Affixe** (9 Stück): Präfixe geben direkte Werte, Suffixe Attribute. Die Spanne wächst
+  pro Itemlevel um den angegebenen Anteil; der Wurf landet irgendwo dazwischen.
+
+  | Affix | Wert | Auf | Itemlevel 1 | Itemlevel 10 |
+  |---|---|---|---|---|
+  | Scharf… | Angriffskraft | Waffe | 1–3 | 3–10 |
+  | Gehärtet… | Rüstung | alles außer Waffe | 2–4 | 7–13 |
+  | Leicht… | Angriffstempo | Waffe, Handschuhe | 3–5 % | 6–10 % |
+  | Tödlich… | Krit-Schaden | Waffe, Handschuhe, Amulett, Ring | 5–10 % | 12–24 % |
+  | Blutig… | Lebensraub | Waffe, Amulett, Ring | 1–2 % | 2–4 % |
+  | … der Stärke | Stärke | alles | 1–2 | 3–7 |
+  | … der Ausdauer | Ausdauer | alles | 1–2 | 3–7 |
+  | … des Geschicks | Geschick | alles | 1–2 | 3–7 |
+  | … der Erholung | Leben pro Sekunde (auch im Kampf) | alles | 0,3–0,6 | 1,0–2,0 |
+
+  Lebensraub heilt um den Anteil des ausgeteilten Schadens. Angriffstempo verkürzt die Zeit
+  zwischen zwei Schlägen (10 % = 1,8 s → 1,64 s).
+- **Namen:** [Präfix] Basis [Suffix], z. B. „Scharfes Schwert der Stärke". Das Präfix richtet
+  sich nach dem Geschlecht (Scharfer Dolch, Scharfe Axt, Scharfes Schwert, Gehärtete Stiefel).
+  Hat ein Item mehrere Präfixe oder Suffixe, steht nur das erste im Namen.
+- **Inventar:** 40 Plätze. Linksklick legt ein Item an (das bisher angelegte kommt an seinen
+  Platz), Linksklick auf Ausrüstung legt sie ab, Umschalt + Linksklick wirft ein Item weg.
+  Ein Ring geht in den freien Ring-Platz; sind beide belegt, ersetzt er Ring 1.
+- **Tooltip:** Name in der Farbe der Seltenheit, Itemlevel, jeder Wert mit seiner Spanne
+  (so sieht man, wie gut der Wurf war) und der Vergleich mit dem angelegten Item: was beim
+  Anlegen dazukommt (grün) und wegfällt (rot), Attribute schon umgerechnet.
+- **Charakterwerte** stehen im selben Fenster und ändern sich sofort beim Anlegen. Die
+  angelegte Waffe ist auch beim Zuschlagen zu sehen.
+- **Symbole:** Waffen und Schilde stammen aus „Tiny Dungeon". Helm, Rüstung, Handschuhe,
+  Stiefel, Amulett und Ring fehlen dort und sind selbst gezeichnet (`tools/lib/item-icons.mjs`).
+- Noch nicht dabei: Verkaufen und Tränke (Händler, Meilenstein 8), besseres Loot von
+  Elites (Meilenstein 6), Speichern des Inventars (Meilenstein 7).
+
+Alle Werte stehen in `src/data/items.ts` (Seltenheiten, Basis-Items, Affixe),
+`src/data/loot.ts` (Drop-Chance, Gold, Inventargröße) und `src/data/stats.ts` (Attribute).
 
 ## 8. Elite-Gegner
 
@@ -303,9 +368,9 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 |---|---|---|---|
 | 1 ✅ | Setup + Deploy | Vite + TS + Phaser, GitHub-Pages-Action, leere Szene | die Seite unter der Pages-URL lädt |
 | 2 ✅ | Karte + Bewegung | Tilemap Grünwald, Kollision, Klick-Laufen mit Wegfindung, Kamera folgt | man um Bäume herum durch die Zone laufen kann |
-| 3 ✅ | Kampf | Ziel wählen, Auto-Angriff, 3 Gegnertypen mit Aggro/Leash/Respawn, Leben/Mana-Balken, 4 Krieger-Skills, Tod + Respawn | man Gegner töten und sterben kann |
+| 3 ✅ | Kampf | Ziel wählen, Auto-Angriff, 3 Gegnertypen mit Aggro/Leash/Respawn, Lebensbalken, 4 Krieger-Skills, Tod + Respawn | man Gegner töten und sterben kann |
 | 4 ✅ | Leveln | EP, Levelkurve 1–10, Wertezuwachs, Skill-Freischaltung auf festen Stufen | Level 10 erreichbar ist und sich stärker anfühlt |
-| 5 | Loot | Item-Generator (Affixe, 6 Seltenheiten, Itemlevel), Drops, Inventar, Ausrüstung, Tooltip mit Vergleich | ein Fund die Werte sichtbar verbessert |
+| 5 ✅ | Loot | Item-Generator (Affixe, 6 Seltenheiten, Itemlevel), Drops, Inventar, Ausrüstung, Tooltip mit Vergleich | ein Fund die Werte sichtbar verbessert |
 | 6 | Elites | Zufällige Elite-Spawns mit 1–3 Eigenschaften und besserem Loot | Elites erkennbar gefährlicher und lohnender sind |
 | 7 | Speichern | Auto-Save, Export/Import, Versionsnummer | Seite neu laden nichts verliert |
 | 8 | Händler + Feinschliff | 1 Händler (verkaufen, Tränke kaufen), Balancing, `CREDITS.md` | Gold und volles Inventar einen Zweck haben |
@@ -342,9 +407,15 @@ Die Ecke oben rechts bleibt im HUD für die Minimap frei.
    ein weiteres CC0-Pack mit Waldtieren suchen?
 4. Skill-Symbole sind vorerst Waffenbilder aus „Tiny Dungeon" (Hammer, Axt, Schwert,
    Schild). Eigene Symbole wären schöner.
-5. Mana bei automatischen Skills: Vorerst kosten sie weiter Mana. In langen Kämpfen kann
-   das Mana ausgehen – dann fehlt es womöglich gerade für den Schildwall. Im Spiel erproben;
-   Alternativen: Kosten senken, Mana für den Schildwall reservieren oder Mana ganz streichen.
+5. Mana: beim Krieger gestrichen *(Entschieden)*. Ob der Magier später Mana bekommt, ist offen.
 6. Balancing: Levelkurve, Wertezuwachs, Gegnerstufen und Skill-Stufen sind erste
    Schätzungen (Ziel: 2–3 Stunden bis Stufe 10) und müssen im Spiel erprobt werden.
-   Mit dem Loot (Meilenstein 5) verschiebt sich die Stärke der Figur noch einmal.
+   Mit Ausrüstung ist die Figur jetzt deutlich stärker (auf Stufe 10 grob +50 % Angriffskraft
+   und doppelte Rüstung) – eventuell müssen die Gegner nachziehen.
+7. Loot-Balancing: Drop-Chance (30 %), Gold pro Gegner, Wertespannen der Affixe und die
+   Umrechnung der Attribute sind erste Schätzungen.
+8. Inventar ohne Händler: Bis Meilenstein 8 kann man überzählige Items nur wegwerfen, und
+   Gold hat noch keinen Zweck.
+9. Vielfalt: Jede Item-Art außer der Waffe hat erst 5–7 mögliche Affixe, die drei Waffen
+   unterscheiden sich nur im Aussehen. Mehr Affixe und eigene Waffenwerte (z. B. Dolch
+   schneller, Axt stärker) wären ein möglicher Ausbau.

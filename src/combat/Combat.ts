@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { MELEE_APPROACH, MELEE_RANGE, PLAYER_RESPAWN_MS } from '../config';
-import { DEATH_XP_LOSS, xpForKill } from '../data/progression';
-import { SKILLS, WARRIOR, type SkillDef } from '../data/warrior';
+import { DEATH_GOLD_LOSS, DEATH_XP_LOSS, xpForKill } from '../data/progression';
+import { SKILLS, type SkillDef } from '../data/warrior';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
+import type { GroundLoot } from '../items/GroundLoot';
+import type { Inventory } from '../items/Inventory';
 import type { FloatingText } from '../ui/FloatingText';
 import type { Hud } from '../ui/Hud';
 import type { Grid, Point } from '../world/Grid';
@@ -22,7 +24,7 @@ const ATTACKER_RADIUS = 80;
 /**
  * Die Kampfregeln: Ziel wählen, hinlaufen, Auto-Angriff, Skills, die von selbst
  * auslösen (Bedingungen in src/data/warrior.ts), Schaden in
- * beide Richtungen, EP und Stufenaufstieg, Tod und Respawn der Spielfigur.
+ * beide Richtungen, EP und Stufenaufstieg, Beute, Tod und Respawn der Spielfigur.
  */
 export class Combat {
   /** Der angewählte Gegner. */
@@ -42,6 +44,8 @@ export class Combat {
     private readonly hud: Hud,
     private readonly floaters: FloatingText,
     private readonly respawnPoint: Point,
+    private readonly inventory: Inventory,
+    private readonly loot: GroundLoot,
   ) {
     this.ring = scene.add.image(0, 0, 'target-ring').setDepth(6).setVisible(false);
   }
@@ -98,6 +102,7 @@ export class Combat {
 
     for (const enemy of this.enemies) enemy.update(deltaMs, this.grid, player, this.enemyStrikes);
     this.spreadEnemies();
+    this.loot.update(deltaMs, player);
 
     // Ziel tot oder auf dem Rückweg: Auswahl aufheben.
     if (this.target && !this.target.targetable) this.clearTarget();
@@ -136,7 +141,7 @@ export class Combat {
     const target = this.target;
     if (!target || !target.targetable || player.attackCooldown > 0) return;
     if (player.distanceTo(target.pos) > MELEE_RANGE) return;
-    player.attackCooldown = WARRIOR.attackIntervalMs;
+    player.attackCooldown = player.attackIntervalMs;
     // Der Kampf beginnt mit dem Ausholen: so gilt z. B. der Kriegsschrei schon für den ersten Schlag.
     player.enterCombat();
     this.fireBuffSkills();
@@ -172,12 +177,11 @@ export class Combat {
     }
   }
 
-  /** Kann der Skill jetzt auslösen? Freigeschaltet, abgeklungen, genug Mana und Bedingung erfüllt. */
+  /** Kann der Skill jetzt auslösen? Freigeschaltet, abgeklungen und Bedingung erfüllt. */
   private canFire(skill: SkillDef): boolean {
     const player = this.player;
     if (player.level < skill.unlockLevel) return false;
     if ((player.cooldowns.get(skill.id) ?? 0) > 0) return false;
-    if (player.mana < skill.manaCost) return false;
 
     const trigger = skill.trigger;
     switch (trigger.type) {
@@ -193,22 +197,31 @@ export class Combat {
     }
   }
 
-  /** Bezahlt den Skill, startet seine Abklingzeit und zeigt an, dass er ausgelöst hat. */
+  /** Startet die Abklingzeit des Skills und zeigt an, dass er ausgelöst hat. */
   private fire(skill: SkillDef): void {
     const player = this.player;
-    player.mana -= skill.manaCost;
     player.cooldowns.set(skill.id, skill.cooldownMs);
     this.hud.flashSkill(skill.id);
     this.floaters.spawn(player.pos.x, player.pos.y - 24, `${skill.name}!`, 'info');
   }
 
   private hitEnemy(enemy: Enemy, multiplier: number): void {
-    const hit = rollHit(this.player.attackPower, enemy.armor, multiplier, WARRIOR.critChance, WARRIOR.critMultiplier);
-    this.player.enterCombat();
+    const player = this.player;
+    const hit = rollHit(player.attackPower, enemy.armor, multiplier, player.critChance, player.critMultiplier);
+    player.enterCombat();
+    // Lebensraub zählt nur den Schaden, der wirklich ankommt (nicht mehr, als der Gegner noch Leben hat).
+    const stolen = Math.min(hit.amount, enemy.hp) * player.lifeSteal;
     enemy.takeDamage(hit.amount);
-    enemy.recoilFrom(this.player.pos);
+    enemy.recoilFrom(player.pos);
     this.floaters.spawn(enemy.pos.x, enemy.pos.y - 16, hit.crit ? `${hit.amount}!` : `${hit.amount}`, hit.crit ? 'crit' : 'hit');
-    if (!enemy.alive) this.grantXp(enemy);
+    if (stolen > 0 && player.hp < player.maxHp) {
+      player.heal(stolen);
+      if (stolen >= 1) this.floaters.spawn(player.pos.x, player.pos.y - 8, `+${Math.round(stolen)}`, 'heal');
+    }
+    if (!enemy.alive) {
+      this.grantXp(enemy);
+      this.loot.dropFrom(enemy);
+    }
 
     // Ziel besiegt: gleich zum nächsten Angreifer wechseln, falls noch einer da ist.
     if (!enemy.alive && enemy === this.target) {
@@ -228,7 +241,7 @@ export class Combat {
     this.floaters.spawn(player.pos.x, player.pos.y - 16, `+${amount} EP`, 'xp');
     if (levelUps === 0) return;
 
-    // Aufstieg: Leben und Mana sind wieder voll, neue Skills werden angesagt.
+    // Aufstieg: das Leben ist wieder voll, neue Skills werden angesagt.
     const unlocked = SKILLS.filter((skill) => skill.unlockLevel > player.level - levelUps && skill.unlockLevel <= player.level);
     this.hud.showLevelUp(player.level, levelUps, unlocked);
     this.floaters.spawn(player.pos.x, player.pos.y - 26, `Stufe ${player.level}!`, 'level');
@@ -273,12 +286,12 @@ export class Combat {
     this.clearTarget();
     this.player.die();
     this.respawnIn = PLAYER_RESPAWN_MS;
-    this.hud.setDead(true, this.player.loseXp(DEATH_XP_LOSS));
+    this.hud.setDead(true, this.player.loseXp(DEATH_XP_LOSS), this.inventory.loseGold(DEATH_GOLD_LOSS));
   }
 
   private respawnPlayer(): void {
     this.player.revive(this.respawnPoint);
-    this.hud.setDead(false, 0);
+    this.hud.setDead(false, 0, 0);
   }
 
   /** Schiebt Angreifer auseinander, die aufeinander stehen – so umringen sie die Figur. */

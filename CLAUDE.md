@@ -11,7 +11,10 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/warrior.ts` – Werte, Zuwachs pro Stufe und Skills des Kriegers
      (Auslöse-Bedingung `trigger` und Wirkung `effect` je Skill)
    - `src/data/enemies.ts` – Gegnertypen und ihr Zuwachs pro Stufe
-   - `src/data/progression.ts` – Levelkurve, EP pro Gegner, EP-Verlust beim Tod
+   - `src/data/progression.ts` – Levelkurve, EP pro Gegner, EP- und Gold-Verlust beim Tod
+   - `src/data/items.ts` – Seltenheiten, Basis-Items und Affixe (Wertespannen, erlaubte Plätze)
+   - `src/data/loot.ts` – Drop-Chance, Gold pro Gegner, Inventargröße
+   - `src/data/stats.ts` – Werte auf Items und was ein Attributpunkt bringt
    - `tools/build-map.mjs` (Liste `ENEMY_GROUPS`) – welche Gegner mit welcher Stufe wo stehen;
      nach Änderungen `npm run assets`
 
@@ -35,9 +38,11 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 ## Konventionen
 
 - Kampf: Skills lösen automatisch aus, es gibt keine Skill-Tasten. Der Skill-Balken ist reine Anzeige.
+  Der Krieger hat kein Mana – Skills hängen nur an Bedingung und Abklingzeit.
+- Loot: Items sind einfache Daten (`Item` in `src/items/generator.ts`), damit sie sich später speichern lassen.
 - Sprache: Texte im Spiel, Kommentare und Doku auf Deutsch.
-- UI (Balken, Skill-Leiste, Schadenszahlen) ist HTML/CSS über dem Canvas:
-  `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`.
+- UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster) ist HTML/CSS über dem Canvas:
+  `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`.
 - `public/assets/` wird erzeugt – nicht von Hand ändern.
 - Die Versionsnummer in `package.json` folgt den Meilensteinen (Meilenstein 4 = 0.4.0).
 - Der Nutzer ist Programmier-Anfänger: Code knapp kommentieren, verständlich halten.

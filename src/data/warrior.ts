@@ -1,14 +1,14 @@
 // Werte und Skills des Kriegers. Skills lösen automatisch aus (siehe SkillTrigger).
+// Der Krieger hat kein Mana: Skills hängen nur an ihrer Bedingung und ihrer Abklingzeit.
 
 export const WARRIOR = {
   name: 'Krieger',
   // Grundwerte auf Stufe 1.
   maxHp: 120,
-  maxMana: 50,
   attackPower: 12,
   armor: 10,
-  /** Zuwachs pro Stufe ab Stufe 2. Auf Stufe 10: 282 Leben, 95 Mana, 39 Angriff, 46 Rüstung. */
-  perLevel: { maxHp: 18, maxMana: 5, attackPower: 3, armor: 4 },
+  /** Zuwachs pro Stufe ab Stufe 2. Auf Stufe 10: 282 Leben, 39 Angriff, 46 Rüstung. */
+  perLevel: { maxHp: 18, attackPower: 3, armor: 4 },
   /** 0.05 = 5 % Chance auf einen kritischen Treffer. */
   critChance: 0.05,
   /** Ein kritischer Treffer macht so viel mal Schaden. */
@@ -17,16 +17,13 @@ export const WARRIOR = {
   attackIntervalMs: 1800,
   /** Lebensregeneration außerhalb des Kampfes: Anteil des Maximums pro Sekunde. */
   hpRegenIdle: 0.05,
-  /** Mana pro Sekunde im Kampf und außerhalb. */
-  manaRegenCombat: 1,
-  manaRegenIdle: 5,
 };
 
 export type SkillId = 'wuchtschlag' | 'rundumschlag' | 'kriegsschrei' | 'schildwall';
 
 /**
  * Wann ein Skill von selbst auslöst – Skills werden nie per Taste benutzt.
- * Zusätzlich muss der Skill freigeschaltet und abgeklungen sein und das Mana reichen.
+ * Zusätzlich muss der Skill freigeschaltet und abgeklungen sein.
  */
 export type SkillTrigger =
   /** Jeder n-te Schlag der Figur wird zu diesem Skill (n: 5 = vier normale Schläge, dann der Skill). */
@@ -54,7 +51,6 @@ export interface SkillDef {
   name: string;
   /** Bild-Nummer des Symbols in assets/sprites/characters.png. */
   iconFrame: number;
-  manaCost: number;
   /** Abklingzeit in Millisekunden; 0 = keine, dann bestimmt allein die Bedingung den Takt. */
   cooldownMs: number;
   /** Ab dieser Stufe hat die Figur den Skill. */
@@ -78,7 +74,6 @@ export const SKILLS: SkillDef[] = [
     id: 'wuchtschlag',
     name: 'Wuchtschlag',
     iconFrame: 117,
-    manaCost: 10,
     cooldownMs: 0,
     unlockLevel: 1,
     trigger: { type: 'everyNthHit', n: 5 },
@@ -88,7 +83,6 @@ export const SKILLS: SkillDef[] = [
     id: 'rundumschlag',
     name: 'Rundumschlag',
     iconFrame: 118,
-    manaCost: 15,
     cooldownMs: 10000,
     unlockLevel: 3,
     trigger: { type: 'enemiesInRange', count: 3, radius: CLEAVE_RADIUS },
@@ -98,7 +92,6 @@ export const SKILLS: SkillDef[] = [
     id: 'kriegsschrei',
     name: 'Kriegsschrei',
     iconFrame: 107,
-    manaCost: 15,
     cooldownMs: 30000,
     unlockLevel: 5,
     trigger: { type: 'inCombat' },
@@ -108,7 +101,6 @@ export const SKILLS: SkillDef[] = [
     id: 'schildwall',
     name: 'Schildwall',
     iconFrame: 102,
-    manaCost: 20,
     cooldownMs: 60000,
     unlockLevel: 8,
     trigger: { type: 'lowHealth', hpFraction: 0.3 },

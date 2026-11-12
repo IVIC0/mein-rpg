@@ -1,7 +1,8 @@
 // Erzeugt die Spiel-Grafiken aus den Originalpaketen in assets-src/:
 //   public/assets/tilesets/gruenwald.png   Tiny Town + zusammengesetzte Waldkacheln
-//   public/assets/sprites/characters.png   Tiny Dungeon (Figuren, Gegner, Items)
+//   public/assets/sprites/characters.png   Tiny Dungeon (Figuren, Gegner, Items) + eigene Item-Symbole
 // Aufruf: npm run assets
+import { buildItemIcons } from './lib/item-icons.mjs';
 import { buildExtrudedSheet, countDifferentPixels, emptyTile, getTile, loadPng, over, savePng } from './lib/png.mjs';
 import { FOREST, PIECE, SHEET_COLUMNS, TOTAL_TILE_COUNT, TOWN_TILE_COUNT } from './lib/tiles.mjs';
 
@@ -40,6 +41,8 @@ export function buildTownTiles() {
 export function buildCharacterTiles() {
   const tiles = [];
   for (let i = 0; i < 132; i++) tiles.push(getTile(dungeon, i));
+  // Ab Bild 132: selbst gezeichnete Item-Symbole (Helm, Rüstung, Handschuhe, Stiefel, Amulett, Ring).
+  tiles.push(...buildItemIcons());
   return tiles;
 }
 

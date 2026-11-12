@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BODY_RADIUS, COMBAT_TIMEOUT_MS, PLAYER_SPEED, SWING, SWING_HOLD_MS, SWING_RADIUS, SWING_TRAIL_WIDTH, SWING_WEAPON_FRAME } from '../config';
 import { MAX_LEVEL, xpToNext } from '../data/progression';
+import { emptyStats, withAttributesApplied, type Stats } from '../data/stats';
 import { SKILLS, WARRIOR, warriorStat, type SkillDef, type SkillId } from '../data/warrior';
 import type { Grid, Point } from '../world/Grid';
 import { moveToward } from '../world/movement';
@@ -22,13 +23,11 @@ export interface Buff {
 /** Welche Art Schlag gezeigt wird – die Werte dazu stehen in SWING (config.ts). */
 export type SwingKind = keyof typeof SWING;
 
-/** Die Spielfigur: Bewegung, Leben, Mana, Stufe und EP, Abklingzeiten und Buffs. */
+/** Die Spielfigur: Bewegung, Leben, Stufe und EP, Werte aus der Ausrüstung, Abklingzeiten und Buffs. */
 export class Player extends Actor {
   level = 1;
   /** Gesammelte EP innerhalb der aktuellen Stufe. */
   xp = 0;
-  mana = WARRIOR.maxMana;
-  maxMana = WARRIOR.maxMana;
 
   /** Zeit bis zum nächsten Auto-Angriff in Millisekunden. */
   attackCooldown = 0;
@@ -37,6 +36,11 @@ export class Player extends Actor {
   buffs: Buff[] = [];
   /** Schläge seit dem letzten Auslösen, je Skill mit der Bedingung "jeder n-te Schlag". */
   private readonly hitCounts = new Map<SkillId, number>();
+
+  /** Werte der angelegten Ausrüstung, so wie sie auf den Items stehen (mit Attributen). */
+  private gear: Stats = emptyStats();
+  /** Dieselben Werte, aber die Attribute sind schon in Angriffskraft, Leben und Krit-Chance umgerechnet. */
+  private bonus: Stats = emptyStats();
 
   private sinceCombatMs = COMBAT_TIMEOUT_MS;
   /** Die Waffe ist nur während eines Schwungs zu sehen, die Spur ist der helle Bogen dahinter. */
@@ -62,13 +66,59 @@ export class Player extends Actor {
     return this.sinceCombatMs < COMBAT_TIMEOUT_MS;
   }
 
-  /** Angriffskraft inklusive laufender Buffs. */
+  /** Angriffskraft aus Stufe und Ausrüstung, inklusive laufender Buffs. */
   get attackPower(): number {
-    return warriorStat('attackPower', this.level) * (1 + this.buffs.reduce((sum, buff) => sum + buff.attackBonus, 0));
+    const base = warriorStat('attackPower', this.level) + this.bonus.attackPower;
+    return base * (1 + this.buffs.reduce((sum, buff) => sum + buff.attackBonus, 0));
   }
 
   get armor(): number {
-    return warriorStat('armor', this.level);
+    return warriorStat('armor', this.level) + this.bonus.armor;
+  }
+
+  /** Chance auf einen kritischen Treffer, 0.05 = 5 %. */
+  get critChance(): number {
+    return WARRIOR.critChance + this.bonus.critChance / 100;
+  }
+
+  /** Ein kritischer Treffer macht so viel mal Schaden. */
+  get critMultiplier(): number {
+    return WARRIOR.critMultiplier + this.bonus.critDamage / 100;
+  }
+
+  /** Zeit zwischen zwei Auto-Angriffen in Millisekunden; Angriffstempo verkürzt sie. */
+  get attackIntervalMs(): number {
+    return WARRIOR.attackIntervalMs / (1 + this.bonus.attackSpeed / 100);
+  }
+
+  /** Anteil des ausgeteilten Schadens, der die Figur heilt (0.03 = 3 %). */
+  get lifeSteal(): number {
+    return this.bonus.lifeSteal / 100;
+  }
+
+  /** Leben pro Sekunde aus der Ausrüstung – wirkt auch im Kampf. */
+  get hpRegen(): number {
+    return this.bonus.hpRegen;
+  }
+
+  /** Stärke, Ausdauer und Geschick aus der Ausrüstung (für das Charakterfenster). */
+  get gearStats(): Stats {
+    return this.gear;
+  }
+
+  /**
+   * Übernimmt die Werte der angelegten Ausrüstung. `weaponFrame` = Bild der Waffe
+   * für den Schwung; null = die Figur hat keine angelegt und nimmt ihr altes Schwert.
+   */
+  setGear(stats: Stats, weaponFrame: number | null): void {
+    this.gear = stats;
+    this.bonus = withAttributesApplied(stats);
+    this.weapon.setFrame(weaponFrame ?? SWING_WEAPON_FRAME);
+    this.refreshMaxHp();
+  }
+
+  heal(amount: number): void {
+    this.hp = Math.min(this.maxHp, this.hp + amount);
   }
 
   /** Faktor auf erlittenen Schaden, 1 = voller Schaden. */
@@ -82,7 +132,7 @@ export class Player extends Actor {
 
   /**
    * Schreibt EP gut. Gibt zurück, um wie viele Stufen die Figur dabei aufgestiegen ist;
-   * bei einem Aufstieg sind Leben und Mana wieder voll.
+   * bei einem Aufstieg ist das Leben wieder voll.
    */
   gainXp(amount: number): number {
     if (this.level >= MAX_LEVEL) return 0;
@@ -94,7 +144,10 @@ export class Player extends Actor {
       levelUps++;
     }
     if (this.level >= MAX_LEVEL) this.xp = 0;
-    if (levelUps > 0) this.applyLevelStats();
+    if (levelUps > 0) {
+      this.refreshMaxHp();
+      this.hp = this.maxHp;
+    }
     return levelUps;
   }
 
@@ -109,7 +162,8 @@ export class Player extends Actor {
   setLevel(level: number): void {
     this.level = Phaser.Math.Clamp(Math.floor(level), 1, MAX_LEVEL);
     this.xp = 0;
-    this.applyLevelStats();
+    this.refreshMaxHp();
+    this.hp = this.maxHp;
   }
 
   /**
@@ -163,7 +217,7 @@ export class Player extends Actor {
   /**
    * Zählt einen Schlag für alle Skills mit der Bedingung "jeder n-te Schlag".
    * `fired` = der Skill, zu dem dieser Schlag wurde: sein Zähler beginnt wieder bei 0.
-   * Kann ein Skill gerade nicht auslösen (z. B. zu wenig Mana), bleibt sein Zähler bei n - 1 stehen.
+   * Kann ein Skill gerade nicht auslösen (z. B. noch gesperrt), bleibt sein Zähler bei n - 1 stehen.
    */
   countHit(fired?: SkillId): void {
     for (const skill of SKILLS) {
@@ -184,7 +238,7 @@ export class Player extends Actor {
     this.refreshTint();
   }
 
-  /** Lässt Abklingzeiten und Buffs ablaufen und regeneriert Leben und Mana. */
+  /** Lässt Abklingzeiten und Buffs ablaufen und regeneriert Leben. */
   tick(deltaMs: number): void {
     this.attackCooldown = Math.max(0, this.attackCooldown - deltaMs);
     for (const [id, remaining] of this.cooldowns) this.cooldowns.set(id, Math.max(0, remaining - deltaMs));
@@ -200,14 +254,9 @@ export class Player extends Actor {
 
     this.sinceCombatMs += deltaMs;
     const seconds = deltaMs / 1000;
-    if (this.inCombat) {
-      this.mana += WARRIOR.manaRegenCombat * seconds;
-    } else {
-      this.mana += WARRIOR.manaRegenIdle * seconds;
-      this.hp += this.maxHp * WARRIOR.hpRegenIdle * seconds;
-    }
-    this.mana = Math.min(this.maxMana, this.mana);
-    this.hp = Math.min(this.maxHp, this.hp);
+    let regen = this.hpRegen;
+    if (!this.inCombat) regen += this.maxHp * WARRIOR.hpRegenIdle;
+    this.heal(regen * seconds);
   }
 
   /** Die Figur fällt um und bleibt liegen, bis revive() aufgerufen wird. */
@@ -221,11 +270,10 @@ export class Player extends Actor {
     this.sprite.setAngle(90);
   }
 
-  /** Stellt die Figur mit vollem Leben und Mana an den Punkt `at`. */
+  /** Stellt die Figur mit vollem Leben an den Punkt `at`. */
   revive(at: Point): void {
     this.pos.set(at.x, at.y);
     this.hp = this.maxHp;
-    this.mana = this.maxMana;
     this.attackCooldown = 0;
     this.cooldowns.clear();
     this.hitCounts.clear();
@@ -251,12 +299,10 @@ export class Player extends Actor {
     this.draw(this.followPath(PLAYER_SPEED, deltaMs), deltaMs);
   }
 
-  /** Leben und Mana passend zur Stufe, beides aufgefüllt. */
-  private applyLevelStats(): void {
-    this.maxHp = warriorStat('maxHp', this.level);
-    this.maxMana = warriorStat('maxMana', this.level);
-    this.hp = this.maxHp;
-    this.mana = this.maxMana;
+  /** Maximales Leben aus Stufe und Ausrüstung. Das aktuelle Leben bleibt, höchstens bis zum neuen Maximum. */
+  private refreshMaxHp(): void {
+    this.maxHp = Math.round(warriorStat('maxHp', this.level) + this.bonus.maxHp);
+    if (this.alive) this.hp = Math.min(this.hp, this.maxHp);
   }
 
   private hideSwing(): void {

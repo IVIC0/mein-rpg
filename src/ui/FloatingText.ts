@@ -3,9 +3,10 @@ import type Phaser from 'phaser';
 /**
  * hit = eigener Treffer (weiß-gelb), crit = eigener kritischer Treffer (orange, größer),
  * hurt = erlittener Schaden (rot), heal = Heilung (grün), xp = erhaltene EP,
- * level = Stufenaufstieg, info = Hinweis. Die Farben stehen in hud.css (.floater-…).
+ * level = Stufenaufstieg, info = Hinweis, gold = erhaltenes Gold, loot = aufgehobenes Item.
+ * Die Farben stehen in hud.css (.floater-…).
  */
-export type FloatKind = 'hit' | 'crit' | 'hurt' | 'heal' | 'xp' | 'level' | 'info';
+export type FloatKind = 'hit' | 'crit' | 'hurt' | 'heal' | 'xp' | 'level' | 'info' | 'gold' | 'loot';
 
 /** So lange ist eine Zahl zu sehen (Millisekunden) und so weit steigt sie auf (Welt-Pixel). */
 const LIFETIME_MS = 900;
@@ -27,11 +28,12 @@ export class FloatingText {
 
   constructor(private readonly root: HTMLElement) {}
 
-  /** Lässt `text` über dem Welt-Punkt (x, y) aufsteigen. */
-  spawn(x: number, y: number, text: string, kind: FloatKind): void {
+  /** Lässt `text` über dem Welt-Punkt (x, y) aufsteigen. `color` überschreibt die Farbe der Art (z. B. Seltenheit eines Items). */
+  spawn(x: number, y: number, text: string, kind: FloatKind, color?: string): void {
     const element = document.createElement('div');
     element.className = `floater floater-${kind}`;
     element.textContent = text;
+    if (color) element.style.color = color;
     this.root.appendChild(element);
     // Etwas Streuung, damit mehrere Zahlen nicht genau übereinander liegen.
     this.floaters.push({ element, x: x + (Math.random() - 0.5) * 8, y, bornAt: performance.now() });
