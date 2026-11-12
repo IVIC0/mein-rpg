@@ -1,18 +1,19 @@
 import { isTrivial } from '../data/progression';
 import { WARRIOR, type SkillDef, type SkillId } from '../data/warrior';
+import { byId, iconPosition } from './dom';
 import { describeEffect, describeTrigger } from './skillText';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 
-/** So lange bleibt ein Hinweis wie "Zu wenig Mana" stehen (Millisekunden). */
+/** So lange bleibt ein Hinweis wie "Inventar voll" stehen (Millisekunden). */
 const MESSAGE_MS = 1200;
 
 /** So lange ist die Meldung zum Stufenaufstieg zu sehen (Millisekunden); passt zur Animation in hud.css. */
 const LEVELUP_MS = 3500;
 
-/** Die Symbole kommen aus characters.png: 12 Bilder pro Zeile, 18 Pixel Raster, 1 Pixel Rand. */
-const ICON_COLUMNS = 12;
-const ICON_STEP = 18;
+/** So lange steht ein aufgehobenes Item in der Beute-Liste (Millisekunden), und so viele Zeilen hat sie höchstens. */
+const LOOT_LOG_MS = 7000;
+const LOOT_LOG_LINES = 6;
 
 interface Slot {
   skill: SkillDef;
@@ -23,15 +24,13 @@ interface Slot {
 }
 
 /**
- * Die Anzeigen über dem Spielbild: Leben, Mana und EP, Zielrahmen, Skill-Balken,
- * Hinweise, die Meldung zum Stufenaufstieg und der Todes-Bildschirm. Das Grundgerüst steht in index.html,
+ * Die Anzeigen über dem Spielbild: Leben und EP, Zielrahmen, Skill-Balken, Hinweise,
+ * Beute-Liste, die Meldung zum Stufenaufstieg und der Todes-Bildschirm. Das Grundgerüst steht in index.html,
  * das Aussehen in hud.css – hier werden nur die Werte eingetragen.
  */
 export class Hud {
   private readonly hpFill = byId('player-hp-fill');
   private readonly hpText = byId('player-hp-text');
-  private readonly manaFill = byId('player-mana-fill');
-  private readonly manaText = byId('player-mana-text');
   private readonly level = byId('player-level');
   private readonly xpFill = byId('player-xp-fill');
   private readonly xpText = byId('player-xp-text');
@@ -47,6 +46,7 @@ export class Hud {
   private readonly levelUp = byId('levelup');
   private readonly levelUpTitle = byId('levelup-title');
   private readonly levelUpText = byId('levelup-text');
+  private readonly lootLog = byId('loot-log');
   private readonly slots: Slot[] = [];
   private messageTimer = 0;
   private levelUpTimer = 0;
@@ -60,18 +60,16 @@ export class Hud {
     for (const skill of skills) {
       const box = document.createElement('div');
       box.className = 'skill';
-      const cost = skill.cooldownMs > 0 ? `${skill.manaCost} Mana · ${skill.cooldownMs / 1000} s Abklingzeit` : `${skill.manaCost} Mana`;
-      const iconX = 1 + (skill.iconFrame % ICON_COLUMNS) * ICON_STEP;
-      const iconY = 1 + Math.floor(skill.iconFrame / ICON_COLUMNS) * ICON_STEP;
+      const cooldown = skill.cooldownMs > 0 ? `<i>${skill.cooldownMs / 1000} s Abklingzeit</i>` : '';
       box.innerHTML = `
-        <span class="skill-icon" style="background-position: -${iconX}px -${iconY}px"></span>
+        <span class="skill-icon sprite-icon" style="background-position: ${iconPosition(skill.iconFrame)}"></span>
         <span class="skill-cooldown"></span>
         <span class="skill-timer"></span>
         <span class="skill-count"></span>
         <span class="skill-lock">Stufe ${skill.unlockLevel}</span>
         <span class="skill-tooltip">
           <b>${skill.name}</b>
-          <i>${cost}</i>
+          ${cooldown}
           <u>Löst aus: ${describeTrigger(skill.trigger)}</u>
           ${describeEffect(skill.effect)}
           <em>Verfügbar ab Stufe ${skill.unlockLevel}.</em>
@@ -91,8 +89,6 @@ export class Hud {
   update(player: Player, target: Enemy | null): void {
     setWidth(this.hpFill, player.hp / player.maxHp);
     setText(this.hpText, `${Math.ceil(player.hp)} / ${player.maxHp}`);
-    setWidth(this.manaFill, player.mana / player.maxMana);
-    setText(this.manaText, `${Math.floor(player.mana)} / ${player.maxMana}`);
     setText(this.level, `Stufe ${player.level}`);
     if (player.xpToNext > 0) {
       setWidth(this.xpFill, player.xp / player.xpToNext);
@@ -128,7 +124,6 @@ export class Hud {
       }
       setText(slot.timer, remaining > 0 ? `${Math.ceil(remaining / 1000)}` : '');
       setText(slot.count, skill.trigger.type === 'everyNthHit' && !locked ? `${player.hitsSince(skill.id)}/${skill.trigger.n}` : '');
-      slot.box.classList.toggle('no-mana', player.mana < skill.manaCost);
       slot.box.classList.toggle('active', player.hasBuff(skill.id));
       slot.box.classList.toggle('locked', locked);
     }
@@ -159,7 +154,7 @@ export class Hud {
   showLevelUp(level: number, levelUps: number, unlocked: SkillDef[]): void {
     const gain = WARRIOR.perLevel;
     const lines = [
-      `+${gain.maxHp * levelUps} Leben · +${gain.maxMana * levelUps} Mana · +${gain.attackPower * levelUps} Angriff · +${gain.armor * levelUps} Rüstung`,
+      `+${gain.maxHp * levelUps} Leben · +${gain.attackPower * levelUps} Angriff · +${gain.armor * levelUps} Rüstung`,
       ...unlocked.map((skill) => `Neuer Skill: ${skill.name} – ${describeTrigger(skill.trigger)}`),
     ];
     this.levelUpTitle.textContent = `Stufe ${level} erreicht!`;
@@ -172,17 +167,24 @@ export class Hud {
     this.levelUpTimer = window.setTimeout(() => this.levelUp.classList.remove('show'), LEVELUP_MS);
   }
 
-  /** Todes-Bildschirm ein- oder ausblenden. `xpLost` = EP, die der Tod gekostet hat. */
-  setDead(dead: boolean, xpLost: number): void {
-    this.deathScreen.hidden = !dead;
-    this.deathLoss.textContent = xpLost > 0 ? `Du verlierst ${xpLost} EP.` : '';
+  /** Schreibt ein aufgehobenes Item in die Beute-Liste unten links; die Zeile verschwindet von selbst. */
+  logLoot(name: string, color: string): void {
+    const line = document.createElement('div');
+    line.textContent = `Erhalten: ${name}`;
+    line.style.color = color;
+    this.lootLog.appendChild(line);
+    while (this.lootLog.children.length > LOOT_LOG_LINES) this.lootLog.firstElementChild?.remove();
+    window.setTimeout(() => line.remove(), LOOT_LOG_MS);
   }
-}
 
-function byId(id: string): HTMLElement {
-  const element = document.getElementById(id);
-  if (!element) throw new Error(`Element #${id} fehlt in index.html.`);
-  return element;
+  /** Todes-Bildschirm ein- oder ausblenden. `xpLost` / `goldLost` = was der Tod gekostet hat. */
+  setDead(dead: boolean, xpLost: number, goldLost: number): void {
+    this.deathScreen.hidden = !dead;
+    const losses: string[] = [];
+    if (xpLost > 0) losses.push(`${xpLost} EP`);
+    if (goldLost > 0) losses.push(`${goldLost} Gold`);
+    this.deathLoss.textContent = losses.length > 0 ? `Du verlierst ${losses.join(' und ')}.` : '';
+  }
 }
 
 // Die Helfer schreiben nur, wenn sich der Wert geändert hat – das spart dem Browser Arbeit.

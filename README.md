@@ -21,10 +21,15 @@ Jeder Push auf `main` veröffentlicht das Spiel automatisch auf GitHub Pages.
 | Linksklick auf den Boden | hinlaufen |
 | Linke Maustaste halten | dem Mauszeiger nachlaufen |
 | Linksklick auf einen Gegner | als Ziel wählen, hinlaufen, automatisch angreifen |
-| `Esc` | Zielauswahl aufheben |
+| `I` oder `C` | Charakter & Inventar öffnen und schließen |
+| Linksklick auf ein Item im Inventar | anlegen (angelegte Ausrüstung: ablegen) |
+| Umschalt + Linksklick auf ein Item | wegwerfen |
+| `Esc` | Fenster schließen bzw. Zielauswahl aufheben |
 
 Skills lösen von selbst aus (z. B. jeder 5. Schlag = Wuchtschlag); der Skill-Balken zeigt
-nur an. Sie werden auf Stufe 1, 3, 5 und 8 freigeschaltet.
+nur an. Sie werden auf Stufe 1, 3, 5 und 8 freigeschaltet. Mana gibt es nicht.
+
+Besiegte Gegner lassen Gold und manchmal ein Item fallen. Über ein Item laufen hebt es auf.
 
 ## Aufbau
 
@@ -33,8 +38,9 @@ nur an. Sie werden auf Stufe 1, 3, 5 und 8 freigeschaltet.
 | `src/scenes/` | Szenen: `BootScene` lädt alles, `WorldScene` ist die Spielwelt |
 | `src/entities/` | Spielfigur und Gegner; `Actor` ist die gemeinsame Basis |
 | `src/combat/` | Kampfregeln (`Combat`: Angriffe, EP, Stufenaufstieg, Tod) und Schadensformel |
-| `src/data/` | Werte zum Einstellen: Krieger mit Skills, Gegnertypen, Levelkurve und EP |
-| `src/ui/` | Anzeigen über dem Spielbild (HTML/CSS): Leben, Mana, EP, Ziel, Skill-Balken, Schadenszahlen |
+| `src/items/` | Loot: Item-Generator, Inventar mit Ausrüstung, Items am Boden |
+| `src/data/` | Werte zum Einstellen: Krieger mit Skills, Gegnertypen, Levelkurve und EP, Items, Affixe und Drops |
+| `src/ui/` | Anzeigen über dem Spielbild (HTML/CSS): Leben, EP, Ziel, Skill-Balken, Schadenszahlen, Inventar-Fenster |
 | `src/world/` | Kollisionsraster, Wegfindung (Klick) und direkte Bewegung (Maustaste halten) |
 | `src/config.ts` | Stellschrauben wie Laufgeschwindigkeit, Zoom, Reichweiten, Respawn-Zeiten und Treffer-Feedback |
 | `public/assets/` | Grafiken und Karten, die das Spiel lädt (erzeugt, nicht von Hand ändern) |
@@ -67,3 +73,11 @@ Mit `node tools/build-map.mjs --preview karte.png` gibt es zusätzlich ein
   (`trigger`) und Wirkungen (`effect`) der Skills: `src/data/warrior.ts`.
 - Zum Testen `?stufe=5` an die Adresse hängen (z. B. `http://localhost:5173/?stufe=5`),
   dann startet die Figur auf Stufe 5.
+
+## Loot ändern und testen
+
+- Seltenheiten (Farbe, Zahl der Affixe, Drop-Anteil), Basis-Items und Affixe: `src/data/items.ts`.
+- Drop-Chance, Gold pro Gegner, Inventargröße: `src/data/loot.ts`.
+- Was ein Punkt Stärke, Ausdauer oder Geschick bringt: `src/data/stats.ts`.
+- Zum Testen `?beute=12` an die Adresse hängen (auch zusammen: `?stufe=5&beute=12`),
+  dann liegen 12 gewürfelte Items im Inventar.

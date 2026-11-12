@@ -1,4 +1,4 @@
-// Leveln: Levelkurve, EP pro Gegner und EP-Verlust beim Tod.
+// Leveln: Levelkurve, EP pro Gegner und EP-/Gold-Verlust beim Tod.
 // Der Wertezuwachs pro Stufe steht bei der Klasse (warrior.ts) bzw. den Gegnern (enemies.ts).
 
 /** Höchste Stufe in Version 1. Langfristig geplant: 60. */
@@ -24,6 +24,9 @@ export const XP_FACTOR_TRIVIAL = 0.1;
 
 /** Beim Tod verliert die Figur diesen Anteil der EP, die ihre aktuelle Stufe braucht. Nie Stufenverlust. */
 export const DEATH_XP_LOSS = 0.05;
+
+/** Beim Tod verliert die Figur außerdem diesen Anteil ihres Goldes. Items gehen nie verloren. */
+export const DEATH_GOLD_LOSS = 0.05;
 
 /** EP bis zur nächsten Stufe; auf der Maximalstufe 0. */
 export function xpToNext(level: number): number {

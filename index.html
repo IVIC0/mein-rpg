@@ -50,10 +50,6 @@
             <div class="bar-fill" id="player-hp-fill"></div>
             <span id="player-hp-text"></span>
           </div>
-          <div class="bar bar-mana">
-            <div class="bar-fill" id="player-mana-fill"></div>
-            <span id="player-mana-text"></span>
-          </div>
           <div class="bar bar-xp">
             <div class="bar-fill" id="player-xp-fill"></div>
             <span id="player-xp-text"></span>
@@ -80,6 +76,34 @@
 
       <div id="message"></div>
       <div id="skillbar"></div>
+
+      <!-- Zuletzt aufgehobene Items (füllt Hud.logLoot). -->
+      <div id="loot-log"></div>
+
+      <button id="bag-button" type="button">Inventar <kbd>I</kbd></button>
+
+      <!-- Charakter & Inventar (Taste I oder C). Die Felder baut src/ui/InventoryWindow.ts. -->
+      <div id="inventory" hidden>
+        <div class="window-title">
+          <span>Charakter &amp; Inventar</span>
+          <button id="inventory-close" type="button" title="Schließen (Esc)">×</button>
+        </div>
+        <div class="window-columns">
+          <div class="window-column">
+            <div id="equipment"></div>
+            <div id="character-stats"></div>
+          </div>
+          <div class="window-column">
+            <div id="bag"></div>
+            <div class="bag-footer">
+              <span id="bag-count"></span>
+              <span id="gold"></span>
+            </div>
+            <div class="window-help">Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen</div>
+          </div>
+        </div>
+      </div>
+      <div id="item-tooltip" hidden></div>
 
       <div id="death-screen" hidden>
         <div class="death-title">Du bist gestorben</div>

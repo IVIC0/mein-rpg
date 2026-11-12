@@ -5,7 +5,7 @@
 | Paket | Urheber | Lizenz | Verwendet für |
 |---|---|---|---|
 | [Tiny Town](https://kenney.nl/assets/tiny-town) (Version 1.1) | Kenney (www.kenney.nl) | [CC0 1.0](http://creativecommons.org/publicdomain/zero/1.0/) | Landschaft, Häuser, Zäune, Ruine |
-| [Tiny Dungeon](https://kenney.nl/assets/tiny-dungeon) (Version 1.0) | Kenney (www.kenney.nl) | [CC0 1.0](http://creativecommons.org/publicdomain/zero/1.0/) | Spielfigur, Gegner, Skill-Symbole; später Items |
+| [Tiny Dungeon](https://kenney.nl/assets/tiny-dungeon) (Version 1.0) | Kenney (www.kenney.nl) | [CC0 1.0](http://creativecommons.org/publicdomain/zero/1.0/) | Spielfigur, Gegner, Skill-Symbole, Waffen- und Schild-Symbole |
 
 Die unveränderten Originaldateien liegen mit ihrer jeweiligen `License.txt` unter
 `assets-src/kenney/`.
@@ -28,7 +28,9 @@ in `assets-src/kenney/` – danach `npm run assets` ausführen.
 
 - `public/assets/tilesets/gruenwald.png` – Tiny Town mit 1 px Rand um jede Kachel,
   ergänzt um Waldkacheln, die aus Kenneys Baum-Teilstücken zusammengesetzt sind
-- `public/assets/sprites/characters.png` – Tiny Dungeon mit 1 px Rand um jedes Bild
+- `public/assets/sprites/characters.png` – Tiny Dungeon mit 1 px Rand um jedes Bild,
+  ergänzt um sechs selbst gezeichnete Item-Symbole (Helm, Rüstung, Handschuhe, Stiefel,
+  Amulett, Ring; eigenes Werk, Muster in `tools/lib/item-icons.mjs`)
 - `public/assets/maps/gruenwald.json` – die Karte der Zone Grünwald (eigenes Werk)
 
 ## Technik
