@@ -21,13 +21,67 @@
 /* ---------------------------------------------------------------- Rahmen oben links */
 
 /* Oben rechts sitzt die Knopf-Leiste; die Minimap kommt später darunter. */
-#frames {
+#player-frame,
+#target-frame {
   position: absolute;
   left: 10px;
   top: 10px;
+  transform-origin: 0 0;
+}
+
+/* Der Zielrahmen steht rechts neben dem Spielerrahmen (210 Pixel breit + 10 Abstand). */
+#target-frame {
+  left: 230px;
+}
+
+/* ---------------------------------------------------------------- Verschiebbare HUD-Elemente */
+
+/*
+ * Platz und Größe kommen aus den Einstellungen (setzt HudLayout.ts):
+ * --dx / --dy = Verschiebung gegenüber dem Standard-Platz, --scale = Größe.
+ */
+.hud-item {
+  transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(var(--scale, 1));
+}
+
+/* In den Einstellungen ausgeblendet. */
+.hud-off {
+  display: none !important;
+}
+
+/* Bearbeitungsmodus: gestrichelter Rahmen, die Elemente fangen die Maus ab und lassen sich ziehen. */
+.hud-edit .hud-item {
+  outline: 2px dashed #ffd34d;
+  outline-offset: 2px;
+  cursor: move;
+  pointer-events: auto;
+}
+
+.hud-edit .hud-item * {
+  pointer-events: none;
+}
+
+/* Die leere Beute-Liste bekommt im Bearbeitungsmodus einen Platzhalter, damit man sie greifen kann. */
+.hud-edit #loot-log:empty::before {
+  content: 'Beute-Liste';
+  color: #c9bf9f;
+}
+
+#hud-edit-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 10px;
+  width: fit-content;
+  margin: 0 auto;
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: rgba(22, 26, 22, 0.94);
+  border: 2px solid #ffd34d;
+  border-radius: 4px;
+  pointer-events: auto;
 }
 
 .frame {
@@ -146,10 +200,15 @@
 /* ---------------------------------------------------------------- Skill-Balken unten */
 
 #skillbar {
+  /* Unten in der Mitte: links und rechts 0 mit automatischem Rand statt transform,
+     denn transform gehört dem Verschieben und Skalieren (.hud-item). */
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 14px;
-  transform: translateX(-50%);
+  width: fit-content;
+  margin: 0 auto;
+  transform-origin: 50% 100%;
   display: flex;
   gap: 6px;
   padding: 6px;
@@ -483,6 +542,7 @@
   position: absolute;
   left: 10px;
   bottom: 24px;
+  transform-origin: 0 100%;
   font-size: 13px;
   font-weight: bold;
   line-height: 1.5;
@@ -540,8 +600,16 @@
   top: 50px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  width: 230px;
+  /* Bei kleinem Browserfenster wird gescrollt statt abgeschnitten. */
+  max-height: calc(100vh - 70px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #6f7566 transparent;
+  box-sizing: border-box;
   padding: 8px 10px 10px;
+  font-size: 12px;
   background: rgba(22, 26, 22, 0.94);
   border: 2px solid #0c0f0c;
   border-radius: 4px;
@@ -552,7 +620,47 @@
   cursor: pointer;
 }
 
-#settings button {
+#settings .window-title {
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+
+/* Aufklappbare Bereiche: zugeklappt ist nur die Überschrift zu sehen. */
+#settings summary {
+  padding: 2px 0;
+  font-weight: bold;
+  color: #e8d9a0;
+  cursor: pointer;
+}
+
+.settings-row {
+  display: flex;
+  gap: 10px;
+  margin: 3px 0 0 12px;
+}
+
+/* Zwei Regler nebeneinander, die Beschriftung jeweils darüber. */
+.settings-sliders {
+  margin-bottom: 6px;
+  font-size: 10px;
+  color: #c9bf9f;
+}
+
+.settings-sliders label {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-sliders input {
+  width: 100%;
+  margin: 0;
+  accent-color: #e8d9a0;
+}
+
+#settings button,
+#hud-edit-bar button {
   padding: 4px 8px;
   font: inherit;
   color: inherit;
@@ -562,17 +670,20 @@
   cursor: pointer;
 }
 
-#settings button:hover {
+#settings button:hover,
+#hud-edit-bar button:hover {
   border-color: #e8d9a0;
 }
 
-/* ---------------------------------------------------------------- Namensschilder über Gegnern */
+/* ---------------------------------------------------------------- Namensschilder über Figur und Gegnern */
 
-/* Die Position setzt Nameplates.ts jeden Frame. */
+/* Position und Größe setzt Nameplates.ts jeden Frame; die Deckkraft kommt aus den Einstellungen (HudLayout.ts). */
 .nameplate {
   position: absolute;
   left: 0;
   top: 0;
+  transform-origin: 50% 100%;
+  opacity: var(--enemy-plate-opacity, 1);
   font-size: 11px;
   font-weight: bold;
   line-height: 1.2;
@@ -617,6 +728,40 @@
 
 .nameplate.selected .nameplate-bar {
   border-color: #e8d9a0;
+}
+
+/* Das Schild der eigenen Figur: Name und Balken grün, damit es sich klar von Gegnern (rot) abhebt. */
+.nameplate-player {
+  opacity: var(--player-plate-opacity, 1);
+}
+
+.nameplate-player .nameplate-name {
+  color: #8fe89a;
+}
+
+.nameplate-player .nameplate-bar {
+  border-color: #0d2a12;
+}
+
+.nameplate-player .nameplate-fill {
+  background: #4fd05c;
+}
+
+/* Einzelne Teile ausblenden (Einstellungen). Die Klassen setzt HudLayout.ts auf #nameplates. */
+.player-no-name .nameplate-player .nameplate-name,
+.player-no-level .nameplate-player .nameplate-level,
+.player-no-bar .nameplate-player .nameplate-bar,
+.enemy-no-name .nameplate:not(.nameplate-player) .nameplate-name,
+.enemy-no-name .nameplate:not(.nameplate-player) .nameplate-traits,
+.enemy-no-level .nameplate:not(.nameplate-player) .nameplate-level,
+.enemy-no-bar .nameplate:not(.nameplate-player) .nameplate-bar {
+  display: none;
+}
+
+/* Ohne Name steht die Stufe allein und braucht keinen Abstand nach links. */
+.player-no-name .nameplate-player .nameplate-level,
+.enemy-no-name .nameplate:not(.nameplate-player) .nameplate-level {
+  margin-left: 0;
 }
 
 /* Elite: goldener Name, Eigenschaften darunter, breiterer Balken. */

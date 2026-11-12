@@ -52,6 +52,8 @@ export class Hud {
   private readonly slots: Slot[] = [];
   private messageTimer = 0;
   private levelUpTimer = 0;
+  /** Bearbeitungsmodus (HudLayout): der Zielrahmen ist dann auch ohne Ziel zu sehen, damit man ihn ziehen kann. */
+  editing = false;
 
   /**
    * Baut den Skill-Balken. Er ist eine reine Anzeige: Skills lösen von selbst aus,
@@ -101,7 +103,16 @@ export class Hud {
     }
     setText(this.buffs, player.buffs.map((buff) => `${buff.name} ${Math.ceil(buff.remainingMs / 1000)} s`).join(' · '));
 
-    this.targetFrame.hidden = target === null;
+    this.targetFrame.hidden = target === null && !this.editing;
+    if (!target && this.editing) {
+      // Platzhalter, solange kein Ziel angewählt ist.
+      setText(this.targetName, 'Ziel');
+      setText(this.targetLevel, '');
+      setText(this.targetRank, '');
+      this.targetFrame.classList.remove('rank-elite', 'rank-boss');
+      setWidth(this.targetFill, 1);
+      setText(this.targetText, '');
+    }
     if (target) {
       setText(this.targetName, target.def.name);
       setText(this.targetLevel, `Stufe ${target.level}`);
