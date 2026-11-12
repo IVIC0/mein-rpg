@@ -240,7 +240,8 @@ export class Combat {
   private grantXp(enemy: Enemy): void {
     const player = this.player;
     if (player.xpToNext === 0) return; // Maximalstufe
-    const amount = xpForKill(enemy.level, player.level, enemy.rank);
+    // rewardFactor = Zuschlag für die Schwierigkeit (src/data/difficulty.ts).
+    const amount = Math.round(xpForKill(enemy.level, player.level, enemy.rank) * enemy.rewardFactor);
     const missingHp = player.maxHp - player.hp;
     const levelUps = player.gainXp(amount);
     this.floaters.spawn(player.pos.x, player.pos.y - 16, `+${amount} EP`, 'xp');

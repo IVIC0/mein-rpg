@@ -1,6 +1,6 @@
-import { POTION, SHOP_STOCK, buyPrice, potionPrice } from '../data/shop';
+import { BUYBACK, POTION, SHOP_STOCK, buyPrice, potionPrice, sellPrice } from '../data/shop';
 import type { Player } from '../entities/Player';
-import { rarityById } from '../items/generator';
+import { rarityById, type Item } from '../items/generator';
 import type { Inventory } from '../items/Inventory';
 import type { BuyResult, Shop } from '../items/Shop';
 import { byId, iconPosition } from './dom';
@@ -14,8 +14,13 @@ interface Slot {
   price: HTMLElement;
 }
 
+/** Die zwei Reiter des Fensters: die Ware des Händlers und der Rückkauf. */
+type Tab = 'stock' | 'buyback';
+
 /**
- * Das Fenster des Händlers: sein Sortiment (Linksklick = kaufen) und der Heiltrank.
+ * Das Fenster des Händlers mit zwei Reitern:
+ * - "Ware": sein Sortiment (Linksklick = kaufen) und der Heiltrank.
+ * - "Rückkauf": die zuletzt verkauften Items (Linksklick = zum Verkaufspreis zurückkaufen).
  * Verkauft wird im Inventar-Fenster, das sich mit öffnet (Rechtsklick auf ein Item).
  * Das Grundgerüst steht in index.html, die Regeln und Preise in src/items/Shop.ts und src/data/shop.ts.
  */
@@ -25,7 +30,11 @@ export class ShopWindow {
   private readonly restock = byId('shop-restock');
   private readonly potionText = byId('shop-potion-text');
   private readonly potionButton = byId('shop-potion-buy') as HTMLButtonElement;
-  private readonly slots: Slot[] = [];
+  private readonly tabButtons: Record<Tab, HTMLElement> = { stock: byId('shop-tab-stock'), buyback: byId('shop-tab-buyback') };
+  private readonly pages: Record<Tab, HTMLElement> = { stock: byId('shop-page-stock'), buyback: byId('shop-page-buyback') };
+  private readonly slots: Record<Tab, Slot[]>;
+  private tab: Tab = 'stock';
+  /** Der Platz unter dem Mauszeiger im gerade offenen Reiter; -1 = keiner. */
   private hovered = -1;
 
   constructor(
@@ -36,13 +45,36 @@ export class ShopWindow {
     private readonly tooltip: ItemTooltip,
     private readonly inventoryWindow: InventoryWindow,
   ) {
-    const stock = byId('shop-stock');
-    for (let index = 0; index < SHOP_STOCK.size; index++) {
+    this.slots = {
+      stock: this.buildSlots(byId('shop-stock'), SHOP_STOCK.size, (index) => this.shop.buy(index)),
+      buyback: this.buildSlots(byId('shop-buyback'), BUYBACK.size, (index) => this.shop.buyBack(index)),
+    };
+    for (const tab of ['stock', 'buyback'] as const) {
+      this.tabButtons[tab].addEventListener('click', () => {
+        this.showTab(tab);
+        this.tabButtons[tab].blur();
+      });
+    }
+    byId('shop-buyback-help').innerHTML =
+      `Linksklick: zum Verkaufspreis zurückkaufen<br />Der Händler merkt sich die letzten ${BUYBACK.size} verkauften Items.`;
+    (byId('shop-potion-icon') as HTMLElement).style.backgroundPosition = iconPosition(POTION.frame);
+    this.potionButton.addEventListener('click', () => {
+      this.report(this.shop.buyPotion());
+      this.potionButton.blur();
+      this.render();
+    });
+    byId('shop-close').addEventListener('click', () => this.close());
+  }
+
+  /** Baut `count` Plätze (Item-Feld mit Preis darunter) in `parent`. Ein Klick ruft `onClick` mit der Platz-Nummer. */
+  private buildSlots(parent: HTMLElement, count: number, onClick: (index: number) => BuyResult): Slot[] {
+    const slots: Slot[] = [];
+    for (let index = 0; index < count; index++) {
       const slot = document.createElement('div');
       slot.className = 'shop-slot';
       slot.innerHTML = '<div class="item-cell"><span class="item-icon sprite-icon"></span></div><span class="shop-price"></span>';
       const box = slot.querySelector('.item-cell') as HTMLElement;
-      box.addEventListener('click', () => this.report(this.shop.buy(index)));
+      box.addEventListener('click', () => this.report(onClick(index)));
       box.addEventListener('mouseenter', () => {
         this.hovered = index;
         this.showTooltip();
@@ -51,16 +83,10 @@ export class ShopWindow {
         if (this.hovered === index) this.hovered = -1;
         this.tooltip.hide();
       });
-      stock.appendChild(slot);
-      this.slots.push({ box, icon: slot.querySelector('.item-icon') as HTMLElement, price: slot.querySelector('.shop-price') as HTMLElement });
+      parent.appendChild(slot);
+      slots.push({ box, icon: slot.querySelector('.item-icon') as HTMLElement, price: slot.querySelector('.shop-price') as HTMLElement });
     }
-    (byId('shop-potion-icon') as HTMLElement).style.backgroundPosition = iconPosition(POTION.frame);
-    this.potionButton.addEventListener('click', () => {
-      this.report(this.shop.buyPotion());
-      this.potionButton.blur();
-      this.render();
-    });
-    byId('shop-close').addEventListener('click', () => this.close());
+    return slots;
   }
 
   get isOpen(): boolean {
@@ -73,7 +99,7 @@ export class ShopWindow {
     this.shop.restockIfDue();
     this.inventoryWindow.open();
     this.inventoryWindow.setShop(this.shop);
-    this.render();
+    this.showTab('stock');
   }
 
   close(): void {
@@ -84,21 +110,28 @@ export class ShopWindow {
     this.inventoryWindow.setShop(null);
   }
 
-  /** Zeichnet Sortiment, Gold und Trank neu. Aufrufen, wenn sich Sortiment, Gold oder Tränke geändert haben. */
+  /** Wechselt den Reiter. */
+  private showTab(tab: Tab): void {
+    this.tab = tab;
+    this.hovered = -1;
+    this.tooltip.hide();
+    for (const id of ['stock', 'buyback'] as const) {
+      this.pages[id].hidden = id !== tab;
+      this.tabButtons[id].classList.toggle('active', id === tab);
+    }
+    this.render();
+  }
+
+  /** Zeichnet beide Reiter neu. Aufrufen, wenn sich Sortiment, Rückkauf, Gold oder Tränke geändert haben. */
   render(): void {
     if (!this.isOpen) return;
     const gold = this.inventory.gold;
-    this.slots.forEach((slot, index) => {
-      const item = this.shop.stock[index] ?? null;
-      slot.box.classList.toggle('filled', item !== null);
-      slot.box.style.borderColor = item ? rarityById(item.rarity).color : '';
-      if (item) slot.icon.style.backgroundPosition = iconPosition(item.icon);
-      const price = item ? buyPrice(item.level, item.rarity) : 0;
-      slot.price.textContent = item ? `${price}` : 'verkauft';
-      // Rot = dafür reicht das Gold gerade nicht.
-      slot.price.classList.toggle('too-expensive', item !== null && price > gold);
-    });
+    this.renderSlots(this.slots.stock, this.shop.stock, buyPrice, 'verkauft');
+    this.renderSlots(this.slots.buyback, this.shop.buyback, sellPrice, '');
     this.gold.textContent = `${gold} Gold`;
+    byId('shop-buyback-gold').textContent = `${gold} Gold`;
+    byId('shop-buyback-count').textContent = `${this.shop.buyback.length} / ${BUYBACK.size} Items`;
+    this.tabButtons.buyback.textContent = this.shop.buyback.length > 0 ? `Rückkauf (${this.shop.buyback.length})` : 'Rückkauf';
 
     const price = potionPrice(this.player.level);
     const full = this.player.potions >= POTION.maxCarried;
@@ -106,6 +139,21 @@ export class ShopWindow {
     this.potionButton.textContent = full ? 'Gepäck voll' : `Kaufen: ${price} Gold`;
     this.potionButton.disabled = full || price > gold;
     this.showTooltip();
+  }
+
+  /** Füllt eine Reihe von Plätzen mit `items`. `priceOf` rechnet den Preis aus, `emptyText` steht unter leeren Plätzen. */
+  private renderSlots(slots: Slot[], items: (Item | null)[], priceOf: (level: number, rarity: Item['rarity']) => number, emptyText: string): void {
+    const gold = this.inventory.gold;
+    slots.forEach((slot, index) => {
+      const item = items[index] ?? null;
+      slot.box.classList.toggle('filled', item !== null);
+      slot.box.style.borderColor = item ? rarityById(item.rarity).color : '';
+      if (item) slot.icon.style.backgroundPosition = iconPosition(item.icon);
+      const price = item ? priceOf(item.level, item.rarity) : 0;
+      slot.price.textContent = item ? `${price}` : emptyText;
+      // Rot = dafür reicht das Gold gerade nicht.
+      slot.price.classList.toggle('too-expensive', item !== null && price > gold);
+    });
   }
 
   /** Einmal pro Frame: Uhr bis zur neuen Ware. Ist die Zeit um, wird das Regal aufgefüllt. */
@@ -125,12 +173,14 @@ export class ShopWindow {
   }
 
   private showTooltip(): void {
-    // Liegt die Maus nicht über dem Regal, gehört der Tooltip dem Inventar-Fenster.
+    // Liegt die Maus nicht über einem Platz dieses Fensters, gehört der Tooltip dem Inventar-Fenster.
     if (this.hovered < 0) return;
-    const item = this.shop.stock[this.hovered] ?? null;
+    const buyback = this.tab === 'buyback';
+    const item = (buyback ? this.shop.buyback : this.shop.stock)[this.hovered] ?? null;
     if (!item) return this.tooltip.hide();
-    const price = buyPrice(item.level, item.rarity);
-    const hint = price > this.inventory.gold ? `Kostet ${price} Gold – dir fehlen ${price - this.inventory.gold}` : `Linksklick: kaufen für ${price} Gold`;
-    this.tooltip.show(item, this.slots[this.hovered].box, this.root, 'right', true, [hint]);
+    const price = buyback ? sellPrice(item.level, item.rarity) : buyPrice(item.level, item.rarity);
+    const action = buyback ? 'zurückkaufen' : 'kaufen';
+    const hint = price > this.inventory.gold ? `Kostet ${price} Gold – dir fehlen ${price - this.inventory.gold}` : `Linksklick: ${action} für ${price} Gold`;
+    this.tooltip.show(item, this.slots[this.tab][this.hovered].box, this.root, 'right', true, [hint]);
   }
 }

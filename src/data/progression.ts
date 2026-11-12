@@ -3,7 +3,7 @@ import type { EnemyRank } from './loot';
 // Leveln: Levelkurve, EP pro Gegner und EP-/Gold-Verlust beim Tod.
 // Der Wertezuwachs pro Stufe steht bei der Klasse (warrior.ts) bzw. den Gegnern (enemies.ts).
 
-/** Höchste Stufe in Version 1. Langfristig geplant: 60. */
+/** Höchste Stufe. Geplant: 40 mit vier Zonen (steigt je Zone um 10), später erweiterbar bis 60 – GAME.md Abschnitt 15.1. */
 export const MAX_LEVEL = 10;
 
 /**

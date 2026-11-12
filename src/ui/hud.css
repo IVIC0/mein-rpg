@@ -568,6 +568,25 @@
   text-shadow: 0 1px 2px #000, 0 0 3px #000;
 }
 
+/* ---------------------------------------------------------------- Minimap */
+
+/* Unter der Knopf-Leiste. Die Größe der Zeichenfläche setzt src/ui/Minimap.ts (src/data/minimap.ts). */
+#minimap {
+  position: absolute;
+  right: 10px;
+  top: 52px;
+  transform-origin: 100% 0;
+  padding: 2px;
+  background: rgba(22, 26, 22, 0.85);
+  border: 2px solid #0c0f0c;
+  border-radius: 4px;
+  line-height: 0;
+}
+
+#minimap-canvas {
+  image-rendering: pixelated;
+}
+
 /* ---------------------------------------------------------------- Knopf-Leiste oben rechts */
 
 #topbar {
@@ -677,6 +696,33 @@
   width: 100%;
   margin: 0;
   accent-color: #e8d9a0;
+}
+
+/* Schwierigkeit: vier Knöpfe nebeneinander und kleine Hinweise darunter. */
+.settings-presets {
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+#settings .settings-presets button {
+  flex: 1;
+  padding: 3px 0;
+  font-size: 11px;
+}
+
+#settings .settings-presets button.active {
+  border-color: #ffd34d;
+  background: #454d3c;
+}
+
+.settings-note {
+  margin: 0 0 4px 12px;
+  font-size: 10px;
+  color: #9a9f8e;
+}
+
+.settings-reward {
+  color: #ffd34d;
 }
 
 #settings button,
@@ -1245,6 +1291,42 @@
   grid-template-columns: repeat(4, 40px);
   justify-content: space-between;
   gap: 6px 4px;
+}
+
+/* Rückkauf: 5 Plätze pro Zeile. */
+#shop-buyback {
+  display: grid;
+  grid-template-columns: repeat(5, 36px);
+  justify-content: space-between;
+  gap: 6px 4px;
+}
+
+/* Die beiden Reiter über dem Regal. */
+#shop-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.shop-tab {
+  flex: 1;
+  padding: 3px 0;
+  font: bold 12px sans-serif;
+  color: #c9bf9f;
+  background: #2e342c;
+  border: 1px solid #0c0f0c;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.shop-tab:hover {
+  border-color: #e8d9a0;
+}
+
+.shop-tab.active {
+  color: #f4ecd2;
+  border-color: #ffd34d;
+  background: #454d3c;
 }
 
 .shop-slot {

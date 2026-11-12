@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Combat } from '../combat/Combat';
 import { BODY_RADIUS, BOSS_RESPAWN_MS, HOLD_DELAY_MS, TILE, zoomForViewport } from '../config';
+import { DEFAULT_DIFFICULTY, type Difficulty } from '../data/difficulty';
 import { ENEMIES } from '../data/enemies';
 import { RARITIES } from '../data/items';
 import { AUTOSAVE_INTERVAL_MS, SAVE_DELAY_MS } from '../data/save';
@@ -21,6 +22,7 @@ import { Hud } from '../ui/Hud';
 import { HudLayout } from '../ui/HudLayout';
 import { InventoryWindow } from '../ui/InventoryWindow';
 import { ItemTooltip } from '../ui/ItemTooltip';
+import { Minimap } from '../ui/Minimap';
 import { Nameplates } from '../ui/Nameplates';
 import { SaveMenu } from '../ui/SaveMenu';
 import { SettingsMenu } from '../ui/SettingsMenu';
@@ -45,6 +47,8 @@ const MAX_FRAME_MS = 100;
  *
  * Klick auf den Händler im Dorf: hinlaufen und handeln. Q trinkt einen Heiltrank.
  *
+ * Oben rechts zeigt die Minimap Gelände, Gegner und Händler (src/ui/Minimap.ts).
+ *
  * Skills lösen von selbst aus (siehe Combat). I oder C öffnet Charakter & Inventar.
  * Esc schließt das Fenster (wenn es nicht angepinnt ist) bzw. hebt die Zielauswahl auf.
  *
@@ -68,6 +72,10 @@ export class WorldScene extends Phaser.Scene {
   private merchant!: Merchant;
   private shop!: Shop;
   private shopWindow!: ShopWindow;
+  private minimap!: Minimap;
+  private enemies: Enemy[] = [];
+  /** Schwierigkeit dieses Spielstands. Die Regler in den Einstellungen ändern dieses Objekt direkt. */
+  private readonly difficulty: Difficulty = { ...DEFAULT_DIFFICULTY };
   /** Ist die Figur gerade auf dem Weg zum Händler? Dann öffnet sich der Handel, sobald sie ankommt. */
   private walkingToMerchant = false;
   /** Die Bosse der Karte mit ihrem Schlüssel im Spielstand (Typ und Platz). */
@@ -125,6 +133,9 @@ export class WorldScene extends Phaser.Scene {
 
     // Zum Testen: ?elite=1 macht jeden normalen Gegner zur Elite.
     if (test.elite) Enemy.eliteChance = 1;
+    // Schwierigkeit aus dem Spielstand – muss stehen, bevor die Gegner erscheinen.
+    Object.assign(this.difficulty, save.difficulty);
+    Enemy.difficulty = this.difficulty;
 
     // Jeder Punkt auf der Ebene "Gegner" ist ein Gegner; der Name des Punkts ist sein Typ.
     const enemies = (map.getObjectLayer('Gegner')?.objects ?? []).map((object) => {
@@ -134,6 +145,8 @@ export class WorldScene extends Phaser.Scene {
       if (enemy.rank === 'boss') this.bosses.set(`${object.name}@${object.x},${object.y}`, enemy);
       return enemy;
     });
+    this.enemies = enemies;
+    this.minimap = new Minimap(map, tileset);
 
     this.floaters = new FloatingText(byId('floaters'));
     this.nameplates = new Nameplates(byId('nameplates'), enemies, save.name);
@@ -160,6 +173,8 @@ export class WorldScene extends Phaser.Scene {
       onChange: () => this.hudLayout.apply(),
       onEditHud: () => this.hudLayout.setEditing(true),
       onResetWindows: () => this.inventoryWindow.resetLayout(),
+      difficulty: this.difficulty,
+      onDifficultyChange: () => this.requestSave(),
     });
     inventory.onChange = () => {
       this.player.setGear(inventory.equippedStats(), inventory.equipped.weapon?.icon ?? null);
@@ -259,6 +274,7 @@ export class WorldScene extends Phaser.Scene {
       this.player.step(delta);
     }
     this.followPlayer();
+    if (this.settings.values.hud.minimap.visible) this.minimap.render(this.player.pos, this.enemies, this.merchant.pos);
 
     // Über einem Gegner oder dem Händler wird der Mauszeiger zur Hand.
     const clickable = this.combat.enemyAt(cursor) !== null || this.merchant.contains(cursor);
@@ -313,7 +329,7 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- Speichern und Laden
 
-  /** Übernimmt einen Spielstand: Inventar, Ausrüstung, Gold, Tränke, Stufe, EP, Leben, Position, Items am Boden, Händler, Boss-Timer. */
+  /** Übernimmt einen Spielstand (die Schwierigkeit schon in create, vor den Gegnern): Inventar, Ausrüstung, Gold, Tränke, Stufe, EP, Leben, Position, Items am Boden, Händler, Boss-Timer. */
   private applySave(save: SaveGame): void {
     this.playedMs = save.playedMs;
     this.player.potions = save.potions;
@@ -354,6 +370,7 @@ export class WorldScene extends Phaser.Scene {
       potions: player.potions,
       groundItems: this.loot.toData(),
       shop: this.shop.toData(),
+      difficulty: { ...this.difficulty },
       bossRespawnAt,
     };
   }

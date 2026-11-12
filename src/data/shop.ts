@@ -43,6 +43,12 @@ export const SHOP_STOCK = {
   rarityWeights: { common: 60, uncommon: 32, rare: 8 } as Partial<Record<RarityId, number>>,
 };
 
+/**
+ * Rückkauf: Der Händler merkt sich die zuletzt verkauften Items. Sind es mehr als `size`,
+ * fällt das älteste heraus. Zurückkaufen kostet genau den Verkaufspreis.
+ */
+export const BUYBACK = { size: 10 };
+
 /** Der Heiltrank (Taste Q). Der Händler hat immer welche. */
 export const POTION = {
   name: 'Heiltrank',

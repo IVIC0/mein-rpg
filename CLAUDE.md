@@ -16,7 +16,9 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/items.ts` – Seltenheiten, Basis-Items und Affixe (Wertespannen, erlaubte Plätze)
    - `src/data/loot.ts` – Drop-Tabellen je Gegnerrang (Drop-Chance, Seltenheits-Anteile), Gold pro Gegner, Inventargröße
    - `src/data/stats.ts` – Werte auf Items und was ein Attributpunkt bringt
-   - `src/data/shop.ts` – Händler: Preisformel, Sortiment (Größe, Seltenheiten, Lieferzeit), Heiltrank
+   - `src/data/shop.ts` – Händler: Preisformel, Sortiment (Größe, Seltenheiten, Lieferzeit), Rückkauf (Größe der Liste), Heiltrank
+   - `src/data/difficulty.ts` – Schwierigkeit: Grenzen der Regler, die vier Knöpfe, Belohnung (EP und Gold)
+   - `src/data/minimap.ts` – Minimap: Größe, Ausschnitt, Farben der Punkte
    - `src/data/save.ts` – Speichern: Format-Nummer, Anzahl Slots, Auto-Save-Abstände, Namenslänge
    - `src/data/testSaves.ts` – Vorlagen für Test-Spielstände
    - `tools/build-map.mjs` (Liste `ENEMY_GROUPS`) – welche Gegner mit welcher Stufe wo stehen;
@@ -45,17 +47,21 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
   Der Krieger hat kein Mana – Skills hängen nur an Bedingung und Abklingzeit.
 - Loot: Items sind einfache Daten (`Item` in `src/items/generator.ts`), damit sie sich später speichern lassen.
 - Sprache: Texte im Spiel, Kommentare und Doku auf Deutsch.
-- UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster) ist HTML/CSS über dem Canvas:
-  `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/Nameplates.ts`.
+- UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster, Minimap) ist HTML/CSS über dem Canvas:
+  `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/Nameplates.ts`,
+  `src/ui/Minimap.ts`.
 - Einstellungen des Spielers liegen in einem Objekt (`Settings` in `src/ui/settings.ts`, dort auch
-  Standardwerte und Regler-Grenzen). Sie sind global (Browser), nicht Teil des Spielstands. Menü: `src/ui/SettingsMenu.ts`, Anwenden und Verschieben: `src/ui/HudLayout.ts`.
+  Standardwerte und Regler-Grenzen). Sie sind global (Browser), nicht Teil des Spielstands.
+  Ausnahme: Die Schwierigkeit (`Difficulty` in `src/data/difficulty.ts`) steht im Spielstand (pro Slot); ihre Regler
+  sitzen im selben Menü, eingerechnet wird sie beim Erscheinen eines Gegners (`Enemy.rollRank`). Menü: `src/ui/SettingsMenu.ts`, Anwenden und Verschieben: `src/ui/HudLayout.ts`.
 - Speichern: Aufbau des Spielstands, Prüfen und Umbau alter Formate in `src/save/saveGame.ts`,
   Slots im Browser und der laufende Spielstand (`session`) in `src/save/slots.ts`, Menü in
   `src/ui/SaveMenu.ts`, Dialoge in `src/ui/dialog.ts`. Übernehmen und Einsammeln des Stands:
   `applySave` / `snapshot` in `src/scenes/WorldScene.ts`. Kommt etwas Neues dazu, das gespeichert
   werden soll: dort ergänzen. Ändert sich der Aufbau: `SAVE_VERSION` erhöhen und in `MIGRATIONS` eintragen.
 - Händler: Regeln in `src/items/Shop.ts`, Fenster in `src/ui/ShopWindow.ts`, Figur in
-  `src/entities/Merchant.ts`; verkauft wird per Rechtsklick im Inventar-Fenster. Der Item-Tooltip
+  `src/entities/Merchant.ts`; verkauft wird per Rechtsklick im Inventar-Fenster,
+  zurückgekauft im Reiter „Rückkauf" des Händler-Fensters. Der Item-Tooltip
   (`src/ui/ItemTooltip.ts`) gehört beiden Fenstern.
 - Name: Das Spiel heißt „Rogoi Offline" (`GAME_TITLE` in `src/config.ts`). Repo-Name, `name` in
   `package.json`, `base` in `vite.config.ts`, die Schlüssel im Browser-Speicher (`mein-rpg.…`) und

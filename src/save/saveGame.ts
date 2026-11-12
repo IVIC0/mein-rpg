@@ -4,10 +4,11 @@
 
 import { GAME_TITLE } from '../config';
 import { AFFIXES, EQUIP_SLOTS, ITEM_BASES, RARITIES, type EquipSlot } from '../data/items';
+import { DEFAULT_DIFFICULTY, cleanDifficultyValue, type Difficulty } from '../data/difficulty';
 import { INVENTORY_SIZE } from '../data/loot';
 import { MAX_LEVEL } from '../data/progression';
 import { NAME_MAX_LENGTH, SAVE_VERSION } from '../data/save';
-import { POTION, SHOP_STOCK } from '../data/shop';
+import { BUYBACK, POTION, SHOP_STOCK } from '../data/shop';
 import { STATS, type StatId } from '../data/stats';
 import type { TestSaveDef } from '../data/testSaves';
 import { WARRIOR } from '../data/warrior';
@@ -49,8 +50,10 @@ export interface SaveGame {
   potions: number;
   /** Items, die noch am Boden liegen. */
   groundItems: GroundItem[];
-  /** Das Sortiment des Händlers und wann neue Ware kommt. */
+  /** Das Sortiment des Händlers, wann neue Ware kommt und die Rückkauf-Liste. */
   shop: ShopData;
+  /** Schwierigkeit dieses Spielstands (Regler in den Einstellungen, Werte in src/data/difficulty.ts). */
+  difficulty: Difficulty;
   /**
    * Besiegte Bosse: Schlüssel = Boss (Typ und Platz), Wert = Zeitpunkt (Date.now()),
    * zu dem er wieder erscheint. Die Uhr läuft also weiter, auch wenn das Spiel zu ist.
@@ -78,6 +81,9 @@ const MIGRATIONS: Record<number, (old: Plain) => Plain> = {
     const { settings: _settings, ...rest } = old;
     return { ...rest, version: 2 };
   },
+  // Format 2 → 3 (Meilenstein 10): Neu sind die Schwierigkeit (Start: Normal, 100 / 100) und
+  // die Rückkauf-Liste des Händlers (Start: leer). Beides füllt normalize() unten.
+  2: (old) => ({ ...old, version: 3 }),
 };
 
 /** Ein frischer Spielstand: Stufe 1, leeres Inventar, am Startpunkt. */
@@ -97,7 +103,8 @@ export function newSave(name: string): SaveGame {
     equipped: emptyEquipment(),
     potions: 0,
     groundItems: [],
-    shop: { stock: [], restockAt: 0 },
+    shop: { stock: [], restockAt: 0, buyback: [] },
+    difficulty: { ...DEFAULT_DIFFICULTY },
     bossRespawnAt: {},
   };
 }
@@ -189,7 +196,21 @@ function normalize(data: Plain): SaveGame {
   // Händler: Fehlt das Sortiment (alter Spielstand), bleibt es leer – dann kommt beim ersten Besuch frische Ware.
   const storedShop = isPlain(data.shop) ? data.shop : {};
   const stock = Array.isArray(storedShop.stock) ? (storedShop.stock as unknown[]).slice(0, SHOP_STOCK.size).map(cleanItem) : [];
-  const shop: ShopData = { stock, restockAt: stock.length > 0 && isNumber(storedShop.restockAt) ? storedShop.restockAt : 0 };
+  const buyback: Item[] = [];
+  if (Array.isArray(storedShop.buyback)) {
+    for (const entry of (storedShop.buyback as unknown[]).slice(0, BUYBACK.size)) {
+      const item = cleanItem(entry);
+      if (item) buyback.push(item);
+    }
+  }
+  const shop: ShopData = { stock, restockAt: stock.length > 0 && isNumber(storedShop.restockAt) ? storedShop.restockAt : 0, buyback };
+
+  // Schwierigkeit: Fehlt sie (alter Spielstand) oder ist ein Wert unbrauchbar, gilt Normal (100 %).
+  const storedDifficulty = isPlain(data.difficulty) ? data.difficulty : {};
+  const difficulty: Difficulty = {
+    enemyHp: cleanDifficultyValue(storedDifficulty.enemyHp),
+    enemyDamage: cleanDifficultyValue(storedDifficulty.enemyDamage),
+  };
 
   const bossRespawnAt: Record<string, number> = {};
   if (isPlain(data.bossRespawnAt)) {
@@ -215,6 +236,7 @@ function normalize(data: Plain): SaveGame {
     potions: clampInt(data.potions, 0, POTION.maxCarried, 0),
     groundItems,
     shop,
+    difficulty,
     bossRespawnAt,
   };
 }
