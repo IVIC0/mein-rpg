@@ -9,6 +9,7 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    Abklingzeiten usw. stehen nie verteilt im Code, sondern hier:
    - `src/config.ts` – allgemeine Stellschrauben (Tempo, Reichweiten, Respawn-Zeiten, Treffer-Feedback)
    - `src/data/warrior.ts` – Werte, Zuwachs pro Stufe und Skills des Kriegers
+     (Auslöse-Bedingung `trigger` und Wirkung `effect` je Skill)
    - `src/data/enemies.ts` – Gegnertypen und ihr Zuwachs pro Stufe
    - `src/data/progression.ts` – Levelkurve, EP pro Gegner, EP-Verlust beim Tod
    - `tools/build-map.mjs` (Liste `ENEMY_GROUPS`) – welche Gegner mit welcher Stufe wo stehen;
@@ -33,6 +34,7 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 
 ## Konventionen
 
+- Kampf: Skills lösen automatisch aus, es gibt keine Skill-Tasten. Der Skill-Balken ist reine Anzeige.
 - Sprache: Texte im Spiel, Kommentare und Doku auf Deutsch.
 - UI (Balken, Skill-Leiste, Schadenszahlen) ist HTML/CSS über dem Canvas:
   `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`.

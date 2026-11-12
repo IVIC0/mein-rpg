@@ -1,5 +1,6 @@
 import { isTrivial } from '../data/progression';
 import { WARRIOR, type SkillDef, type SkillId } from '../data/warrior';
+import { describeEffect, describeTrigger } from './skillText';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 
@@ -15,9 +16,10 @@ const ICON_STEP = 18;
 
 interface Slot {
   skill: SkillDef;
-  button: HTMLElement;
+  box: HTMLElement;
   cooldown: HTMLElement;
   timer: HTMLElement;
+  count: HTMLElement;
 }
 
 /**
@@ -49,35 +51,38 @@ export class Hud {
   private messageTimer = 0;
   private levelUpTimer = 0;
 
-  /** `onSkill` wird aufgerufen, wenn ein Skill im Balken angeklickt wird. */
-  constructor(skills: SkillDef[], onSkill: (id: SkillId) => void) {
+  /**
+   * Baut den Skill-Balken. Er ist eine reine Anzeige: Skills lösen von selbst aus,
+   * der Balken zeigt Abklingzeit, Schlag-Zähler und leuchtet beim Auslösen auf.
+   */
+  constructor(skills: SkillDef[]) {
     const bar = byId('skillbar');
     for (const skill of skills) {
-      const button = document.createElement('button');
-      button.className = 'skill';
+      const box = document.createElement('div');
+      box.className = 'skill';
+      const cost = skill.cooldownMs > 0 ? `${skill.manaCost} Mana · ${skill.cooldownMs / 1000} s Abklingzeit` : `${skill.manaCost} Mana`;
       const iconX = 1 + (skill.iconFrame % ICON_COLUMNS) * ICON_STEP;
       const iconY = 1 + Math.floor(skill.iconFrame / ICON_COLUMNS) * ICON_STEP;
-      button.innerHTML = `
+      box.innerHTML = `
         <span class="skill-icon" style="background-position: -${iconX}px -${iconY}px"></span>
         <span class="skill-cooldown"></span>
         <span class="skill-timer"></span>
-        <span class="skill-key">${skill.key}</span>
+        <span class="skill-count"></span>
         <span class="skill-lock">Stufe ${skill.unlockLevel}</span>
         <span class="skill-tooltip">
           <b>${skill.name}</b>
-          <i>${skill.manaCost} Mana · ${skill.cooldownMs / 1000} s Abklingzeit</i>
-          ${skill.description}
+          <i>${cost}</i>
+          <u>Löst aus: ${describeTrigger(skill.trigger)}</u>
+          ${describeEffect(skill.effect)}
           <em>Verfügbar ab Stufe ${skill.unlockLevel}.</em>
         </span>`;
-      // Kein Tastatur-Fokus auf dem Knopf, sonst würde die Leertaste ihn erneut auslösen.
-      button.addEventListener('mousedown', (event) => event.preventDefault());
-      button.addEventListener('click', () => onSkill(skill.id));
-      bar.appendChild(button);
+      bar.appendChild(box);
       this.slots.push({
         skill,
-        button,
-        cooldown: button.querySelector('.skill-cooldown') as HTMLElement,
-        timer: button.querySelector('.skill-timer') as HTMLElement,
+        box,
+        cooldown: box.querySelector('.skill-cooldown') as HTMLElement,
+        timer: box.querySelector('.skill-timer') as HTMLElement,
+        count: box.querySelector('.skill-count') as HTMLElement,
       });
     }
   }
@@ -110,13 +115,33 @@ export class Hud {
     }
 
     for (const slot of this.slots) {
-      const remaining = player.cooldowns.get(slot.skill.id) ?? 0;
-      setHeight(slot.cooldown, remaining / slot.skill.cooldownMs);
+      const skill = slot.skill;
+      const locked = player.level < skill.unlockLevel;
+      const remaining = player.cooldowns.get(skill.id) ?? 0;
+      if (remaining > 0) {
+        setHeight(slot.cooldown, remaining / skill.cooldownMs);
+      } else if (skill.trigger.type === 'everyNthHit' && !locked) {
+        // Der Vorhang schrumpft mit jedem Schlag; ist er weg, wird der nächste Schlag zum Skill.
+        setHeight(slot.cooldown, 1 - player.hitsSince(skill.id) / (skill.trigger.n - 1));
+      } else {
+        setHeight(slot.cooldown, 0);
+      }
       setText(slot.timer, remaining > 0 ? `${Math.ceil(remaining / 1000)}` : '');
-      slot.button.classList.toggle('no-mana', player.mana < slot.skill.manaCost);
-      slot.button.classList.toggle('active', player.buffs.some((buff) => buff.skillId === slot.skill.id));
-      slot.button.classList.toggle('locked', player.level < slot.skill.unlockLevel);
+      setText(slot.count, skill.trigger.type === 'everyNthHit' && !locked ? `${player.hitsSince(skill.id)}/${skill.trigger.n}` : '');
+      slot.box.classList.toggle('no-mana', player.mana < skill.manaCost);
+      slot.box.classList.toggle('active', player.hasBuff(skill.id));
+      slot.box.classList.toggle('locked', locked);
     }
+  }
+
+  /** Lässt einen Skill im Balken kurz aufleuchten – er hat gerade ausgelöst. */
+  flashSkill(id: SkillId): void {
+    const box = this.slots.find((slot) => slot.skill.id === id)?.box;
+    if (!box) return;
+    // Klasse entfernen und Layout abfragen: so startet die Animation jedes Mal neu.
+    box.classList.remove('fired');
+    void box.offsetWidth;
+    box.classList.add('fired');
   }
 
   /** Zeigt kurz einen Hinweis über dem Skill-Balken. */
@@ -135,7 +160,7 @@ export class Hud {
     const gain = WARRIOR.perLevel;
     const lines = [
       `+${gain.maxHp * levelUps} Leben · +${gain.maxMana * levelUps} Mana · +${gain.attackPower * levelUps} Angriff · +${gain.armor * levelUps} Rüstung`,
-      ...unlocked.map((skill) => `Neuer Skill: ${skill.name} (Taste ${skill.key})`),
+      ...unlocked.map((skill) => `Neuer Skill: ${skill.name} – ${describeTrigger(skill.trigger)}`),
     ];
     this.levelUpTitle.textContent = `Stufe ${level} erreicht!`;
     this.levelUpText.innerHTML = lines.join('<br>');

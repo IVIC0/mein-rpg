@@ -11,9 +11,6 @@ import { Hud } from '../ui/Hud';
 import { Grid, type Point } from '../world/Grid';
 import { findWaypoints } from '../world/pathfinding';
 
-/** Tasten für die Skills in der Reihenfolge des Skill-Balkens. */
-const SKILL_KEYS = ['ONE', 'TWO', 'THREE', 'FOUR'];
-
 /** Längere Aussetzer (z. B. Tab im Hintergrund) zählen höchstens so viel (Millisekunden). */
 const MAX_FRAME_MS = 100;
 
@@ -28,7 +25,7 @@ const MAX_FRAME_MS = 100;
  * - Gedrückt halten: Figur läuft direkt dem Mauszeiger nach und rutscht an
  *   Hindernissen entlang. Loslassen = stehen bleiben.
  *
- * Tasten: 1–4 Skills, Esc hebt die Zielauswahl auf.
+ * Skills lösen von selbst aus (siehe Combat). Esc hebt die Zielauswahl auf.
  */
 export class WorldScene extends Phaser.Scene {
   private grid!: Grid;
@@ -85,7 +82,7 @@ export class WorldScene extends Phaser.Scene {
     const floaterRoot = document.getElementById('floaters');
     if (!floaterRoot) throw new Error('Element #floaters fehlt in index.html.');
     this.floaters = new FloatingText(floaterRoot);
-    const hud = new Hud(SKILLS, (id) => this.combat.useSkill(id));
+    const hud = new Hud(SKILLS);
     this.combat = new Combat(this, this.grid, this.player, enemies, hud, this.floaters, { x: spawn.x, y: spawn.y });
 
     this.clickMarker = this.add.image(0, 0, 'click-marker').setOrigin(0).setDepth(5).setVisible(false);
@@ -108,7 +105,6 @@ export class WorldScene extends Phaser.Scene {
     // Fenster verliert den Fokus (z. B. Alt+Tab): Maustaste gilt als losgelassen.
     this.game.events.on(Phaser.Core.Events.BLUR, this.cancelPress, this);
 
-    SKILLS.forEach((skill, i) => this.input.keyboard?.on(`keydown-${SKILL_KEYS[i]}`, () => this.combat.useSkill(skill.id)));
     this.input.keyboard?.on('keydown-ESC', () => this.combat.clearTarget());
 
     // Schadenszahlen erst nach dem Zeichnen platzieren: dann steht die Kamera für diesen Frame fest.

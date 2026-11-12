@@ -38,8 +38,8 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     zu, solange es in Reichweite steht. `Esc` hebt die Zielauswahl auf.
   - Wird die Figur ohne Ziel angegriffen, wählt sie den Angreifer von selbst an. Stirbt
     das Ziel, wechselt sie zum nächsten Angreifer.
-- **Skills:** Tasten `1`–`4` oder Klick auf den Skill-Balken *(Umgesetzt)*; `5`–`6` sind
-  für spätere Skills frei. *(Vorschlag)*
+- **Skills:** lösen automatisch aus, es gibt keine Skill-Tasten. Die Tasten `1`–`6`
+  entfallen. *(Entschieden, umgesetzt – siehe Abschnitt 4 und 5)*
 - **Fenster:** `I` Inventar, `C` Charakter, `T` Talente, `Esc` schließen/Menü. *(Vorschlag)*
 - **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
 - **Tränke:** `Q` Heiltrank, `E` Manatrank. *(Vorschlag)*
@@ -60,8 +60,23 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 
 ## 4. Kampfsystem
 
-- **Stil:** Ziel anwählen + Auto-Angriff + Skills mit Cooldowns (klassisches MMO). *(Entschieden, umgesetzt)*
+- **Stil:** sehr simpel – Ziel anwählen + Auto-Angriff, die Skills lösen von selbst aus. *(Entschieden, umgesetzt)*
+  - Der Auto-Angriff ist unverändert: Ziel anklicken, die Figur läuft hin und schlägt zu.
+  - Skills werden nie gedrückt. Jeder Skill hat eine Auslöse-Bedingung (z. B. „jeder
+    5. Schlag"); trifft sie zu, löst er aus – sofern er freigeschaltet und abgeklungen ist
+    und das Mana reicht.
+  - Angriffs-Skills (Wuchtschlag, Rundumschlag) ersetzen einen Auto-Angriff: der Schlag
+    *wird* zum Skill. Treffen bei einem Schlag beide zu, gewinnt der Wuchtschlag (er steht
+    im Skill-Balken weiter vorn).
+  - Verstärkungen (Kriegsschrei, Schildwall) lösen sofort aus, wenn ihre Bedingung zutrifft.
+  - Der Skill-Balken ist reine Anzeige: Abklingzeit, Schlag-Zähler („3/5"), Aufleuchten
+    beim Auslösen, Tooltip mit Bedingung und Wirkung. Über der Figur steigt der Name des
+    Skills auf.
+  - Bedingungen und Werte stehen pro Skill in `src/data/warrior.ts` (`trigger`, `effect`),
+    damit Loot und Talente sie später verbessern können (z. B. jeder 4. statt jeder 5. Schlag).
 - **Ressource:** Mana + Cooldowns. Mana regeneriert sich, schneller außerhalb des Kampfes. *(Entschieden, umgesetzt)*
+  - Auch automatisch ausgelöste Skills kosten Mana; reicht es nicht, löst der Skill nicht aus
+    (im Balken grau). *(Vorschlag – siehe Offene Punkte)*
   - 1 Mana pro Sekunde im Kampf, 5 außerhalb. Außerhalb des Kampfes kommen auch 5 % des
     Lebens pro Sekunde zurück. „Im Kampf" heißt: der letzte Treffer (ausgeteilt oder
     kassiert) ist höchstens 5 Sekunden her.
@@ -90,7 +105,8 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     (nur Optik, seine Position ändert sich nicht).
   - Schadenszahlen: eigener Schaden weiß-gelb über dem Gegner, kritische Treffer orange
     und größer, erlittener Schaden rot über der eigenen Figur, Heilung grün. Dazu lila
-    für erhaltene EP.
+    für erhaltene EP. Alle Zahlen sind groß und haben eine kräftige dunkle
+    Umrandung, damit sie auf jedem Untergrund lesbar sind.
 - **Nahkampf-Reichweite:** 22 Pixel, also knapp anderthalb Kacheln. *(Umgesetzt)*
 - **Krieger auf Stufe 1** *(Umgesetzt)*: 120 Leben, 50 Mana, 12 Angriffskraft, 10 Rüstung,
   ein Auto-Angriff alle 1,8 Sekunden. Zuwachs pro Stufe: siehe Abschnitt 6.
@@ -106,15 +122,21 @@ Alle Zahlen sind Startwerte fürs Balancing und stehen in `src/config.ts`,
 
 Krieger-Skills für V1 *(Umgesetzt; Zahlen sind Startwerte fürs Balancing)*:
 
-| Taste | Skill | Ab Stufe | Mana | Cooldown | Wirkung |
+| Skill | Ab Stufe | Löst aus | Mana | Cooldown | Wirkung |
 |---|---|---|---|---|---|
-| `1` | Wuchtschlag | 1 | 10 | 6 s | 220 % Schaden auf das Ziel |
-| `2` | Rundumschlag | 3 | 15 | 10 s | 130 % Schaden an allen Gegnern in Nahkampfreichweite |
-| `3` | Kriegsschrei | 5 | 15 | 30 s | 10 Sekunden lang 30 % mehr Angriffskraft |
-| `4` | Schildwall | 8 | 20 | 60 s | 8 Sekunden lang 60 % weniger erlittener Schaden |
+| Wuchtschlag | 1 | jeder 5. Schlag | 10 | – | 220 % Schaden auf das Ziel |
+| Rundumschlag | 3 | ab 3 angreifenden Gegnern in Reichweite (28 Pixel) | 15 | 10 s | 130 % Schaden an allen Gegnern in Reichweite |
+| Kriegsschrei | 5 | zu Kampfbeginn | 15 | 30 s | 10 Sekunden lang 30 % mehr Angriffskraft |
+| Schildwall | 8 | unter 30 % Leben (im Kampf) | 20 | 60 s | 8 Sekunden lang 60 % weniger erlittener Schaden |
 
-Gesperrte Skills sind im Skill-Balken dunkel und zeigen ihre Stufe. Die Stufen
-(1 / 3 / 5 / 8) sind ein *Vorschlag* und stehen als `unlockLevel` in `src/data/warrior.ts`.
+- Die Bedingungen sind von dir vorgegeben *(Entschieden)*, die Zahlen sind Startwerte fürs Balancing.
+- Wuchtschlag: Der Zähler läuft über Kämpfe hinweg weiter und zählt jeden Schlag (auch
+  einen Rundumschlag). Reicht das Mana beim 5. Schlag nicht, bleibt er bei 4/5 stehen.
+- Kriegsschrei: löst mit dem ersten Schlag aus (oder wenn die Figur getroffen wird). Dauert
+  ein Kampf länger als die Abklingzeit, löst er im selben Kampf erneut aus. *(Vorschlag)*
+- Schildwall: war er beim Unterschreiten noch nicht bereit, löst er aus, sobald er es ist.
+- Gesperrte Skills sind im Skill-Balken dunkel und zeigen ihre Stufe. Die Stufen
+  (1 / 3 / 5 / 8) sind ein *Vorschlag* und stehen als `unlockLevel` in `src/data/warrior.ts`.
 
 ## 6. Progression
 
@@ -306,6 +328,8 @@ Von dir gewünscht, noch nicht umgesetzt. *(Entschieden)*
 | Minimap | direkt nach Meilenstein 3 (Kampf) | Kleine Übersichtskarte oben rechts im Bild: Gelände, eigene Position, Gegner in der Nähe |
 | Große Karte | sobald es mehrere Zonen gibt | Taste `M` öffnet und schließt die Karte der ganzen Zone |
 | Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
+| Mehr Skills als Plätze | nach V1, zusammen mit dem Talentbaum | Mit der Zeit 8–10 Skills pro Klasse freischalten, aber nur 4 aktive Plätze. Die Auswahl ist der Build. |
+| Legendäre Items mit einzigartigen Effekten | nach V1, baut auf dem Loot (Meilenstein 5) auf | Legendäre Items verändern Skills, z. B. „Rundumschlag hinterlässt Feuerspur". |
 
 Die Ecke oben rechts bleibt im HUD für die Minimap frei.
 
@@ -318,6 +342,9 @@ Die Ecke oben rechts bleibt im HUD für die Minimap frei.
    ein weiteres CC0-Pack mit Waldtieren suchen?
 4. Skill-Symbole sind vorerst Waffenbilder aus „Tiny Dungeon" (Hammer, Axt, Schwert,
    Schild). Eigene Symbole wären schöner.
-5. Balancing: Levelkurve, Wertezuwachs, Gegnerstufen und Skill-Stufen sind erste
+5. Mana bei automatischen Skills: Vorerst kosten sie weiter Mana. In langen Kämpfen kann
+   das Mana ausgehen – dann fehlt es womöglich gerade für den Schildwall. Im Spiel erproben;
+   Alternativen: Kosten senken, Mana für den Schildwall reservieren oder Mana ganz streichen.
+6. Balancing: Levelkurve, Wertezuwachs, Gegnerstufen und Skill-Stufen sind erste
    Schätzungen (Ziel: 2–3 Stunden bis Stufe 10) und müssen im Spiel erprobt werden.
    Mit dem Loot (Meilenstein 5) verschiebt sich die Stärke der Figur noch einmal.
