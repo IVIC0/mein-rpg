@@ -1,11 +1,14 @@
-// Werte und Skills des Kriegers. Bis es Level gibt (Meilenstein 4), sind das feste Werte.
+// Werte und Skills des Kriegers.
 
 export const WARRIOR = {
   name: 'Krieger',
+  // Grundwerte auf Stufe 1.
   maxHp: 120,
   maxMana: 50,
   attackPower: 12,
   armor: 10,
+  /** Zuwachs pro Stufe ab Stufe 2. Auf Stufe 10: 282 Leben, 95 Mana, 39 Angriff, 46 Rüstung. */
+  perLevel: { maxHp: 18, maxMana: 5, attackPower: 3, armor: 4 },
   /** 0.05 = 5 % Chance auf einen kritischen Treffer. */
   critChance: 0.05,
   /** Ein kritischer Treffer macht so viel mal Schaden. */
@@ -41,6 +44,8 @@ export interface SkillDef {
   iconFrame: number;
   manaCost: number;
   cooldownMs: number;
+  /** Ab dieser Stufe kann die Figur den Skill benutzen. */
+  unlockLevel: number;
   description: string;
   effect: SkillEffect;
 }
@@ -53,6 +58,7 @@ export const SKILLS: SkillDef[] = [
     iconFrame: 117,
     manaCost: 10,
     cooldownMs: 6000,
+    unlockLevel: 1,
     description: 'Schlägt das Ziel mit 220 % Schaden.',
     effect: { type: 'strike', multiplier: 2.2 },
   },
@@ -63,6 +69,7 @@ export const SKILLS: SkillDef[] = [
     iconFrame: 118,
     manaCost: 15,
     cooldownMs: 10000,
+    unlockLevel: 3,
     description: 'Trifft alle Gegner in Nahkampfreichweite mit 130 % Schaden.',
     effect: { type: 'cleave', multiplier: 1.3, radius: 28 },
   },
@@ -73,6 +80,7 @@ export const SKILLS: SkillDef[] = [
     iconFrame: 107,
     manaCost: 15,
     cooldownMs: 30000,
+    unlockLevel: 5,
     description: '10 Sekunden lang 30 % mehr Angriffskraft.',
     effect: { type: 'buff', durationMs: 10000, attackBonus: 0.3, damageTakenFactor: 1, tint: 0xffb09a },
   },
@@ -83,7 +91,13 @@ export const SKILLS: SkillDef[] = [
     iconFrame: 102,
     manaCost: 20,
     cooldownMs: 60000,
+    unlockLevel: 8,
     description: '8 Sekunden lang 60 % weniger erlittener Schaden.',
     effect: { type: 'buff', durationMs: 8000, attackBonus: 0, damageTakenFactor: 0.4, tint: 0x9cc6ff },
   },
 ];
+
+/** Ein Grundwert des Kriegers auf der Stufe `level`. */
+export function warriorStat(stat: keyof typeof WARRIOR.perLevel, level: number): number {
+  return WARRIOR[stat] + WARRIOR.perLevel[stat] * (level - 1);
+}

@@ -68,8 +68,10 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 - **Tod:** Respawn in der Stadt mit kleinem Gold-/EP-Verlust, kein Itemverlust. *(Entschieden)*
   - Umgesetzt: Die Figur bleibt 3 Sekunden liegen und wacht dann mit vollem Leben und
     Mana im Dorf auf.
-  - Der Abzug – 5 % Gold und 5 % der EP des aktuellen Levels, nie Levelverlust *(Vorschlag)* –
-    kommt mit Meilenstein 4 (EP) und 5 (Gold); vorher gibt es nichts abzuziehen.
+  - EP-Abzug *(Umgesetzt)*: 5 % der EP, die die aktuelle Stufe braucht – höchstens so viel,
+    wie man in der Stufe schon gesammelt hat, also nie Stufenverlust. Der Todes-Bildschirm
+    zeigt den Verlust an.
+  - Gold-Abzug (5 %) *(Vorschlag)* kommt mit Meilenstein 5; vorher gibt es kein Gold.
 - **Gegner-Verhalten** *(Umgesetzt)*:
   - Aggro: Ein Gegner greift an, wenn die Figur in seinem Radius steht (3–4,5 Kacheln je
     nach Typ) und kein Hindernis die Sicht versperrt – oder wenn er getroffen wird.
@@ -79,14 +81,22 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   - Im Leerlauf schlendern Gegner ein paar Schritte um ihren Platz.
 - **Schadensformel** *(Umgesetzt)*: Schaden = Angriffskraft × Skill-Faktor × Streuung
   (85–115 %) × 100 / (100 + Rüstung), mindestens 1. 100 Rüstung halbieren den Schaden.
-  Kritische Treffer (Krieger: 5 % Chance) machen 150 %. Schadenszahlen steigen über dem
-  Ziel auf: weiß = Treffer, gelb = kritisch, rot = Schaden an der Figur.
+  Kritische Treffer (Krieger: 5 % Chance) machen 150 %.
+- **Treffer-Feedback** *(Entschieden, umgesetzt)*:
+  - Angriff der Figur: kurzer Ausfallschritt Richtung Ziel und ein sichtbarer Waffenschwung
+    (Schwert im Bogen mit heller Spur). Wuchtschlag schwingt weiter aus, Rundumschlag
+    einmal im Kreis.
+  - Ein getroffener Gegner blitzt kurz weiß auf und bekommt einen kleinen Rückstoß
+    (nur Optik, seine Position ändert sich nicht).
+  - Schadenszahlen: eigener Schaden weiß-gelb über dem Gegner, kritische Treffer orange
+    und größer, erlittener Schaden rot über der eigenen Figur, Heilung grün. Dazu lila
+    für erhaltene EP.
 - **Nahkampf-Reichweite:** 22 Pixel, also knapp anderthalb Kacheln. *(Umgesetzt)*
-- **Krieger ohne Level** *(Umgesetzt, gilt bis Meilenstein 4)*: 120 Leben, 50 Mana,
-  12 Angriffskraft, 10 Rüstung, ein Auto-Angriff alle 1,8 Sekunden.
+- **Krieger auf Stufe 1** *(Umgesetzt)*: 120 Leben, 50 Mana, 12 Angriffskraft, 10 Rüstung,
+  ein Auto-Angriff alle 1,8 Sekunden. Zuwachs pro Stufe: siehe Abschnitt 6.
 
 Alle Zahlen sind Startwerte fürs Balancing und stehen in `src/config.ts`,
-`src/data/warrior.ts` und `src/data/enemies.ts`.
+`src/data/warrior.ts`, `src/data/enemies.ts` und `src/data/progression.ts`.
 
 ## 5. Klassen
 
@@ -96,15 +106,15 @@ Alle Zahlen sind Startwerte fürs Balancing und stehen in `src/config.ts`,
 
 Krieger-Skills für V1 *(Umgesetzt; Zahlen sind Startwerte fürs Balancing)*:
 
-| Taste | Skill | Mana | Cooldown | Wirkung |
-|---|---|---|---|---|
-| `1` | Wuchtschlag | 10 | 6 s | 220 % Schaden auf das Ziel |
-| `2` | Rundumschlag | 15 | 10 s | 130 % Schaden an allen Gegnern in Nahkampfreichweite |
-| `3` | Kriegsschrei | 15 | 30 s | 10 Sekunden lang 30 % mehr Angriffskraft |
-| `4` | Schildwall | 20 | 60 s | 8 Sekunden lang 60 % weniger erlittener Schaden |
+| Taste | Skill | Ab Stufe | Mana | Cooldown | Wirkung |
+|---|---|---|---|---|---|
+| `1` | Wuchtschlag | 1 | 10 | 6 s | 220 % Schaden auf das Ziel |
+| `2` | Rundumschlag | 3 | 15 | 10 s | 130 % Schaden an allen Gegnern in Nahkampfreichweite |
+| `3` | Kriegsschrei | 5 | 15 | 30 s | 10 Sekunden lang 30 % mehr Angriffskraft |
+| `4` | Schildwall | 8 | 20 | 60 s | 8 Sekunden lang 60 % weniger erlittener Schaden |
 
-Bis Meilenstein 4 sind alle vier Skills von Anfang an verfügbar; danach werden sie auf
-festen Stufen freigeschaltet.
+Gesperrte Skills sind im Skill-Balken dunkel und zeigen ihre Stufe. Die Stufen
+(1 / 3 / 5 / 8) sind ein *Vorschlag* und stehen als `unlockLevel` in `src/data/warrior.ts`.
 
 ## 6. Progression
 
@@ -122,6 +132,31 @@ festen Stufen freigeschaltet.
 Attribute *(Vorschlag)*: Stärke, Geschick, Intelligenz, Ausdauer. Daraus abgeleitet:
 Leben, Mana, Angriffskraft, Rüstung, Krit-Chance, Krit-Schaden, Angriffstempo,
 Lebens-/Manaregeneration.
+
+### Leveln in V1: Stufe 1–10 *(Umgesetzt, Zahlen sind Startwerte fürs Balancing)*
+
+- **EP** gibt es für jeden besiegten Gegner: 10 + 5 × Stufe des Gegners (Stufe 1 = 15 EP,
+  Stufe 10 = 60 EP). Liegt die Figur 3 / 4 / 5 Stufen über dem Gegner, gibt es nur noch
+  75 % / 50 % / 25 %, darüber 10 %.
+- **Levelkurve** – ausgelegt auf rund 500 Gegner bzw. 2–3 Stunden bis Stufe 10:
+
+  | Aufstieg auf Stufe | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+  |---|---|---|---|---|---|---|---|---|---|
+  | EP nötig | 120 | 300 | 625 | 1050 | 1750 | 2600 | 3600 | 5000 | 6600 |
+
+- **Wertezuwachs pro Stufe** (Krieger): +18 Leben, +5 Mana, +3 Angriffskraft, +4 Rüstung.
+  Auf Stufe 10 also 282 Leben, 95 Mana, 39 Angriffskraft, 46 Rüstung.
+- **Stufenaufstieg:** Leben und Mana sind sofort wieder voll, eine Meldung zeigt die neue
+  Stufe, den Zuwachs und neu freigeschaltete Skills.
+- **Anzeige:** Stufe und EP-Balken im Rahmen oben links. Im Zielrahmen ist die Stufe des
+  Gegners rot, wenn er 2 oder mehr Stufen über der Figur liegt, und grau, wenn er nur noch
+  verringerte EP bringt.
+- Die Attribute (Stärke, Ausdauer …) kommen erst mit dem Loot (Meilenstein 5). Bis dahin
+  steigen Leben, Mana, Angriffskraft und Rüstung direkt. *(Vorschlag)*
+- **Zum Testen:** `?stufe=5` an die Adresse hängen, dann startet die Figur auf Stufe 5.
+  Solange es kein Speichern gibt (Meilenstein 7), beginnt jedes Neuladen wieder auf Stufe 1.
+
+Alle Werte stehen in `src/data/progression.ts` (Kurve, EP) und `src/data/warrior.ts` (Zuwachs).
 
 ## 7. Loot
 
@@ -195,13 +230,27 @@ Gegnergruppen (Pilzhain, Westlichtung, Große Lichtung, Ostlichtung, Südlichtun
 Ruine im Herbstwald im Nordosten), verbunden durch Erdwege. Die Lichtungen sind in
 der Karte als Marker hinterlegt.
 
-Gegner in Grünwald *(Umgesetzt)* – 31 Stück, je weiter vom Dorf, desto gefährlicher:
+Gegner in Grünwald *(Umgesetzt)* – 31 Stück, je weiter vom Dorf, desto höher die Stufe.
+Jeder Gegnertyp hat Grundwerte für Stufe 1; pro Stufe darüber kommen +20 % Leben,
++15 % Angriff und +2 Rüstung dazu *(Vorschlag, Startwerte fürs Balancing)*:
 
-| Gegner | Stufe | Leben | Angriff | Rüstung | Wo |
+| Gegner | Leben | Angriff | Rüstung | Stufen | Beispiel auf höchster Stufe |
 |---|---|---|---|---|---|
-| Riesenratte | 1 | 30 | 5 | 0 | Westlichtung (4), Pilzhain (3), Große Lichtung (4) |
-| Waldspinne | 2 | 55 | 8 | 5 | Pilzhain (3), Große Lichtung (3), Südlichtung (4), Ostlichtung (3) |
-| Wegelagerer | 3 | 90 | 12 | 15 | Ostlichtung (2), Ruine (5) |
+| Riesenratte | 30 | 5 | 0 | 1–3 | Stufe 3: 42 Leben, 6,5 Angriff, 4 Rüstung |
+| Waldspinne | 45 | 7 | 3 | 2–7 | Stufe 7: 99 Leben, 13,3 Angriff, 15 Rüstung |
+| Wegelagerer | 64 | 9 | 11 | 7–10 | Stufe 10: 179 Leben, 21,2 Angriff, 29 Rüstung |
+
+| Lichtung | Gegner (Stufe) |
+|---|---|
+| Westlichtung | 4 Riesenratten (1) |
+| Pilzhain | 3 Riesenratten (1, 2, 2), 3 Waldspinnen (2, 2, 3) |
+| Große Lichtung | 4 Riesenratten (3), 3 Waldspinnen (3, 4, 4) |
+| Südlichtung | 4 Waldspinnen (5, 5, 5, 6) |
+| Ostlichtung | 3 Waldspinnen (6, 6, 7), 2 Wegelagerer (7) |
+| Ruine | 5 Wegelagerer (8, 8, 9, 9, 10) |
+
+Die Stufen je Lichtung stehen in `tools/build-map.mjs` (Liste `ENEMY_GROUPS`), die
+Grundwerte und der Zuwachs in `src/data/enemies.ts`.
 
 Alle Gegner sind etwas langsamer als die Figur – weglaufen geht also immer.
 
@@ -233,7 +282,7 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 | 1 ✅ | Setup + Deploy | Vite + TS + Phaser, GitHub-Pages-Action, leere Szene | die Seite unter der Pages-URL lädt |
 | 2 ✅ | Karte + Bewegung | Tilemap Grünwald, Kollision, Klick-Laufen mit Wegfindung, Kamera folgt | man um Bäume herum durch die Zone laufen kann |
 | 3 ✅ | Kampf | Ziel wählen, Auto-Angriff, 3 Gegnertypen mit Aggro/Leash/Respawn, Leben/Mana-Balken, 4 Krieger-Skills, Tod + Respawn | man Gegner töten und sterben kann |
-| 4 | Leveln | EP, Levelkurve 1–10, Wertezuwachs, Skill-Freischaltung auf festen Stufen | Level 10 erreichbar ist und sich stärker anfühlt |
+| 4 ✅ | Leveln | EP, Levelkurve 1–10, Wertezuwachs, Skill-Freischaltung auf festen Stufen | Level 10 erreichbar ist und sich stärker anfühlt |
 | 5 | Loot | Item-Generator (Affixe, 6 Seltenheiten, Itemlevel), Drops, Inventar, Ausrüstung, Tooltip mit Vergleich | ein Fund die Werte sichtbar verbessert |
 | 6 | Elites | Zufällige Elite-Spawns mit 1–3 Eigenschaften und besserem Loot | Elites erkennbar gefährlicher und lohnender sind |
 | 7 | Speichern | Auto-Save, Export/Import, Versionsnummer | Seite neu laden nichts verliert |
@@ -263,12 +312,12 @@ Die Ecke oben rechts bleibt im HUD für die Minimap frei.
 ## 14. Offene Punkte
 
 1. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe (Balancing, nach V1).
-2. Lauf-Animation: Das Pack hat keine. Reicht das Hüpfen, oder später ein anderes
-   Figuren-Pack mit Animationen suchen?
+2. Lauf-Animation: kommt später als Feinschliff, vorerst reicht das Hüpfen. *(Entschieden)*
 3. Gegner in Grünwald: „Tiny Dungeon" enthält keine Wölfe, Wildschweine oder Goblins.
    Deshalb sind es vorerst Riesenratten, Waldspinnen und Wegelagerer. So lassen, oder
    ein weiteres CC0-Pack mit Waldtieren suchen?
 4. Skill-Symbole sind vorerst Waffenbilder aus „Tiny Dungeon" (Hammer, Axt, Schwert,
    Schild). Eigene Symbole wären schöner.
-5. Kampf-Balancing: Alle Werte sind erste Schätzungen für eine Figur ohne Level und
-   werden mit Meilenstein 4 (Leveln) neu eingestellt.
+5. Balancing: Levelkurve, Wertezuwachs, Gegnerstufen und Skill-Stufen sind erste
+   Schätzungen (Ziel: 2–3 Stunden bis Stufe 10) und müssen im Spiel erprobt werden.
+   Mit dem Loot (Meilenstein 5) verschiebt sich die Stärke der Figur noch einmal.

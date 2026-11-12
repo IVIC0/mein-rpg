@@ -42,7 +42,10 @@
     <div id="hud">
       <div id="frames">
         <div class="frame">
-          <div class="frame-title">Krieger</div>
+          <div class="frame-title">
+            <span>Krieger</span>
+            <span id="player-level"></span>
+          </div>
           <div class="bar bar-hp">
             <div class="bar-fill" id="player-hp-fill"></div>
             <span id="player-hp-text"></span>
@@ -50,6 +53,10 @@
           <div class="bar bar-mana">
             <div class="bar-fill" id="player-mana-fill"></div>
             <span id="player-mana-text"></span>
+          </div>
+          <div class="bar bar-xp">
+            <div class="bar-fill" id="player-xp-fill"></div>
+            <span id="player-xp-text"></span>
           </div>
           <div id="player-buffs"></div>
         </div>
@@ -66,12 +73,18 @@
         </div>
       </div>
 
+      <div id="levelup">
+        <div id="levelup-title"></div>
+        <div id="levelup-text"></div>
+      </div>
+
       <div id="message"></div>
       <div id="skillbar"></div>
 
       <div id="death-screen" hidden>
         <div class="death-title">Du bist gestorben</div>
         <div>Du erwachst gleich im Dorf …</div>
+        <div id="death-loss"></div>
       </div>
     </div>
 

@@ -1,9 +1,10 @@
-// Gegnertypen. Wo welche Gegner stehen, legt die Karte fest (tools/build-map.mjs,
-// Liste ENEMY_GROUPS) – der Schlüssel hier ist der Name dort.
+// Gegnertypen. Wo welche Gegner mit welcher Stufe stehen, legt die Karte fest
+// (tools/build-map.mjs, Liste ENEMY_GROUPS) – der Schlüssel hier ist der Name dort.
+//
+// Leben, Angriff und Rüstung gelten für Stufe 1 und wachsen mit der Stufe (ENEMY_SCALING).
 
 export interface EnemyDef {
   name: string;
-  level: number;
   /** Bild-Nummer in assets/sprites/characters.png. */
   frame: number;
   maxHp: number;
@@ -22,7 +23,6 @@ export interface EnemyDef {
 export const ENEMIES: Record<string, EnemyDef> = {
   ratte: {
     name: 'Riesenratte',
-    level: 1,
     frame: 123,
     maxHp: 30,
     attackPower: 5,
@@ -34,11 +34,10 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   spinne: {
     name: 'Waldspinne',
-    level: 2,
     frame: 122,
-    maxHp: 55,
-    attackPower: 8,
-    armor: 5,
+    maxHp: 45,
+    attackPower: 7,
+    armor: 3,
     attackIntervalMs: 1700,
     speed: 58,
     aggroRadius: 64,
@@ -46,14 +45,30 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   wegelagerer: {
     name: 'Wegelagerer',
-    level: 3,
     frame: 112,
-    maxHp: 90,
-    attackPower: 12,
-    armor: 15,
+    maxHp: 64,
+    attackPower: 9,
+    armor: 11,
     attackIntervalMs: 2000,
     speed: 54,
     aggroRadius: 72,
     leashRadius: 192,
   },
 };
+
+/**
+ * Zuwachs pro Stufe über 1: Leben und Angriff als Anteil des Grundwerts
+ * (0.2 = +20 % pro Stufe), Rüstung als fester Wert.
+ * Beispiel Wegelagerer Stufe 9: 64 × (1 + 0.2 × 8) = 166 Leben.
+ */
+export const ENEMY_SCALING = { hpPerLevel: 0.2, attackPerLevel: 0.15, armorPerLevel: 2 };
+
+/** Leben, Angriff und Rüstung eines Gegnertyps auf der Stufe `level`. */
+export function enemyStats(def: EnemyDef, level: number): { maxHp: number; attackPower: number; armor: number } {
+  const steps = level - 1;
+  return {
+    maxHp: Math.round(def.maxHp * (1 + ENEMY_SCALING.hpPerLevel * steps)),
+    attackPower: def.attackPower * (1 + ENEMY_SCALING.attackPerLevel * steps),
+    armor: def.armor + ENEMY_SCALING.armorPerLevel * steps,
+  };
+}

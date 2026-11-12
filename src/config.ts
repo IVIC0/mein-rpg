@@ -42,3 +42,37 @@ export const ENEMY_RESPAWN_MS = 30000;
 
 /** So lange bleibt die Figur nach dem Tod liegen, bevor sie im Dorf aufwacht. */
 export const PLAYER_RESPAWN_MS = 3000;
+
+/** Bemerkt ein Gegner die Figur, zögert er so lange vor dem ersten Schlag (Millisekunden). */
+export const ENEMY_FIRST_STRIKE_MS = 600;
+
+// ---------------------------------------------------------------- Treffer-Feedback
+
+/** Ausfallschritt beim Zuschlagen: so weit (Welt-Pixel) ruckt die Figur Richtung Ziel und zurück. */
+export const PLAYER_LUNGE = 6;
+export const ENEMY_LUNGE = 4;
+/** Dauer einer Richtung des Ausfallschritts (hin bzw. zurück) in Millisekunden. */
+export const LUNGE_MS = 80;
+
+/**
+ * Waffenschwung der Spielfigur je Angriffsart: `arcDeg` = Bogen in Grad, den die
+ * Waffe durchläuft, `ms` = Dauer, `lunge` = Ausfallschritt in Welt-Pixeln.
+ */
+export const SWING = {
+  auto: { arcDeg: 140, ms: 180, lunge: PLAYER_LUNGE },
+  strike: { arcDeg: 220, ms: 220, lunge: 9 },
+  cleave: { arcDeg: 360, ms: 300, lunge: 0 },
+};
+/** So lange bleibt die Waffe am Ende des Schwungs noch sichtbar (Millisekunden). */
+export const SWING_HOLD_MS = 60;
+/** Schwung-Spur (heller Bogen): Abstand von der Figur und Strichbreite in Welt-Pixeln. */
+export const SWING_RADIUS = 15;
+export const SWING_TRAIL_WIDTH = 3;
+/** Bild-Nummer der Waffe in characters.png. */
+export const SWING_WEAPON_FRAME = 104;
+
+/** So lange blitzt eine getroffene Figur weiß auf (Millisekunden). */
+export const HIT_FLASH_MS = 120;
+/** Rückstoß eines getroffenen Gegners: Weite (Welt-Pixel) und Dauer bis er wieder gerade steht. */
+export const KNOCKBACK_DISTANCE = 4;
+export const KNOCKBACK_MS = 160;

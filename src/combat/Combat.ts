@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { MELEE_APPROACH, MELEE_RANGE, PLAYER_RESPAWN_MS } from '../config';
+import { DEATH_XP_LOSS, xpForKill } from '../data/progression';
 import { SKILLS, WARRIOR, type SkillId } from '../data/warrior';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
@@ -20,7 +21,7 @@ const ATTACKER_RADIUS = 80;
 
 /**
  * Die Kampfregeln: Ziel wählen, hinlaufen, Auto-Angriff, Skills, Schaden in
- * beide Richtungen, Tod und Respawn der Spielfigur.
+ * beide Richtungen, EP und Stufenaufstieg, Tod und Respawn der Spielfigur.
  */
 export class Combat {
   /** Der angewählte Gegner. */
@@ -85,6 +86,7 @@ export class Combat {
     const player = this.player;
     const skill = SKILLS.find((s) => s.id === id);
     if (!skill || !player.alive) return;
+    if (player.level < skill.unlockLevel) return this.hud.flash(`${skill.name} gibt es ab Stufe ${skill.unlockLevel}`);
     if ((player.cooldowns.get(id) ?? 0) > 0) return this.hud.flash('Noch nicht bereit');
     if (player.mana < skill.manaCost) return this.hud.flash('Zu wenig Mana');
 
@@ -94,14 +96,16 @@ export class Combat {
         const target = this.target;
         if (!target || !target.targetable) return this.hud.flash('Kein Ziel');
         if (player.distanceTo(target.pos) > MELEE_RANGE) return this.hud.flash('Ziel zu weit entfernt');
-        player.lungeAt(target.pos);
+        player.swingAt(target.pos, 'strike');
         this.hitEnemy(target, effect.multiplier);
         break;
       }
       case 'cleave': {
         const inReach = this.enemies.filter((enemy) => enemy.targetable && player.distanceTo(enemy.pos) <= effect.radius);
         if (inReach.length === 0) return this.hud.flash('Kein Gegner in Reichweite');
-        this.showShockwave(effect.radius);
+        // Der Schwung beginnt beim Ziel, sonst beim ersten Gegner in Reichweite.
+        player.swingAt((this.target && inReach.includes(this.target) ? this.target : inReach[0]).pos, 'cleave');
+        this.showShockwave(effect.radius, 0xfff2b0, 220);
         for (const enemy of inReach) this.hitEnemy(enemy, effect.multiplier);
         break;
       }
@@ -167,15 +171,17 @@ export class Combat {
     if (!target || !target.targetable || player.attackCooldown > 0) return;
     if (player.distanceTo(target.pos) > MELEE_RANGE) return;
     player.attackCooldown = WARRIOR.attackIntervalMs;
-    player.lungeAt(target.pos);
+    player.swingAt(target.pos, 'auto');
     this.hitEnemy(target, 1);
   }
 
   private hitEnemy(enemy: Enemy, multiplier: number): void {
-    const hit = rollHit(this.player.attackPower, enemy.def.armor, multiplier, WARRIOR.critChance, WARRIOR.critMultiplier);
+    const hit = rollHit(this.player.attackPower, enemy.armor, multiplier, WARRIOR.critChance, WARRIOR.critMultiplier);
     this.player.enterCombat();
     enemy.takeDamage(hit.amount);
+    enemy.recoilFrom(this.player.pos);
     this.floaters.spawn(enemy.pos.x, enemy.pos.y - 16, hit.crit ? `${hit.amount}!` : `${hit.amount}`, hit.crit ? 'crit' : 'hit');
+    if (!enemy.alive) this.grantXp(enemy);
 
     // Ziel besiegt: gleich zum nächsten Angreifer wechseln, falls noch einer da ist.
     if (!enemy.alive && enemy === this.target) {
@@ -183,6 +189,24 @@ export class Combat {
       if (next) this.select(next);
       else this.clearTarget();
     }
+  }
+
+  /** EP für einen besiegten Gegner – und alles, was bei einem Stufenaufstieg passiert. */
+  private grantXp(enemy: Enemy): void {
+    const player = this.player;
+    if (player.xpToNext === 0) return; // Maximalstufe
+    const amount = xpForKill(enemy.level, player.level);
+    const missingHp = player.maxHp - player.hp;
+    const levelUps = player.gainXp(amount);
+    this.floaters.spawn(player.pos.x, player.pos.y - 16, `+${amount} EP`, 'xp');
+    if (levelUps === 0) return;
+
+    // Aufstieg: Leben und Mana sind wieder voll, neue Skills werden angesagt.
+    const unlocked = SKILLS.filter((skill) => skill.unlockLevel > player.level - levelUps && skill.unlockLevel <= player.level);
+    this.hud.showLevelUp(player.level, levelUps, unlocked);
+    this.floaters.spawn(player.pos.x, player.pos.y - 26, `Stufe ${player.level}!`, 'level');
+    if (missingHp >= 1) this.floaters.spawn(player.pos.x, player.pos.y - 8, `+${Math.round(missingHp)}`, 'heal');
+    this.showShockwave(40, 0xffd34d, 600);
   }
 
   /** Der nächste Gegner, der die Figur gerade verfolgt und schon in ihrer Nähe ist. */
@@ -204,7 +228,7 @@ export class Combat {
   private readonly enemyStrikes = (enemy: Enemy): void => {
     const player = this.player;
     if (!player.alive) return;
-    const hit = rollHit(enemy.def.attackPower, WARRIOR.armor);
+    const hit = rollHit(enemy.attackPower, player.armor);
     const amount = Math.max(1, Math.round(hit.amount * player.damageTakenFactor));
     player.takeDamage(amount);
     this.floaters.spawn(player.pos.x, player.pos.y - 16, `${amount}`, 'hurt');
@@ -222,12 +246,12 @@ export class Combat {
     this.clearTarget();
     this.player.die();
     this.respawnIn = PLAYER_RESPAWN_MS;
-    this.hud.setDead(true);
+    this.hud.setDead(true, this.player.loseXp(DEATH_XP_LOSS));
   }
 
   private respawnPlayer(): void {
     this.player.revive(this.respawnPoint);
-    this.hud.setDead(false);
+    this.hud.setDead(false, 0);
   }
 
   /** Schiebt Angreifer auseinander, die aufeinander stehen – so umringen sie die Figur. */
@@ -255,13 +279,13 @@ export class Combat {
     }
   }
 
-  /** Kurzer Ring um die Figur als Zeichen für einen Flächenangriff. */
-  private showShockwave(radius: number): void {
+  /** Ring, der sich um die Figur ausbreitet: Zeichen für einen Flächenangriff oder Stufenaufstieg. */
+  private showShockwave(radius: number, color: number, durationMs: number): void {
     const ring = this.scene.add
       .circle(this.player.pos.x, this.player.pos.y, radius)
-      .setStrokeStyle(1.5, 0xfff2b0, 0.9)
+      .setStrokeStyle(1.5, color, 0.9)
       .setDepth(9)
       .setScale(0.3);
-    this.scene.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: 220, onComplete: () => ring.destroy() });
+    this.scene.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: durationMs, onComplete: () => ring.destroy() });
   }
 }

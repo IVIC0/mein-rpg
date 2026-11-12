@@ -1,16 +1,16 @@
 import Phaser from 'phaser';
-import { BODY_RADIUS } from '../config';
+import { BODY_RADIUS, ENEMY_LUNGE, HIT_FLASH_MS, KNOCKBACK_DISTANCE, KNOCKBACK_MS, LUNGE_MS } from '../config';
 import type { Grid, Point } from '../world/Grid';
 
 /** Das Sprite sitzt etwas über dem Standpunkt, damit die Füße auf der Kachel stehen. */
-const SPRITE_OFFSET_Y = -3;
+export const SPRITE_OFFSET_Y = -3;
 
 /** Figuren liegen über der Karte; wer weiter unten steht, wird weiter vorn gezeichnet. */
 const BASE_DEPTH = 10;
 
 /**
  * Gemeinsame Basis für Spielfigur und Gegner: Position, Leben, Weg ablaufen
- * und die kleinen Animationen (Hüpfen, Zuschlagen, Aufblitzen bei Treffern).
+ * und die kleinen Animationen (Hüpfen, Ausfallschritt, Aufblitzen und Rückstoß bei Treffern).
  *
  * `pos` ist der genaue Punkt, an dem die Figur steht. Gezeichnet wird sie auf
  * ganze Bildschirm-Pixel gerundet (x/y des Containers), sonst flimmert Pixel-Art.
@@ -22,12 +22,17 @@ export abstract class Actor extends Phaser.GameObjects.Container {
   /** Genaue Position in Welt-Pixeln. */
   readonly pos: Phaser.Math.Vector2;
   hp: number;
+  maxHp: number;
 
   protected readonly sprite: Phaser.GameObjects.Sprite;
+  /** Größer als 0 = die Figur wird vor allen anderen gezeichnet (z. B. während des Waffenschwungs). */
+  protected depthBias = 0;
   private waypoints: Point[] = [];
   private walkTime = 0;
   /** Versatz des Sprites beim Zuschlagen. */
   private readonly lunge = { x: 0, y: 0 };
+  /** Versatz des Sprites durch den Rückstoß nach einem Treffer. */
+  private readonly recoil = { x: 0, y: 0 };
   private tint: number | null = null;
   private flashMs = 0;
 
@@ -36,10 +41,11 @@ export abstract class Actor extends Phaser.GameObjects.Container {
     x: number,
     y: number,
     frame: number,
-    readonly maxHp: number,
+    maxHp: number,
   ) {
     super(scene, x, y);
     this.pos = new Phaser.Math.Vector2(x, y);
+    this.maxHp = maxHp;
     this.hp = maxHp;
     const shadow = scene.add.image(0, 5, 'shadow').setAlpha(0.25);
     this.sprite = scene.add.sprite(0, SPRITE_OFFSET_Y, 'characters', frame);
@@ -74,19 +80,21 @@ export abstract class Actor extends Phaser.GameObjects.Container {
     if (Math.abs(x - this.pos.x) > 0.5) this.sprite.setFlipX(x < this.pos.x);
   }
 
-  /** Kurzer Ruck in Richtung `target` – die Angriffs-Animation. */
-  lungeAt(target: Point): void {
+  /** Ausfallschritt: kurzer Ruck um `reach` Welt-Pixel in Richtung `target` und zurück. */
+  lungeAt(target: Point, reach = ENEMY_LUNGE): void {
     const distance = this.distanceTo(target);
     if (distance < 0.01) return;
     this.face(target.x);
     this.scene.tweens.killTweensOf(this.lunge);
     this.lunge.x = 0;
     this.lunge.y = 0;
+    if (reach <= 0) return;
     this.scene.tweens.add({
       targets: this.lunge,
-      x: ((target.x - this.pos.x) / distance) * 4,
-      y: ((target.y - this.pos.y) / distance) * 4,
-      duration: 70,
+      x: ((target.x - this.pos.x) / distance) * reach,
+      y: ((target.y - this.pos.y) / distance) * reach,
+      duration: LUNGE_MS,
+      ease: 'Quad.easeOut',
       yoyo: true,
     });
   }
@@ -94,7 +102,20 @@ export abstract class Actor extends Phaser.GameObjects.Container {
   /** Lässt die Figur kurz weiß aufblitzen (Treffer). */
   flashHit(): void {
     this.sprite.setTintFill(0xffffff);
-    this.flashMs = 90;
+    this.flashMs = HIT_FLASH_MS;
+  }
+
+  /**
+   * Rückstoß: das Bild der Figur springt ein Stück von `source` weg und gleitet
+   * zurück. Nur Optik – der Standpunkt `pos` ändert sich nicht.
+   */
+  recoilFrom(source: Point): void {
+    const distance = this.distanceTo(source);
+    if (distance < 0.01) return;
+    this.scene.tweens.killTweensOf(this.recoil);
+    this.recoil.x = ((this.pos.x - source.x) / distance) * KNOCKBACK_DISTANCE;
+    this.recoil.y = ((this.pos.y - source.y) / distance) * KNOCKBACK_DISTANCE;
+    this.scene.tweens.add({ targets: this.recoil, x: 0, y: 0, duration: KNOCKBACK_MS, ease: 'Quad.easeOut' });
   }
 
   /** Dauerhafte Einfärbung, z. B. solange ein Buff läuft. null = normale Farben. */
@@ -146,9 +167,9 @@ export abstract class Actor extends Phaser.GameObjects.Container {
       this.flashMs -= deltaMs;
       if (this.flashMs <= 0) this.applyTint();
     }
-    this.sprite.setPosition(snap(this.lunge.x), SPRITE_OFFSET_Y - snap(hop) + snap(this.lunge.y));
+    this.sprite.setPosition(snap(this.lunge.x + this.recoil.x), SPRITE_OFFSET_Y - snap(hop) + snap(this.lunge.y + this.recoil.y));
     this.setPosition(snap(this.pos.x), snap(this.pos.y));
-    this.setDepth(BASE_DEPTH + this.pos.y / 10000);
+    this.setDepth(BASE_DEPTH + this.depthBias + this.pos.y / 10000);
   }
 
   private applyTint(): void {
