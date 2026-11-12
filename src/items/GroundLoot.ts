@@ -67,7 +67,9 @@ export class GroundLoot {
 
   /** Ein Gegner wurde besiegt: Gold gutschreiben und vielleicht ein Item fallen lassen. */
   dropFrom(enemy: Enemy): void {
-    const gold = (Phaser.Math.Between(GOLD_DROP.min, GOLD_DROP.max) + GOLD_DROP.perLevel * enemy.level) * GOLD_RANK_FACTOR[enemy.rank];
+    // rewardFactor = Zuschlag für die Schwierigkeit (src/data/difficulty.ts).
+    const base = (Phaser.Math.Between(GOLD_DROP.min, GOLD_DROP.max) + GOLD_DROP.perLevel * enemy.level) * GOLD_RANK_FACTOR[enemy.rank];
+    const gold = Math.round(base * enemy.rewardFactor);
     this.inventory.addGold(gold);
     this.floaters.spawn(enemy.pos.x, enemy.pos.y - 4, `+${gold} Gold`, 'gold');
 

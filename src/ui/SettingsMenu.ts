@@ -1,3 +1,4 @@
+import { DIFFICULTY_PRESETS, DIFFICULTY_RANGE, rewardBonus, type Difficulty } from '../data/difficulty';
 import { byId } from './dom';
 import { HUD_ITEMS, OPACITY_RANGE, SCALE_RANGE, loadSettings, resetSettings, saveSettings, type Settings } from './settings';
 
@@ -9,12 +10,17 @@ interface Callbacks {
   onEditHud: () => void;
   /** "Fenster zurücksetzen" bzw. "Alles auf Standard" wurde gedrückt. */
   onResetWindows: () => void;
+  /** Die Schwierigkeit des laufenden Spielstands. Die Regler ändern dieses Objekt direkt. */
+  difficulty: Difficulty;
+  /** Die Schwierigkeit hat sich geändert (zum Speichern). */
+  onDifficultyChange: () => void;
 }
 
 /**
  * Das kleine Einstellungs-Menü hinter dem Zahnrad oben rechts. Die Bereiche sind
  * zugeklappt, damit es wenig Platz braucht. Alle Werte stehen in `values`
  * (ein Objekt, siehe settings.ts). Sie gelten für alle Spielstände und werden im Browser gemerkt.
+ * Ausnahme: Der Bereich "Schwierigkeit" gehört zum laufenden Spielstand (src/data/difficulty.ts).
  */
 export class SettingsMenu {
   readonly values: Settings = loadSettings();
@@ -35,6 +41,7 @@ export class SettingsMenu {
   /** Verbindet das Menü mit dem Rest des Spiels. */
   connect(callbacks: Callbacks): void {
     this.callbacks = callbacks;
+    this.build(); // jetzt mit dem Bereich "Schwierigkeit"
     byId('setting-edit-hud').addEventListener('click', () => {
       this.close();
       callbacks.onEditHud();
@@ -49,7 +56,7 @@ export class SettingsMenu {
     });
   }
 
-  /** Alles auf Standard: Einstellungen, Plätze der HUD-Elemente und die Fenster. */
+  /** Alles auf Standard: Einstellungen, Plätze der HUD-Elemente und die Fenster. Die Schwierigkeit bleibt, wie sie ist. */
   resetAll(): void {
     resetSettings(this.values);
     this.build(); // Häkchen und Regler neu aufbauen, damit sie die Standardwerte zeigen
@@ -112,7 +119,62 @@ export class SettingsMenu {
     this.check(this.row(hud), 'Schwebende Zahlen', values.floaters, 'visible');
     this.sliders(hud, values.floaters);
 
+    if (this.callbacks) this.buildDifficulty(this.callbacks.difficulty, this.callbacks.onDifficultyChange);
+
     this.body.querySelectorAll('details').forEach((details, index) => (details.open = open[index] ?? false));
+  }
+
+  /** Bereich "Schwierigkeit": vier Knöpfe, zwei Regler und die Anzeige der Belohnung. */
+  private buildDifficulty(difficulty: Difficulty, onChange: () => void): void {
+    const section = this.section('Schwierigkeit');
+    const reward = document.createElement('div');
+    const buttons: { button: HTMLButtonElement; values: Difficulty }[] = [];
+    // Zeigt die Belohnung und markiert den Knopf, der zu den Reglern passt.
+    const show = (): void => {
+      const bonus = Math.round(rewardBonus(difficulty) * 100);
+      reward.textContent = bonus > 0 ? `Belohnung: +${bonus} % EP und Gold` : 'Belohnung: keine (beide Regler über 100 % nötig)';
+      for (const entry of buttons) {
+        const active = entry.values.enemyHp === difficulty.enemyHp && entry.values.enemyDamage === difficulty.enemyDamage;
+        entry.button.classList.toggle('active', active);
+      }
+    };
+    const changed = (): void => {
+      show();
+      onChange();
+    };
+
+    const presets = this.row(section);
+    presets.classList.add('settings-presets');
+    // Je Regler eine eigene Zeile – die Beschriftungen sind zu lang für zwei nebeneinander.
+    const hpRow = this.row(section);
+    const damageRow = this.row(section);
+    hpRow.classList.add('settings-sliders');
+    damageRow.classList.add('settings-sliders');
+    const hp = this.slider(hpRow, 'Gegnerleben', difficulty, 'enemyHp', DIFFICULTY_RANGE, 1, changed);
+    const damage = this.slider(damageRow, 'Gegnerschaden', difficulty, 'enemyDamage', DIFFICULTY_RANGE, 1, changed);
+
+    for (const preset of DIFFICULTY_PRESETS) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = preset.label;
+      button.title = `Gegnerleben ${preset.values.enemyHp} %, Gegnerschaden ${preset.values.enemyDamage} %`;
+      button.addEventListener('click', () => {
+        Object.assign(difficulty, preset.values);
+        hp();
+        damage();
+        changed();
+        button.blur();
+      });
+      presets.appendChild(button);
+      buttons.push({ button, values: preset.values });
+    }
+
+    reward.className = 'settings-note settings-reward';
+    const note = document.createElement('div');
+    note.className = 'settings-note';
+    note.textContent = 'Gilt nur für diesen Spielstand und erst für Gegner, die neu erscheinen.';
+    section.append(reward, note);
+    show();
   }
 
   /** Ein aufklappbarer Bereich mit Überschrift. */
@@ -162,12 +224,16 @@ export class SettingsMenu {
     target: Record<K, number>,
     key: K,
     range: { min: number; max: number; step: number },
-  ): void {
+    /** Mit dieser Zahl malgenommen ergibt der Wert Prozent (100 für Anteile wie 0.6, 1 für Prozentwerte). */
+    toPercent = 100,
+    /** Was nach einer Änderung passiert; Standard: Einstellungen merken und anwenden. */
+    onInput: () => void = () => this.changed(),
+  ): () => void {
     const box = document.createElement('label');
     const input = document.createElement('input');
     const text = document.createElement('span');
     const show = (): void => {
-      text.textContent = `${label} ${Math.round(target[key] * 100)} %`;
+      text.textContent = `${label} ${Math.round(target[key] * toPercent)} %`;
     };
     input.type = 'range';
     input.min = `${range.min}`;
@@ -178,11 +244,16 @@ export class SettingsMenu {
     input.addEventListener('input', () => {
       target[key] = Number(input.value);
       show();
-      this.changed();
+      onInput();
     });
     input.addEventListener('change', () => input.blur());
     show();
     box.append(text, input);
     parent.appendChild(box);
+    // Zum Auffrischen von außen (wenn ein Knopf den Wert gesetzt hat).
+    return () => {
+      input.value = `${target[key]}`;
+      show();
+    };
   }
 }

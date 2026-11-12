@@ -44,7 +44,7 @@
 
     <!-- Anzeigen über dem Spielbild. Aussehen: src/ui/hud.css, Werte: src/ui/Hud.ts. -->
     <div id="hud">
-      <!-- Spielerrahmen, Zielrahmen, Skill-Leiste und Beute-Liste lassen sich in den Einstellungen
+      <!-- Spielerrahmen, Zielrahmen, Skill-Leiste, Beute-Liste und Minimap lassen sich in den Einstellungen
            ausblenden, skalieren und im Bearbeitungsmodus verschieben (src/ui/HudLayout.ts). -->
       <div class="frame" id="player-frame">
         <div class="frame-title">
@@ -84,6 +84,9 @@
 
       <!-- Zuletzt aufgehobene Items (füllt Hud.logLoot). -->
       <div id="loot-log"></div>
+
+      <!-- Minimap unter der Knopf-Leiste: Gelände, Figur, Gegner, Händler (zeichnet src/ui/Minimap.ts). -->
+      <div id="minimap"><canvas id="minimap-canvas"></canvas></div>
 
       <!-- Knopf-Leiste oben rechts. Neue Knöpfe (Talente, Karte …) kommen hier dazu. -->
       <div id="topbar">
@@ -156,17 +159,32 @@
             <button id="shop-close" type="button" title="Schließen (Esc)">×</button>
           </span>
         </div>
-        <div id="shop-stock"></div>
-        <div class="bag-footer">
-          <span id="shop-restock"></span>
-          <span id="shop-gold"></span>
+        <!-- Zwei Reiter: die Ware des Händlers und der Rückkauf verkaufter Items. -->
+        <div id="shop-tabs">
+          <button id="shop-tab-stock" class="shop-tab" type="button">Ware</button>
+          <button id="shop-tab-buyback" class="shop-tab" type="button">Rückkauf</button>
         </div>
-        <div id="shop-potion">
-          <span class="shop-potion-icon"><span id="shop-potion-icon" class="sprite-icon"></span></span>
-          <span id="shop-potion-text"></span>
-          <button id="shop-potion-buy" type="button"></button>
+        <div id="shop-page-stock">
+          <div id="shop-stock"></div>
+          <div class="bag-footer">
+            <span id="shop-restock"></span>
+            <span id="shop-gold"></span>
+          </div>
+          <div id="shop-potion">
+            <span class="shop-potion-icon"><span id="shop-potion-icon" class="sprite-icon"></span></span>
+            <span id="shop-potion-text"></span>
+            <button id="shop-potion-buy" type="button"></button>
+          </div>
+          <div class="window-help">Linksklick auf Ware: kaufen<br />Rechtsklick auf ein Item im Inventar: verkaufen</div>
         </div>
-        <div class="window-help">Linksklick auf Ware: kaufen<br />Rechtsklick auf ein Item im Inventar: verkaufen</div>
+        <div id="shop-page-buyback" hidden>
+          <div id="shop-buyback"></div>
+          <div class="bag-footer">
+            <span id="shop-buyback-count"></span>
+            <span id="shop-buyback-gold"></span>
+          </div>
+          <div class="window-help" id="shop-buyback-help"></div>
+        </div>
       </div>
       <div id="item-tooltip" hidden></div>
 

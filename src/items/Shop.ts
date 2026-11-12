@@ -1,5 +1,5 @@
 import { RARITIES, type RarityId } from '../data/items';
-import { POTION, SHOP_STOCK, buyPrice, potionPrice, sellPrice } from '../data/shop';
+import { BUYBACK, POTION, SHOP_STOCK, buyPrice, potionPrice, sellPrice } from '../data/shop';
 import type { Player } from '../entities/Player';
 import { generateItem, nextItemId, type Item } from './generator';
 import type { Inventory } from './Inventory';
@@ -10,6 +10,8 @@ export interface ShopData {
   stock: (Item | null)[];
   /** Zeitpunkt (Date.now()), zu dem neue Ware kommt. 0 = sofort. */
   restockAt: number;
+  /** Rückkauf: die zuletzt verkauften Items, das neueste zuerst (höchstens BUYBACK.size). */
+  buyback: Item[];
 }
 
 /** Ergebnis eines Kaufversuchs: geklappt, zu wenig Gold, Inventar voll oder schon genug Tränke. */
@@ -22,6 +24,8 @@ export type BuyResult = 'ok' | 'gold' | 'full' | 'max';
 export class Shop {
   stock: (Item | null)[] = [];
   restockAt = 0;
+  /** Die zuletzt verkauften Items, das neueste zuerst. */
+  buyback: Item[] = [];
   onChange: () => void = () => {};
 
   constructor(
@@ -33,10 +37,11 @@ export class Shop {
   load(data: ShopData): void {
     this.stock = data.stock.map((item) => (item ? { ...item, id: nextItemId() } : null));
     this.restockAt = data.restockAt;
+    this.buyback = data.buyback.slice(0, BUYBACK.size).map((item) => ({ ...item, id: nextItemId() }));
   }
 
   toData(): ShopData {
-    return { stock: [...this.stock], restockAt: this.restockAt };
+    return { stock: [...this.stock], restockAt: this.restockAt, buyback: [...this.buyback] };
   }
 
   /** Millisekunden, bis neue Ware kommt. */
@@ -70,9 +75,26 @@ export class Shop {
     const item = this.inventory.bag[index];
     if (!item) return 0;
     const gold = sellPrice(item.level, item.rarity);
+    // Für den Rückkauf merken: vorne anstellen, das älteste fällt hinten heraus.
+    this.buyback.unshift(item);
+    this.buyback.length = Math.min(this.buyback.length, BUYBACK.size);
     this.inventory.discard(index);
     this.inventory.addGold(gold);
     return gold;
+  }
+
+  /** Kauft das Item vom Rückkauf-Platz `index` zurück – zum selben Preis, den der Händler gezahlt hat. */
+  buyBack(index: number): BuyResult {
+    const item = this.buyback[index];
+    if (!item) return 'ok';
+    const price = sellPrice(item.level, item.rarity);
+    if (this.inventory.gold < price) return 'gold';
+    if (this.inventory.isFull) return 'full';
+    this.buyback.splice(index, 1);
+    this.inventory.spendGold(price);
+    this.inventory.add(item);
+    this.onChange();
+    return 'ok';
   }
 
   /** Kauft einen Heiltrank. */

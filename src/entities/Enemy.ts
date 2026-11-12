@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BODY_RADIUS, BOSS_RESPAWN_MS, ENEMY_FIRST_STRIKE_MS, ENEMY_RESPAWN_MS, MELEE_APPROACH, MELEE_RANGE } from '../config';
+import { DEFAULT_DIFFICULTY, rewardBonus, type Difficulty } from '../data/difficulty';
 import { ELITE_CHANCE, RANKS, TRAIT_VALUES, rollTraits, type TraitId } from '../data/elites';
 import { enemyStats, type EnemyDef } from '../data/enemies';
 import type { EnemyRank } from '../data/loot';
@@ -27,6 +28,11 @@ export class Enemy extends Actor {
   readonly home: Point;
   /** Chance auf eine Elite beim Erscheinen. Zum Testen stellt ?elite=1 sie auf 100 % (WorldScene). */
   static eliteChance = ELITE_CHANCE;
+  /**
+   * Schwierigkeit des Spielstands (setzt WorldScene). Sie wird bei jedem Erscheinen eingerechnet –
+   * eine Änderung wirkt also erst auf Gegner, die danach erscheinen.
+   */
+  static difficulty: Difficulty = { ...DEFAULT_DIFFICULTY };
 
   /**
    * Rang und Eigenschaften werden bei jedem Erscheinen neu gewürfelt (siehe rollRank),
@@ -37,6 +43,8 @@ export class Enemy extends Actor {
   armor = 0;
   /** Angriff ohne den Bonus von "Rasend". */
   baseAttackPower = 0;
+  /** Faktor auf EP und Gold dieses Gegners (1.06 = +6 %): Belohnung für die Schwierigkeit, mit der er erschienen ist. */
+  rewardFactor = 1;
   /** Zählt jedes Erscheinen mit – daran merken die Namensschilder, dass sich der Rang geändert haben kann. */
   spawnCount = 0;
 
@@ -92,9 +100,12 @@ export class Enemy extends Actor {
 
     const rank = RANKS[this.rank];
     const stats = enemyStats(def, this.level);
-    this.maxHp = Math.round(stats.maxHp * rank.hpFactor);
+    // Die Schwierigkeit rechnet auf die fertigen Werte: Leben und Angriff in Prozent.
+    const difficulty = Enemy.difficulty;
+    this.maxHp = Math.max(1, Math.round((stats.maxHp * rank.hpFactor * difficulty.enemyHp) / 100));
     this.hp = this.maxHp;
-    this.baseAttackPower = stats.attackPower * rank.attackFactor;
+    this.baseAttackPower = (stats.attackPower * rank.attackFactor * difficulty.enemyDamage) / 100;
+    this.rewardFactor = 1 + rewardBonus(difficulty);
     this.armor = stats.armor + rank.armorBonus;
     if (this.hasTrait('gepanzert')) this.armor += TRAIT_VALUES.gepanzert.base + TRAIT_VALUES.gepanzert.perLevel * this.level;
     const fast = this.hasTrait('schnell');

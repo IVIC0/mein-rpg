@@ -64,24 +64,26 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   grünem Namen und grünem Balken (Gegner: rot). Liegt die Figur am Boden, ist es weg. *(Entschieden;
   die Farbe Grün ist ein Startwert.)* Der Name ist seit Meilenstein 7 der eigene Figurenname
   (Abschnitt 11).
-- **Einstellungen** (Zahnrad oben rechts): ein schmales Menü mit drei zugeklappten Bereichen,
+- **Einstellungen** (Zahnrad oben rechts): ein schmales Menü mit vier zugeklappten Bereichen,
   dazu „HUD verschieben …", „Fenster zurücksetzen" und „Alles auf Standard".
 
   | Bereich | Einzeln schaltbar | Regler |
   |---|---|---|
   | Über meiner Figur | Name, Stufe, Leben | Größe, Deckkraft |
   | Über Gegnern | Name (mit Elite-Eigenschaften), Stufe, Leben; „bei allen Gegnern" (aus = nur Ziel, Angreifer, Verletzte) | Größe, Deckkraft |
-  | HUD-Elemente | Spielerrahmen, Zielrahmen, Skill-Leiste, Beute-Liste, Schwebende Zahlen (Schaden, Heilung, EP, Skill-Namen) | je Element Größe, Deckkraft |
+  | HUD-Elemente | Spielerrahmen, Zielrahmen, Skill-Leiste, Beute-Liste, Minimap, Schwebende Zahlen (Schaden, Heilung, EP, Skill-Namen) | je Element Größe, Deckkraft |
+  | Schwierigkeit *(seit Meilenstein 10, gehört zum Spielstand – Abschnitt 15.6)* | vier Knöpfe Leicht / Normal / Schwer / Brutal | Gegnerleben, Gegnerschaden |
 
-- **Bearbeitungsmodus** („HUD verschieben …"): Spielerrahmen, Zielrahmen, Skill-Leiste und
-  Beute-Liste bekommen einen gestrichelten Rahmen und lassen sich mit der Maus ziehen. Sie bleiben
+- **Bearbeitungsmodus** („HUD verschieben …"): Spielerrahmen, Zielrahmen, Skill-Leiste,
+  Beute-Liste und Minimap bekommen einen gestrichelten Rahmen und lassen sich mit der Maus ziehen. Sie bleiben
   immer ganz im Bild. Oben erscheint eine Leiste mit „Plätze zurücksetzen" und „Fertig"; `Esc`
   beendet den Modus. Das Spiel läuft dabei weiter.
 - **Alles auf Standard** setzt alle Einstellungen, die Plätze der HUD-Elemente und das
-  Inventarfenster zurück.
+  Inventarfenster zurück. Die Schwierigkeit bleibt dabei, wie sie ist (dafür gibt es den Knopf „Normal").
 - **Technik:** Alle Einstellungen liegen in einem einzigen Objekt (`Settings` in
   `src/ui/settings.ts`, nur einfache Werte). Die Einstellungen sind **global**: Sie gelten für
-  alle Slots und liegen im Browser, nicht im Spielstand *(Entschieden)*. Der Platz eines Elements ist als
+  alle Slots und liegen im Browser, nicht im Spielstand *(Entschieden)*. Einzige Ausnahme ist die
+  Schwierigkeit: Sie steht im Spielstand, also pro Slot *(Entschieden, Abschnitt 15.6)*. Der Platz eines Elements ist als
   Verschiebung gegenüber dem Standard-Platz gespeichert, damit z. B. die Skill-Leiste auch bei
   anderer Fenstergröße unten in der Mitte verankert bleibt.
 
@@ -90,13 +92,29 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 5-%-Schritten.
 
 **Bewusst anders gebaut als gewünscht:**
-- *Minimap:* gibt es noch nicht (Abschnitt 13), also auch keinen Schalter. Kommt sie, wird sie ein
-  weiteres HUD-Element mit denselben Reglern.
 - *Knopf-Leiste oben rechts:* fest, nicht ausblendbar und nicht verschiebbar – sonst käme man
   nicht mehr an die Einstellungen.
 - *Schilder und schwebende Zahlen:* hängen an den Figuren und lassen sich deshalb nicht
   verschieben, nur ein-/ausblenden, skalieren und durchsichtiger machen.
 - *Meldungen* (Stufenaufstieg, „Inventar voll", Todes-Bildschirm) sind nicht einstellbar.
+
+## 2c. Minimap *(Meilenstein 10, umgesetzt)*
+
+Oben rechts unter der Knopf-Leiste. Alle Zahlen und Farben sind **Startwerte** von mir
+(`src/data/minimap.ts`), gezeichnet wird in `src/ui/Minimap.ts`.
+
+- **Ausschnitt:** 140 × 140 Pixel, zeigt 35 × 35 Kacheln um die Figur (4 Pixel je Kachel). Die
+  Figur steht in der Mitte; am Kartenrand bleibt der Ausschnitt stehen wie die Kamera.
+- **Gelände:** Jede Kachel bekommt die Durchschnittsfarbe ihres Bildes – Wald dunkelgrün, Wiese
+  hell, Wege braun, Häuser und Ruine in ihren Farben. Das rechnet das Spiel beim Start selbst
+  aus der Karte aus; eine neue Zone braucht dafür also nichts Eigenes.
+- **Punkte:** eigene Figur weiß, Händler hellblau, Gegner rot, Elite gold (größer), Boss lila
+  (am größten). Besiegte Gegner verschwinden, bis sie wieder erscheinen. Zu sehen sind alle
+  Gegner im Ausschnitt – auch hinter Bäumen (kein Nebel des Krieges, Abschnitt 13).
+- **HUD-Element** wie die anderen: ausblenden, Größe, Deckkraft, im Bearbeitungsmodus
+  verschieben (Abschnitt 2b). Ausgeblendet wird sie auch nicht mehr gezeichnet.
+- Die Menüs „Einstellungen" und „Spielstände" klappen an derselben Stelle auf und verdecken sie,
+  solange sie offen sind.
 
 ## 3. Perspektive & Grafik
 
@@ -206,17 +224,18 @@ Krieger-Skills für V1 *(Umgesetzt; Zahlen sind Startwerte fürs Balancing)*:
 
 ## 6. Progression
 
-- **Maximallevel 60**, bewusst langsam – mehrere Wochen. *(Entschieden)*
-  Der Inhaltsplan schlägt für die ersten vier Zonen ein Cap von 40 vor (Abschnitt 15.1, Frage 1 in 15.9).
+- **Maximallevel 40** mit vier Zonen, bewusst langsam – mehrere Wochen. Später mit weiteren
+  Zonen auf bis zu 60 erweiterbar. *(Entschieden, Abschnitt 15.1 – ersetzt „Maximallevel 60")*
+  Im Spiel liegt das Cap noch bei 10 und steigt mit jeder neuen Zone (20 → 30 → 40).
 - **Talentbaum** als einziges Auswahlsystem beim Leveln. *(Entschieden)*
 - Grundwerte (Leben, Angriffskraft, Rüstung …) steigen pro Level automatisch – keine frei
   verteilbaren Attributpunkte. *(folgt aus deiner Auswahl)*
-- 1 Talentpunkt pro Level ab Level 2 (59 Punkte auf 60). *(Vorschlag)*
+- 1 Talentpunkt pro Level ab Level 2 (39 Punkte auf Stufe 40). *(Vorschlag)*
 - Pro Klasse 3 Bäume (Krieger z. B. Waffen / Wut / Schutz) mit passiven Boni und
   Skill-Verbesserungen. *(Vorschlag)*
 - Aktive Skills werden auf festen Stufen freigeschaltet, der Talentbaum verbessert sie. *(Entschieden)*
 - Talente gegen Gold zurücksetzbar. *(Vorschlag)*
-- Zieltempo: ca. 40–60 Spielstunden bis Level 60. *(Vorschlag, wird durch Balancing eingestellt)*
+- Zieltempo: ca. 45 Spielstunden bis Stufe 40. *(Vorschlag, wird durch Balancing eingestellt)*
 
 Attribute *(Umgesetzt mit dem Loot, Zahlen sind Startwerte)*: Stärke, Ausdauer, Geschick.
 Sie kommen von der Ausrüstung und werden umgerechnet: 1 Stärke = 1 Angriffskraft,
@@ -265,6 +284,8 @@ Alle Werte stehen in `src/data/progression.ts` (Kurve, EP) und `src/data/warrior
     es geht nie kaputt. Material/Gold sind in beiden Fällen verbraucht.
   - Erfolgschancen pro Stufe und Kosten: *(Balancing, kommt mit dem Schmied nach V1)*
 - Kein Crafting, kein Neu-Würfeln einzelner Affixe. *(Entschieden – nicht gewählt)*
+  Items beim Schmied zu Schmiedesteinen zerlegen zählt nicht als Crafting und ist in Ordnung
+  *(Entschieden, Abschnitt 15.3)*.
 
 Seltenheiten *(Farben entschieden, Zahlen Vorschlag – Startwerte fürs Balancing)*:
 
@@ -389,8 +410,13 @@ Verkaufen ab Episch, Sortiment und Gold im Spielstand. Der Heiltrank stand schon
 - **Sicherheits-Klick:** Bei Episch, Legendär und Mythisch pulsiert das Feld nach dem ersten
   Rechtsklick rot und der Tooltip fragt nach; erst ein zweiter Rechtsklick innerhalb von
   3 Sekunden verkauft. Maus weg oder Zeit um = abgebrochen.
-- Verkauft ist verkauft – einen Rückkauf gibt es noch nicht. Er kommt mit Meilenstein 10
-  (die letzten 10 verkauften Items zum Verkaufspreis, Abschnitt 15.7). *(Entschieden, geplant)*
+- **Rückkauf** *(Meilenstein 10, umgesetzt)*: Das Händler-Fenster hat zwei Reiter, „Ware" und
+  „Rückkauf". Im Rückkauf liegen die letzten **10** verkauften Items, das neueste vorn; beim
+  elften fällt das älteste heraus und ist endgültig weg *(Entschieden)*. Linksklick kauft ein
+  Item zum **Verkaufspreis** zurück – man zahlt also genau das Gold, das man bekommen hat, ohne
+  Verlust und ohne Gewinn. Die Liste steht im Spielstand (übersteht Neuladen, pro Slot) und
+  bleibt auch bei neuer Ware erhalten. Am Reiter steht die Anzahl, z. B. „Rückkauf (3)". Größe
+  der Liste: `BUYBACK` in `src/data/shop.ts`.
 
 **Preise** – abgeleitet aus Itemlevel und Seltenheit:
 Wert = (10 + 6 × Itemlevel) × Faktor der Seltenheit. Kaufen kostet den Wert, Verkaufen bringt 20 %.
@@ -552,7 +578,8 @@ Export/Import als Datei; Versionsnummer; Namenseingabe pro Slot. Alles, was unte
 - Name der Figur, Stufe, EP, aktuelles Leben, Position, Gold, Inventar, Ausrüstung, Heiltränke.
 - Items, die am Boden liegen, mit Platz und Liegezeit *(Entschieden, seit Meilenstein 8)*. Die
   3 Minuten bis zum Verschwinden zählen nur Spielzeit – bei geschlossenem Spiel läuft nichts ab.
-- Sortiment des Händlers und wann neue Ware kommt (Abschnitt 7b).
+- Sortiment des Händlers, wann neue Ware kommt und die Rückkauf-Liste (Abschnitt 7b).
+- Schwierigkeit: Gegnerleben und Gegnerschaden in Prozent (Abschnitt 15.6). *(seit Meilenstein 10)*
 - Respawn-Zeitpunkt besiegter Bosse, Spielzeit, Zeitpunkt des letzten Speicherns, Format-Nummer.
 - Nicht darin: die Werte der Figur (Leben, Angriffskraft, Rüstung …) – sie ergeben sich aus Stufe
   und Ausrüstung und werden beim Laden neu berechnet, damit Balancing-Änderungen sofort gelten.
@@ -570,7 +597,8 @@ vollem Leben im Dorf auf (der Verlust durch den Tod ist dann schon abgezogen).
 **Wann gespeichert wird** (Werte in `src/data/save.ts`, *Startwerte*):
 - alle 30 Sekunden,
 - 1 Sekunde nach einem wichtigen Ereignis: Item fällt zu Boden, aufgehoben, Gold erhalten (also
-  nach jedem besiegten Gegner), an-/abgelegt, weggeworfen, gekauft, verkauft, Trank getrunken,
+  nach jedem besiegten Gegner), an-/abgelegt, weggeworfen, gekauft, verkauft, zurückgekauft,
+  Schwierigkeit geändert, Trank getrunken,
   neue Ware beim Händler, Stufenaufstieg, Tod, Aufwachen, Boss besiegt,
 - sofort beim Verlassen, Neuladen oder Wegschalten der Seite und mit „Jetzt speichern".
 
@@ -611,12 +639,15 @@ derselbe Text wie im Browser). „Importieren …" legt eine Datei in den **erst
 Slot und lädt sie nicht von selbst. Sind alle Slots belegt, gibt es eine Meldung – ein Import
 überschreibt nie etwas. *(Startwert)*
 
-**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **2**. Ändert sich der Aufbau,
+**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **3**. Ändert sich der Aufbau,
 wird sie erhöht und in `MIGRATIONS` (`src/save/saveGame.ts`) eingetragen, wie ein alter Stand ins
 neue Format kommt.
 - Format 1 (Meilenstein 7) → 2 (Meilenstein 8): Die Einstellungen fallen aus dem Spielstand;
   neu sind Tränke (Start: 0), Items am Boden (Start: keine) und das Händler-Sortiment (Start:
   frische Ware beim ersten Besuch). Alte Spielstände und alte Export-Dateien laden weiter.
+- Format 2 → 3 (Meilenstein 10): Neu sind die Schwierigkeit (Start: Normal, 100 / 100) und die
+  Rückkauf-Liste des Händlers (Start: leer). Stände aus Format 1 und 2 laden weiter (im Browser
+  geprüft mit einem Format-2-Stand).
 - Alter Stand: wird beim Laden Schritt für Schritt umgebaut.
 - Stand aus einer **neueren** Spielversion, zu alter Stand ohne Umbau oder kaputte Daten: Der Slot
   wird als „Nicht ladbar: …" mit Grund angezeigt und **nicht angerührt** (man kann ihn noch
@@ -657,30 +688,32 @@ Endlos-Turm, Weltbosse, Sound. (Der Räuberhauptmann ist ein fester Zonen-Boss, 
 Der Talentbaum ist das Erste nach V1 – bei nur 10 Leveln und 9 Punkten trägt er noch
 nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 
+Meilenstein 10 (Minimap, Rückkauf, Schwierigkeit) ist umgesetzt ✅ – siehe Tabelle in 15.7.
+
 **Reihenfolge nach V1:** steht jetzt als Meilensteine 10–20 in Abschnitt 15.7 (ersetzt die
 frühere Kurzliste Talentbaum → Quests → Aufwerten → Zone 2 → …).
 
 ## 13. Geplante Features
 
-Von dir gewünscht, noch nicht umgesetzt. *(Entschieden)*
+Von dir gewünscht. *(Entschieden)*
 
 | Feature | Wann | Inhalt |
 |---|---|---|
-| Minimap | Meilenstein 10 (Abschnitt 15.7) | Kleine Übersichtskarte oben rechts im Bild, unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe. Wird ein HUD-Element wie die anderen (ausblenden, Größe, Deckkraft, verschieben – Abschnitt 2b) |
+| Minimap ✅ | Meilenstein 10, umgesetzt (Abschnitt 2c) | Kleine Übersichtskarte oben rechts im Bild, unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe, Händler. HUD-Element wie die anderen (ausblenden, Größe, Deckkraft, verschieben – Abschnitt 2b) |
 | Große Karte | Meilenstein 13 (mit Zone 2) | Taste `M` öffnet und schließt die Karte der ganzen Zone |
 | Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
 | Mehr Skills als Plätze | Meilenstein 14, zusammen mit dem Talentbaum | Mit der Zeit 8–10 Skills pro Klasse freischalten, aber nur 4 aktive Plätze. Die Auswahl ist der Build. |
 | Legendäre Items mit einzigartigen Effekten | Meilenstein 15 (Liste in Abschnitt 15.4) | Legendäre Items verändern Skills, z. B. „Rundumschlag hinterlässt Feuerspur". |
 
-Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap frei.
+Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
 
 ## 14. Offene Punkte
 
 1. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe – Vorschlag steht in Abschnitt 15.3, Umsetzung in Meilenstein 17.
 2. Lauf-Animation: kommt später als Feinschliff, vorerst reicht das Hüpfen. *(Entschieden)*
-3. Gegner in Grünwald: „Tiny Dungeon" enthält keine Wölfe, Wildschweine oder Goblins.
-   Deshalb sind es vorerst Riesenratten, Waldspinnen und Wegelagerer. So lassen, oder
-   ein weiteres CC0-Pack mit Waldtieren suchen?
+3. Gegner in Grünwald: Erledigt *(Entschieden)* – Ratten, Spinnen und Wegelagerer bleiben. Mit
+   Meilenstein 11 kommt das Wildschwein dazu (ist in „Ninja Adventure"). Einen Wolf hat kein
+   Pack; als Ersatz dient die Hyäne oder der Hund aus „Ninja Adventure" (Abschnitt 15.2).
 4. Skill-Symbole sind vorerst Waffenbilder aus „Tiny Dungeon" (Hammer, Axt, Schwert,
    Schild). Eigene Symbole wären schöner.
 5. Mana: beim Krieger gestrichen *(Entschieden)*. Ob der Magier später Mana bekommt, ist offen.
@@ -695,8 +728,8 @@ Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap f
 8. Händler (Meilenstein 8), von mir gesetzte Startwerte zum Prüfen im Spiel (alle in
    `src/data/shop.ts`): Preisformel und Faktoren, 20 % Erlös, 8 Regalplätze, 60/32/8 %
    Seltenheiten, neue Ware alle 10 Minuten, Trank (40 %, 30 s, höchstens 5, Preis).
-   - Erledigt *(Entschieden)*: Rückkauf der letzten ca. 10 verkauften Items zum Verkaufspreis,
-     geplant für Meilenstein 10.
+   - Erledigt *(Umgesetzt, Meilenstein 10)*: Rückkauf der letzten 10 verkauften Items zum
+     Verkaufspreis (Abschnitt 7b).
    - Sortiment auf der Stufe der Figur: Wer aufsteigt, sieht bis zur nächsten Lieferung noch
      die alte Ware.
    - Der Händler-Platz und sein Bild (Figur aus „Tiny Dungeon") sind Startwerte.
@@ -719,22 +752,32 @@ Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap f
     - Dasselbe Spiel in zwei Browser-Tabs mit demselben Slot: Der Tab, der zuletzt speichert,
       gewinnt. Verschiedene Slots in zwei Tabs stören sich nicht.
     - Spielstände liegen nur in diesem Browser. Vor „Browserdaten löschen" exportieren.
-14. Inhaltsplan (Schritt 9): Die Fragen dazu stehen in Abschnitt 15.9.
+14. Inhaltsplan (Schritt 9): Erledigt – deine Antworten stehen in Abschnitt 15.9.
+15. Meilenstein 10, von mir gesetzte Startwerte zum Prüfen im Spiel:
+    - Minimap (`src/data/minimap.ts`): Größe 140 Pixel, Ausschnitt 35 Kacheln, Farben und Größen
+      der Punkte. Sie zeigt alle Gegner im Ausschnitt, auch hinter Bäumen.
+    - Schwierigkeit (`src/data/difficulty.ts`): Die Belohnung hängt an der Schwierigkeit, mit der
+      ein Gegner **erschienen** ist – nicht am Regler im Moment des Sieges. Neuladen der Seite
+      lässt alle Gegner mit der aktuellen Schwierigkeit neu erscheinen.
+    - „Alles auf Standard" in den Einstellungen lässt die Schwierigkeit unberührt.
+    - Im Menü „Spielstände" steht die Schwierigkeit eines Slots noch nicht dabei.
 
 ---
 
-## 15. Inhaltsplan nach V1 *(Schritt 9 – nur Planung, alles Vorschlag)*
+## 15. Inhaltsplan nach V1 *(Schritt 9 – Planung; Grundsatzfragen entschieden)*
 
-Ziel: Das Spiel soll über Wochen tragen, im MMO-Stil und ohne Seasons. Alles in diesem Abschnitt
-ist ein **Vorschlag** von mir; Zahlen sind Startwerte. Was du entscheiden musst, steht in 15.9.
+Ziel: Das Spiel soll über Wochen tragen, im MMO-Stil und ohne Seasons. Der Plan stammt von mir;
+die Grundsatzfragen hast du in 15.9 beantwortet *(Entschieden)* – deine Antworten sind in den
+Abschnitten 15.1–15.8 eingearbeitet. Zahlen bleiben Startwerte fürs Balancing.
 
 ### 15.1 Levelcap und Levelkurve
 
-**Vorschlag: Levelcap 40** für diesen Plan (vier Zonen mit je 10 Stufen). Das weicht von deiner
-Entscheidung „Maximallevel 60" in Abschnitt 6 ab – deshalb Frage 1 in 15.9. Grund: 60 Stufen auf
-vier Zonen wären 15–17 Stufen pro Zone mit denselben fünf Gegnertypen, das zieht sich. Mit einer
-fünften und sechsten Zone (z. B. Drachenberge) lässt sich das Cap später auf 50 und 60 anheben,
-ohne etwas umzubauen – die Kurve ist nur eine Liste in `src/data/progression.ts`.
+**Levelcap 40** (vier Zonen mit je 10 Stufen), später erweiterbar bis 60 *(Entschieden – ersetzt
+„Maximallevel 60" aus Abschnitt 6)*. Grund: 60 Stufen auf vier Zonen wären 15–17 Stufen pro Zone
+mit denselben fünf Gegnertypen, das zieht sich. Mit einer fünften und sechsten Zone (z. B.
+Drachenberge) lässt sich das Cap später auf 50 und 60 anheben, ohne etwas umzubauen – die Kurve
+ist nur eine Liste in `src/data/progression.ts`. Im Spiel steigt das Cap schrittweise mit den
+Zonen: 10 (jetzt) → 20 (Meilenstein 13) → 30 (Meilenstein 16) → 40 (Meilenstein 19).
 
 | Stufen | Zone | Dauer | Minuten je Stufe (Anfang → Ende) | EP je Aufstieg (Anfang → Ende) |
 |---|---|---|---|---|
@@ -780,7 +823,7 @@ Schmied und Turm-Eingang).
 
 | Neu | Inhalt |
 |---|---|
-| Gegner | Fledermaus (3–6, nur in der Höhle), Goblin (5–9), Goblin-Schleuderer (6–10, Fernkampf). Damit 6 Typen. Wolf und Wildschwein nur, wenn sich passende Bilder finden (15.8) |
+| Gegner | Fledermaus (3–6, nur in der Höhle), Goblin (5–9), Goblin-Schleuderer (6–10, Fernkampf), **Wildschwein** (Bild aus „Ninja Adventure") und als Wolf-Ersatz **Hyäne oder Hund** (ebenfalls „Ninja Adventure" – einen Wolf hat kein Pack) *(Entschieden)*. Damit 8 Typen. Stufen der beiden Tiere *(Vorschlag)*: Hyäne/Hund 2–5, Wildschwein 4–7; ob Hyäne oder Hund besser passt, entscheide ich beim Einbau am Bild |
 | POIs | Spinnenhöhle (unter dem Pilzhain), Goblin-Lager (zwischen Großer Lichtung und Ostlichtung), 3 Truhen, fester Elite-Platz „Brutmutter" (Waldspinne, Stufe 6, Regenerierend + Vampirisch) |
 | Boss | Räuberhauptmann (10), wie gehabt |
 | Quests (6) | „Rattenplage" (10 Ratten) · „Spinnenseide" (8 Seide sammeln) · „Die Brutmutter" (Elite) · „Goblin-Diebesgut" (5 Kisten im Lager) · „In die Höhle" (Höhlenende erreichen) · „Der Räuberhauptmann" (Boss) |
@@ -821,18 +864,24 @@ Drachenberge (aus der alten Skizze in Abschnitt 9) wären Zone 5, falls das Cap 
 Quest-Ding fallen, oder Kisten im Lager), Boss, Elite jagen, Erkunden (einen POI erreichen).
 Belohnung: EP, Gold und bei Elite-/Boss-Quests ein Item mit fester Mindest-Seltenheit. Wenig Text
 (zwei Sätze je Quest), Questlog mit Taste `L`, Zähler unter der Minimap. Dazu je Außenposten ein
-**Kopfgeld-Brett**: eine wiederholbare Quest, die alle 30 Minuten wechselt.
+**Kopfgeld-Brett**: eine wiederholbare Quest, die alle 30 Minuten wechselt *(Entschieden: ja)*.
+
+Gegner mit Fähigkeiten (Fernkampf, Heiler, Beschwörer …) sind gewollt *(Entschieden)* – der Kampf
+darf damit mehr sein als „Ziel anwählen und zuschauen". Die Zonen Orkhügel, Nebelmoor und
+Aschenfeste sind mit Namen, Themen und Bossen so in Ordnung *(Entschieden)*.
 
 ### 15.3 Endgame-Loop (ab Levelcap)
 
 Vier Dinge greifen ineinander: Weltbosse und Sets geben die besten Items, der Turm misst, wie
 stark man ist, und das Aufwerten frisst Gold und Material aus beidem.
 
-- **Zonen auf Maximalstufe:** Am Portalstein lässt sich jede Zone auf Stufe 40 schalten (alle
-  Gegner Stufe 40, Itemlevel 40). So bleiben alle vier Zonen im Endgame nutzbar, und das kostet
-  fast keinen Code, weil Gegner ohnehin nach Formel wachsen.
+- **Alte Zonen bleiben leicht** *(Entschieden)*: Es gibt kein Hochschalten der Zonen auf
+  Stufe 40. Grünwald, Orkhügel und Nebelmoor bleiben auf ihrem Stufenbereich. Folge fürs Endgame:
+  Auf Maximalstufe lohnen sich für Beute die Aschenfeste, ihr Weltboss und der Turm; die
+  Weltbosse der alten Zonen sind dann leicht und vor allem für ihre Set-Teile und den Kodex da.
+  Wer es dort schwerer will, hat den Schwierigkeitsregler (15.6).
 - **Weltbosse:** einer je Zone, Respawn alle 45 Minuten in echter Zeit (wie der Boss, auch bei
-  geschlossenem Spiel). Stufe = Obergrenze der Zone (im Endgame 40), Leben ×20, zwei bis drei
+  geschlossenem Spiel). Stufe = Obergrenze der Zone (10 / 20 / 30 / 40), Leben ×20, zwei bis drei
   eigene Fähigkeiten. Beute: 3 Items aus der Boss-Tabelle, dazu eine Chance auf ein Set-Teil der
   Zone und Schmiedesteine. Die große Karte zeigt, welcher Weltboss gerade da ist.
   Vorschlag: Sumpfhydra (Nebelmoor), Kriegsmammut (Orkhügel), Uralter Baumhirte (Grünwald),
@@ -841,7 +890,7 @@ stark man ist, und das Aufwerten frisst Gold und Material aus beidem.
   Gegner besiegen (8–12 aus allen Zonen gemischt, dabei mindestens eine Elite), dann geht die
   Treppe auf. Jede 5. Ebene ein Boss. Gegnerstufe = 40 + Ebene, also ohne Obergrenze schwerer.
   Tod = der Lauf ist vorbei (kein EP-/Gold-Verlust). Wiedereinstieg auf der höchsten erreichten
-  5er-Ebene. Belohnung: Turmmarken je Ebene (für das Turm-Set beim Turmwächter), bessere
+  5er-Ebene *(Entschieden)*. Belohnung: Turmmarken je Ebene (für das Turm-Set beim Turmwächter), bessere
   Seltenheits-Chancen je höher, persönlicher Rekord im Spielstand.
 - **Aufwerten beim Schmied** (Regeln aus Abschnitt 7: bis +10, ab +6 Risiko, bei Fehlschlag eine
   Stufe zurück): Jede Stufe gibt +4 % auf alle Werte des Items (+10 = +40 %).
@@ -852,7 +901,8 @@ stark man ist, und das Aufwerten frisst Gold und Material aus beidem.
 
   Kosten: Gold (steigt mit Itemlevel, Seltenheit und Stufe) und **Schmiedesteine**. Die fallen
   bei Elites, Bossen, Weltbossen und aus Truhen; außerdem **zerlegt** der Schmied Items zu
-  Steinen (je seltener, desto mehr). So hat auch Ausschuss einen Zweck.
+  Steinen (je seltener, desto mehr). So hat auch Ausschuss einen Zweck. Zerlegen zählt nicht
+  als Crafting *(Entschieden)*.
 - **Kodex:** ein Fenster, das festhält, was man schon geschafft hat – gefundene Legendär-Effekte
   und Set-Teile, besiegte Bosse und Weltbosse, Turm-Rekord. Reines Sammelziel, kein Bonus.
 
@@ -902,7 +952,7 @@ einen Effekt aus einer Liste (mythisch: derselbe Effekt mit stärkerem Wert). St
 | Wirbelsturm | Rundumschlag löst schon ab 2 Gegnern aus |
 | Vergeltung | Am Ende des Schildwalls: Flächenschaden in Höhe des abgewehrten Schadens |
 
-**Sets:** Set-Teile sind epische Items mit festem Namen und grünem Zusatz „Set"; die sechs
+**Sets** *(Entschieden)*: Set-Teile sind epische Items mit festem Namen und grünem Zusatz „Set"; die sechs
 Seltenheiten bleiben. Sie fallen nur bei den benannten Gegnern ihrer Zone (feste Elites, Bosse,
 Weltboss) – man weiß also, wo man farmen muss.
 
@@ -936,22 +986,39 @@ lädt genau diese eine. Der Umbau passiert **einmal** (Meilenstein 11), danach g
 - `npm run assets` prüft die Daten und bricht mit einer klaren Meldung ab (unbekannter Gegner,
   Quest ohne Ziel, POI nicht erreichbar) – das macht der Karten-Bauer für Gegnergruppen schon.
 - Spielstand: aktuelle Zone, entdeckte Portalsteine, Quest-Stand, Zeitpunkte für Truhen, feste
-  Elites und Bosse je Zone. Das wird Format 3 (`SAVE_VERSION`), alte Stände laden weiter.
+  Elites und Bosse je Zone. Das wird Format 4 (`SAVE_VERSION`; Format 3 ist seit Meilenstein 10
+  vergeben), alte Stände laden weiter.
 - Ehrlich: Dieser Umbau ist der teuerste Einzelschritt im Plan, und die erste neue Zone danach
   ist noch teurer als die späteren, weil Fernkampf und Co. dort zum ersten Mal gebaut werden.
 
-### 15.6 Schwierigkeitsregler
+### 15.6 Schwierigkeitsregler *(Meilenstein 10, umgesetzt)*
 
-- Zwei Regler in den Einstellungen, neuer Bereich „Schwierigkeit": **Gegnerleben** und
+Von dir entschieden *(Entschieden)*: vier Knöpfe plus freie Regler, mehr EP und Gold ab über
+100 %, **pro Spielstand**. Die Zahlen sind Startwerte von mir, alle in `src/data/difficulty.ts`.
+
+- In den Einstellungen gibt es den Bereich „Schwierigkeit" mit zwei Reglern: **Gegnerleben** und
   **Gegnerschaden**, je 50–300 % in 10-%-Schritten, Standard 100 %. Dazu vier Knöpfe als
-  Abkürzung: Leicht (75 / 75), Normal (100 / 100), Schwer (150 / 130), Brutal (220 / 170).
-- Gilt für alle Gegner, Elites und Bosse, auf ihre fertigen Werte gerechnet. Eine Änderung wirkt
-  erst auf Gegner, die danach erscheinen – mitten im Kampf herunterdrehen bringt also nichts.
-- Belohnung *(Vorschlag)*: Liegen beide Regler über 100 %, gibt es mehr EP und Gold – je
-  10 Prozentpunkte des niedrigeren Reglers +2 %, höchstens +40 %. Drop-Chancen bleiben gleich.
-  Unter 100 % gibt es keinen Abzug.
-- Global wie alle Einstellungen (Abschnitt 2b), Grenzen und Stufen in `src/data/difficulty.ts`.
-  Im Turm zählt der Rekord nur mit mindestens 100 / 100.
+  Abkürzung; der passende ist gelb umrandet.
+
+  | Knopf | Gegnerleben | Gegnerschaden | Belohnung |
+  |---|---|---|---|
+  | Leicht | 75 % | 75 % | – |
+  | Normal | 100 % | 100 % | – |
+  | Schwer | 150 % | 130 % | +6 % EP und Gold |
+  | Brutal | 220 % | 170 % | +14 % EP und Gold |
+
+- Gilt für alle Gegner, Elites und Bosse, auf ihre fertigen Werte gerechnet (auch die Explosion
+  der Eigenschaft „Explosiv"). Eine Änderung wirkt erst auf Gegner, die danach erscheinen –
+  mitten im Kampf herunterdrehen bringt also nichts.
+- **Belohnung:** Liegen beide Regler über 100 %, gibt es mehr EP und Gold – je 10 Prozentpunkte
+  des niedrigeren Reglers +2 %, höchstens +40 % (ab 300 / 300). Unter 100 % gibt es keinen Abzug.
+  Drop-Chancen bleiben gleich. Die Belohnung wird beim Erscheinen des Gegners festgelegt: Wer
+  erst kurz vor dem Sieg hochdreht, bekommt nichts extra. Das Menü zeigt die aktuelle Belohnung.
+- **Pro Spielstand:** Die Schwierigkeit steht im Spielstand (Format 3, Abschnitt 11), jeder Slot
+  hat seine eigene. Neue und alte Spielstände starten auf Normal. Sie ist damit die einzige
+  Einstellung im Menü, die nicht global ist; „Alles auf Standard" lässt sie in Ruhe.
+- Im Testlauf (`?stufe` …) lässt sie sich einstellen, wird aber wie alles dort nicht gespeichert.
+- Für später: Im Turm zählt der Rekord nur mit mindestens 100 / 100.
 
 ### 15.7 Reihenfolge und Aufwand
 
@@ -961,23 +1028,37 @@ das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter 
 
 | # | Meilenstein | Inhalt | Aufwand |
 |---|---|---|---|
-| 10 | Minimap, Rückkauf, Schwierigkeit | **Minimap** unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe (rot, Elite gold, Boss lila), Händler; HUD-Element mit Schalter, Größe, Deckkraft, verschiebbar. **Rückkauf:** eigener Reiter beim Händler mit den letzten 10 verkauften Items zum Verkaufspreis, im Spielstand. **Schwierigkeitsregler** (15.6) | 1 Sitzung, klein |
-| 11 | Zonen-Fundament | Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 3. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus und Goblins ergänzt | 2–3 Sitzungen, groß |
-| 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD, Kopfgeld-Brett, die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
+| 10 ✅ | Minimap, Rückkauf, Schwierigkeit | **Minimap** unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe (rot, Elite gold, Boss lila), Händler; HUD-Element mit Schalter, Größe, Deckkraft, verschiebbar. **Rückkauf:** eigener Reiter beim Händler mit den letzten 10 verkauften Items zum Verkaufspreis, im Spielstand. **Schwierigkeitsregler** (15.6) | 1 Sitzung, klein |
+| 11 | Zonen-Fundament | Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 4. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus, Goblins, Wildschwein und Hyäne/Hund (Wolf-Ersatz) ergänzt. Erste Figuren aus den neuen Packs, `CREDITS.md` ergänzen | 2–3 Sitzungen, groß |
+| 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD (unter der Minimap), Kopfgeld-Brett, die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
 | 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, große Karte (`M`), Cap 20, neue Assets | 2–3 Sitzungen, groß |
 | 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
 | 15 | Loot-Vielfalt | Neue Affixe, Waffen-Unterschiede, zwei neue Waffen, 12 Legendär-Effekte | 1–2 Sitzungen, mittel |
 | 16 | Zone 3: Nebelmoor | Zone, Fähigkeiten Beschwören / Gift / Teilen, Cap 30 | 1–2 Sitzungen, mittel |
-| 17 | Schmied | Aufwerten bis +10, Zerlegen, Schmiedesteine | 1 Sitzung, mittel |
+| 17 | Schmied | Aufwerten bis +10, Zerlegen zu Schmiedesteinen | 1 Sitzung, mittel |
 | 18 | Sets und Weltbosse | 4 Zonen-Sets, je Zone ein Weltboss mit Timer und Anzeige auf der Karte | 1–2 Sitzungen, mittel |
 | 19 | Zone 4: Aschenfeste | Zone, Fähigkeit Boden-Effekt, Boss mit Phasen, Cap 40 | 1–2 Sitzungen, mittel |
-| 20 | Endgame | Endlos-Turm, Turm-Set, Zonen auf Maximalstufe, Kodex | 2–3 Sitzungen, groß |
+| 20 | Endgame | Endlos-Turm, Turm-Set, Kodex. Kein Hochschalten alter Zonen (15.3) | 2–3 Sitzungen, groß |
 
 Zusammen rund 15–23 Sitzungen. Nach Meilenstein 13 gibt es etwa 11 Stunden Inhalt, nach 16 etwa
 25, nach 19 etwa 45 plus Endgame. Nicht im Plan und später: zweite Klasse, Sound, Nebel des
-Krieges, Lauf-Animation der eigenen Figur (hängt an der Asset-Frage 2 in 15.9).
+Krieges, Lauf-Animation der eigenen Figur, einheitlicher Figuren-Stil (der Stilmix ist vorerst
+in Ordnung, 15.9 Frage 2), Cap über 40 mit Zone 5 und 6.
 
 ### 15.8 Assets: was fehlt, was ein CC0-Pack löst
+
+**Stand Meilenstein 10:** Du hast vier Packs als ZIP nach `assets-src/` gelegt. Sie sind noch
+nicht im Spiel (kommen ab Meilenstein 11), deshalb stehen sie auch noch nicht in `CREDITS.md`.
+
+| Datei in `assets-src/` | Pack | Am Inhalt geprüft (Dateiliste) |
+|---|---|---|
+| `0x72_DungeonTilesetII_v1.7.zip` | 0x72 „16x16 DungeonTileset II" | Ork-Krieger, Ork-Schamane, maskierter Ork, Goblin, Oger, Skelett, Zombies (klein, normal, groß, Eis), Nekromant, Imp, großer Dämon – die meisten mit Stehen und Laufen |
+| `ninja-adventure-ohne-audio.zip` | „Ninja Adventure Asset Pack" ohne Audio | **Wildschwein** (`WildBoar`), **Hyäne** (`Hyena`) und mehrere **Hunde** (`Dog…`) sind drin, ein **Wolf nicht** |
+| `Roguelike pack.zip` | Kenney „Roguelike/RPG Pack" | ein Kachel-Blatt (`roguelikeSheet`); Wasser und Friedhof schaue ich mir beim Einbau am Bild an |
+| `kenney_1-bit-pack.zip` | Kenney „1-Bit Pack" | noch nicht im Einzelnen angesehen |
+
+Die Tabelle darunter ist der Plan aus Schritt 9; „nicht sicher" gilt dort nur noch, wo oben
+nichts geprüft ist.
 
 **Vorhanden und noch ungenutzt:** „Tiny Dungeon" hat weitere Figuren (unter anderem Fledermaus,
 Geist, Zyklop, Krabbe, Magier, Ritter, Zwerg – genaue Liste prüfe ich beim Einbau am Bild) und
@@ -999,43 +1080,34 @@ für die Turm-Räume. „Tiny Town" hat Burgmauern (schon in der Ruine verwendet
 | Neue Item-Symbole (Streitkolben, Zweihandschwert, Schmiedestein, Turmmarke) | Loot | Tiny Dungeon hat Hammer und große Waffen, Rest selbst gezeichnet | ja |
 | Weltbosse als große Figuren | Endgame | Große Figuren aus 0x72 bzw. Bosse aus Ninja Adventure; Notlösung: normale Figur ×3 wie beim Boss heute | Notlösung geht immer |
 | NPCs (Questgeber, Schmied, Turmwächter) | Außenposten | Tiny Dungeon hat genug Menschen-Figuren | ja |
-| Sound und Musik | später | Kenney-Audio-Packs oder Ninja Adventure (alles CC0) | nicht Teil dieses Plans |
+| Sound und Musik | später | Kenney-Audio-Packs oder Ninja Adventure (alles CC0); das hochgeladene Ninja-Adventure-ZIP ist bewusst ohne Audio | nicht Teil dieses Plans |
 
 Was kein Pack löst:
 - **Einheitlicher Stil.** Die Figuren von 0x72 und Ninja Adventure sehen anders aus als Kenneys
   (andere Farben, teils höher als 16 Pixel). Nebeneinander fällt das auf. Sauberste Lösung: alle
-  Figuren (auch die eigene) aus einem Pack nehmen – siehe Frage 2.
+  Figuren (auch die eigene) aus einem Pack nehmen. Der Stilmix ist vorerst in Ordnung
+  *(Entschieden)*; umgestellt wird höchstens später.
 - **Deine genauen Wunsch-Gegner.** Was es im Pack nicht gibt, wird umbenannt (wie Wölfe →
   Waldspinnen in V1) oder umgefärbt.
-- **Der Download.** Ich komme von hier weder an kenney.nl noch an itch.io. Du müsstest die Packs
-  laden und die ZIPs bzw. Bilder nach `assets-src/` ins Repo legen; den Rest (Zuschneiden,
+- **Der Download.** Ich komme von hier weder an kenney.nl noch an itch.io. Erledigt: Du lädst
+  die Packs selbst als ZIP nach `assets-src/` *(Entschieden)*; den Rest (Zuschneiden,
   Zusammensetzen, `CREDITS.md`) mache ich.
 
-### 15.9 Offene Fragen an dich
+### 15.9 Fragen an dich – beantwortet *(Entschieden, Meilenstein 10)*
 
-1. **Levelcap:** 40 mit vier Zonen (mein Vorschlag) – oder bei 60 bleiben und dafür sechs Zonen
-   bzw. längere Zonen?
-2. **Stil:** Dürfen Figuren aus 0x72 / Ninja Adventure neben Kenney stehen, oder soll ich in
-   Meilenstein 11 alle Figuren (auch den Krieger) auf ein Pack umstellen? Das brächte gleich
-   Lauf-Animationen mit.
-3. **Packs laden:** Kannst du „16x16 DungeonTileset II", „Ninja Adventure Asset Pack", Kenney
-   „Roguelike/RPG Pack" und „1-Bit Pack" herunterladen und nach `assets-src/` legen? Am besten
-   vor Meilenstein 11.
-4. **Zonen:** Passen Orkhügel, Nebelmoor und Aschenfeste (Namen, Themen, Bosse)? Drachenberge
-   entfallen vorerst.
-5. **Gegner-Fähigkeiten:** Fernkampf, Heiler, Beschwörer machen den Kampf weniger simpel als
-   „Ziel anwählen und zuschauen" (Abschnitt 4). Gewollt?
-6. **Schwierigkeit:** freie Regler plus vier Knöpfe, oder nur die vier Stufen? Belohnung
-   (mehr EP und Gold) ja oder nein? Global oder pro Spielstand?
-7. **Zerlegen beim Schmied:** In Abschnitt 7 steht „kein Crafting". Zählt Items zu
-   Schmiedesteinen zerlegen für dich dazu?
-8. **Sets** als epische Items mit Zusatz statt als siebte Seltenheit – in Ordnung?
-9. **Zonen auf Maximalstufe** im Endgame – gewollt, oder sollen alte Zonen leicht bleiben?
-10. **Turm:** Tod beendet den Lauf, Wiedereinstieg alle 5 Ebenen – passt das?
-11. **Talentbaum** erst als Meilenstein 14 (nach Zone 2, Cap 20) – oder lieber früher, direkt
-    nach den Quests?
-12. **Rückkauf:** Liste im Spielstand (übersteht Neuladen), 10 Items, das älteste fällt raus –
-    so richtig?
-13. **Kopfgeld-Brett** (wiederholbare Quest alle 30 Minuten) – ja oder nein?
-14. **Wolf und Wildschwein** in Grünwald (Offener Punkt 3): nur wenn ein Pack sie hergibt, sonst
-    bleiben Ratten, Spinnen, Wegelagerer plus Fledermäuse und Goblins. Einverstanden?
+| # | Frage | Deine Antwort | Eingearbeitet in |
+|---|---|---|---|
+| 1 | Levelcap 40 oder 60? | **Cap 40**, später erweiterbar bis 60 | Abschnitt 6, 15.1 |
+| 2 | Dürfen Figuren aus 0x72 / Ninja Adventure neben Kenney stehen? | **Stilmix ist erstmal ok** | 15.7, 15.8 |
+| 3 | Packs laden? | **Du lädst sie selbst** als ZIP nach `assets-src/` (Ninja Adventure ohne Audio; einen Wolf enthält es nicht). Die vier ZIPs liegen dort | 15.8 |
+| 4 | Passen Orkhügel, Nebelmoor, Aschenfeste? | **Zonen ok** | 15.2 |
+| 5 | Gegner mit Fähigkeiten gewollt? | **Ja** | 15.2, Meilenstein 13 |
+| 6 | Schwierigkeit: Regler oder Stufen, Belohnung, global oder pro Spielstand? | **Vier Knöpfe plus freie Regler; mehr EP und Gold ab über 100 %; pro Spielstand** (im Spielstand-Format, alte Stände laden weiter) | 15.6, Abschnitt 11 – umgesetzt |
+| 7 | Zählt Zerlegen als Crafting? | **Zerlegen ist ok** | Abschnitt 7, 15.3, Meilenstein 17 |
+| 8 | Sets als epische Items mit Zusatz? | **Ja** | 15.4 |
+| 9 | Zonen auf Maximalstufe im Endgame? | **Nein – alte Zonen bleiben leicht** | 15.3, Meilenstein 20 |
+| 10 | Turm: Tod beendet den Lauf, Wiedereinstieg alle 5 Ebenen? | **Ok** | 15.3 |
+| 11 | Talentbaum früher? | **Wie geplant Meilenstein 14** | 15.7 |
+| 12 | Rückkauf: Liste im Spielstand, 10 Items, das älteste fällt raus? | **Ok** | Abschnitt 7b – umgesetzt |
+| 13 | Kopfgeld-Brett? | **Ja** | 15.2, Meilenstein 12 |
+| 14 | Wolf und Wildschwein in Grünwald? | **Nur, wenn ein Pack sie liefert:** Wildschwein ist in Ninja Adventure, Wolf nicht – Ersatz Hyäne oder Hund | 15.2, Meilenstein 11, Offener Punkt 3 |
