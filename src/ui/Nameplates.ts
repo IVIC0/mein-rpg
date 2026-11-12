@@ -1,7 +1,6 @@
 import type Phaser from 'phaser';
 import { RANKS, traitName } from '../data/elites';
 import { isTrivial } from '../data/progression';
-import { WARRIOR } from '../data/warrior';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 import type { Settings } from './settings';
@@ -39,18 +38,22 @@ export class Nameplates {
   private readonly plates: Plate[];
   // Das Schild der eigenen Figur.
   private readonly own: HTMLElement;
+  private readonly ownName: HTMLElement;
   private readonly ownLevel: HTMLElement;
   private readonly ownFill: HTMLElement;
   private ownVisible = true;
   private ownPercent = -1;
 
-  constructor(root: HTMLElement, enemies: Enemy[]) {
+  /** `playerName` = Name der eigenen Figur aus dem Spielstand. */
+  constructor(root: HTMLElement, enemies: Enemy[], playerName: string) {
     this.own = document.createElement('div');
     this.own.className = 'nameplate nameplate-player';
     this.own.innerHTML = `
-      <span class="nameplate-name">${WARRIOR.name}</span><span class="nameplate-level"></span>
+      <span class="nameplate-name"></span><span class="nameplate-level"></span>
       <div class="nameplate-bar"><div class="nameplate-fill"></div></div>`;
     root.appendChild(this.own);
+    this.ownName = this.own.querySelector('.nameplate-name') as HTMLElement;
+    this.setPlayerName(playerName);
     this.ownLevel = this.own.querySelector('.nameplate-level') as HTMLElement;
     this.ownFill = this.own.querySelector('.nameplate-fill') as HTMLElement;
 
@@ -75,6 +78,11 @@ export class Nameplates {
         percent: -1,
       };
     });
+  }
+
+  /** Trägt den Namen der eigenen Figur ein (auch nach dem Umbenennen). */
+  setPlayerName(name: string): void {
+    this.ownName.textContent = name;
   }
 
   /**

@@ -158,6 +158,16 @@ export class Player extends Actor {
     return loss;
   }
 
+  /**
+   * Stellt die Figur aus einem Spielstand wieder her. `hp` = null heißt volles Leben.
+   * Vorher die Ausrüstung setzen (setGear), damit das maximale Leben schon stimmt.
+   */
+  restore(level: number, xp: number, hp: number | null): void {
+    this.setLevel(level);
+    this.xp = this.level >= MAX_LEVEL ? 0 : Math.min(xp, Math.max(0, this.xpToNext - 1));
+    if (hp !== null) this.hp = Phaser.Math.Clamp(hp, 1, this.maxHp);
+  }
+
   /** Setzt die Figur direkt auf eine Stufe (zum Testen, siehe ?stufe= in WorldScene). */
   setLevel(level: number): void {
     this.level = Phaser.Math.Clamp(Math.floor(level), 1, MAX_LEVEL);

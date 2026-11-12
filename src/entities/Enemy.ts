@@ -116,6 +116,23 @@ export class Enemy extends Actor {
     this.spawnCount++;
   }
 
+  /** Zeit bis zum Wiedererscheinen in Millisekunden; 0 = der Gegner lebt. */
+  get respawnRemainingMs(): number {
+    return this.state === 'dead' ? Math.max(0, this.respawnIn) : 0;
+  }
+
+  /**
+   * Für geladene Spielstände: Der Gegner (Boss) war schon besiegt und erscheint
+   * erst nach `remainingMs` wieder.
+   */
+  startDead(remainingMs: number): void {
+    this.state = 'dead';
+    this.hp = 0;
+    this.respawnIn = remainingMs;
+    this.stop();
+    this.setVisible(false).setAlpha(0);
+  }
+
   /** Kann die Spielfigur diesen Gegner gerade anwählen und treffen? */
   get targetable(): boolean {
     return this.state === 'idle' || this.state === 'chase';

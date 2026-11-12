@@ -1,5 +1,5 @@
-// Merkt sich Kleinigkeiten der Oberfläche (Fenster-Position, Einstellungen) im Browser.
-// Das ist nicht der Spielstand – der kommt mit Meilenstein 7.
+// Merkt sich Kleinigkeiten der Oberfläche (Position und Pin des Inventarfensters) im Browser.
+// Das ist nicht der Spielstand – der liegt in den Slots (src/save/slots.ts).
 
 const PREFIX = 'mein-rpg.ui.';
 

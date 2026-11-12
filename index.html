@@ -32,7 +32,8 @@
       }
     </style>
   </head>
-  <body>
+  <!-- "no-game": Solange noch kein Spiel läuft (Namenseingabe, Slot-Auswahl), sind die Anzeigen ausgeblendet. -->
+  <body class="no-game">
     <div id="game"></div>
 
     <!-- Name, Stufe und Lebensbalken über der eigenen Figur und jedem Gegner (füllt src/ui/Nameplates.ts). -->
@@ -47,7 +48,7 @@
            ausblenden, skalieren und im Bearbeitungsmodus verschieben (src/ui/HudLayout.ts). -->
       <div class="frame" id="player-frame">
         <div class="frame-title">
-          <span>Krieger</span>
+          <span id="player-name"></span>
           <span id="player-level"></span>
         </div>
         <div class="bar bar-hp">
@@ -89,7 +90,14 @@
         <button id="bag-button" class="topbar-button" type="button" title="Charakter &amp; Inventar (I)">
           <span class="sprite-icon topbar-icon"></span>
         </button>
+        <button id="saves-button" class="topbar-button" type="button" title="Spielstände">💾</button>
         <button id="settings-button" class="topbar-button" type="button" title="Einstellungen">⚙</button>
+      </div>
+
+      <!-- Spielstände: Slots laden, anlegen, löschen, exportieren, importieren (füllt src/ui/SaveMenu.ts). -->
+      <div id="saves" hidden>
+        <div class="window-title"><span id="saves-title">Spielstände</span></div>
+        <div id="saves-body"></div>
       </div>
 
       <!-- Einstellungen (füllt src/ui/SettingsMenu.ts). -->
@@ -121,6 +129,8 @@
         </div>
         <div class="window-columns">
           <div class="window-column">
+            <!-- Name der Figur und ihre Klasse (trägt WorldScene.showName ein). -->
+            <div id="character-name"></div>
             <div id="equipment"></div>
             <div id="character-stats"></div>
           </div>
@@ -144,6 +154,9 @@
         <div id="death-loss"></div>
       </div>
     </div>
+
+    <!-- Dialoge in der Bildmitte: Namenseingabe, Sicherheitsabfrage, Meldung (füllt src/ui/dialog.ts). -->
+    <div id="dialog" hidden></div>
 
     <div id="version"></div>
     <script type="module" src="/src/main.ts"></script>

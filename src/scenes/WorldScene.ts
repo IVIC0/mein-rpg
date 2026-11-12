@@ -1,20 +1,24 @@
 import Phaser from 'phaser';
 import { Combat } from '../combat/Combat';
-import { HOLD_DELAY_MS, TILE, zoomForViewport } from '../config';
+import { BODY_RADIUS, BOSS_RESPAWN_MS, HOLD_DELAY_MS, TILE, zoomForViewport } from '../config';
 import { ENEMIES } from '../data/enemies';
 import { RARITIES } from '../data/items';
-import { SKILLS } from '../data/warrior';
+import { AUTOSAVE_INTERVAL_MS, SAVE_DELAY_MS } from '../data/save';
+import { SKILLS, WARRIOR } from '../data/warrior';
 import { Actor } from '../entities/Actor';
 import { Enemy } from '../entities/Enemy';
 import { Player } from '../entities/Player';
 import { generateItem } from '../items/generator';
 import { GroundLoot } from '../items/GroundLoot';
 import { Inventory } from '../items/Inventory';
+import { cleanName, type SaveGame } from '../save/saveGame';
+import { readTestParams, session, writeSlot } from '../save/slots';
 import { FloatingText } from '../ui/FloatingText';
 import { Hud } from '../ui/Hud';
 import { HudLayout } from '../ui/HudLayout';
 import { InventoryWindow } from '../ui/InventoryWindow';
 import { Nameplates } from '../ui/Nameplates';
+import { SaveMenu } from '../ui/SaveMenu';
 import { SettingsMenu } from '../ui/SettingsMenu';
 import { byId } from '../ui/dom';
 import { Grid, type Point } from '../world/Grid';
@@ -36,6 +40,10 @@ const MAX_FRAME_MS = 100;
  *
  * Skills lösen von selbst aus (siehe Combat). I oder C öffnet Charakter & Inventar.
  * Esc schließt das Fenster (wenn es nicht angepinnt ist) bzw. hebt die Zielauswahl auf.
+ *
+ * Speichern: Beim Start wird der Spielstand aus `session.save` übernommen (applySave).
+ * Gespeichert wird von selbst – regelmäßig, kurz nach wichtigen Ereignissen und beim
+ * Verlassen der Seite (siehe startAutosave). Im Testlauf (?stufe, ?beute, ?elite) nie.
  */
 export class WorldScene extends Phaser.Scene {
   private grid!: Grid;
@@ -46,6 +54,16 @@ export class WorldScene extends Phaser.Scene {
   private nameplates!: Nameplates;
   private settings!: SettingsMenu;
   private hudLayout!: HudLayout;
+  private saveMenu!: SaveMenu;
+  private inventory!: Inventory;
+  private hud!: Hud;
+  /** Die Bosse der Karte mit ihrem Schlüssel im Spielstand (Typ und Platz). */
+  private readonly bosses = new Map<string, Enemy>();
+  /** Gespielte Zeit dieses Spielstands in Millisekunden. */
+  private playedMs = 0;
+  /** Läuft schon ein Timer für das Speichern "gleich"? (siehe requestSave) */
+  private saveTimer = 0;
+  private saveFailed = false;
   private clickMarker!: Phaser.GameObjects.Image;
   private blockedMarker!: Phaser.GameObjects.Image;
 
@@ -82,29 +100,34 @@ export class WorldScene extends Phaser.Scene {
     if (!spawn || spawn.x === undefined || spawn.y === undefined) throw new Error('Marker "spawn" fehlt in der Karte.');
     this.player = new Player(this, spawn.x, spawn.y);
 
+    // Der Spielstand, mit dem gespielt wird (legt main.ts fest), und die Test-Parameter der Adresse.
+    const save = session.save;
+    if (!save) throw new Error('Kein Spielstand geladen.');
+    const test = readTestParams();
+
     // Zum Testen: ?elite=1 macht jeden normalen Gegner zur Elite.
-    if (new URLSearchParams(window.location.search).get('elite') === '1') Enemy.eliteChance = 1;
+    if (test.elite) Enemy.eliteChance = 1;
 
     // Jeder Punkt auf der Ebene "Gegner" ist ein Gegner; der Name des Punkts ist sein Typ.
     const enemies = (map.getObjectLayer('Gegner')?.objects ?? []).map((object) => {
       const def = ENEMIES[object.name];
       if (!def || object.x === undefined || object.y === undefined) throw new Error(`Unbekannter Gegner "${object.name}" in der Karte.`);
-      return new Enemy(this, def, enemyLevel(object), object.x, object.y);
+      const enemy = new Enemy(this, def, enemyLevel(object), object.x, object.y);
+      if (enemy.rank === 'boss') this.bosses.set(`${object.name}@${object.x},${object.y}`, enemy);
+      return enemy;
     });
 
-    // Zum Testen: ?stufe=5 an die Adresse hängen, dann startet die Figur auf Stufe 5.
-    const startLevel = Number(new URLSearchParams(window.location.search).get('stufe'));
-    if (startLevel > 1) this.player.setLevel(startLevel);
-
     this.floaters = new FloatingText(byId('floaters'));
-    this.nameplates = new Nameplates(byId('nameplates'), enemies);
+    this.nameplates = new Nameplates(byId('nameplates'), enemies, save.name);
     const hud = new Hud(SKILLS);
+    this.hud = hud;
 
     // Inventar und Ausrüstung: nach jeder Änderung bekommt die Figur ihre neuen Werte.
     const inventory = new Inventory();
+    this.inventory = inventory;
     this.inventoryWindow = new InventoryWindow(inventory, this.player, hud);
-    // Einstellungen (ein Objekt: settings.values) und die Anordnung der HUD-Elemente.
-    this.settings = new SettingsMenu();
+    // Einstellungen (ein Objekt: settings.values, aus dem Spielstand) und die Anordnung der HUD-Elemente.
+    this.settings = new SettingsMenu(save.settings, () => this.requestSave());
     this.hudLayout = new HudLayout(this.settings.values, hud, () => this.settings.save());
     this.settings.connect({
       onChange: () => this.hudLayout.apply(),
@@ -114,13 +137,31 @@ export class WorldScene extends Phaser.Scene {
     inventory.onChange = () => {
       this.player.setGear(inventory.equippedStats(), inventory.equipped.weapon?.icon ?? null);
       this.inventoryWindow.render();
+      this.requestSave();
     };
-    // Zum Testen: ?beute=10 legt 10 gewürfelte Items ins Inventar, von jeder Seltenheit reihum.
-    const testItems = Number(new URLSearchParams(window.location.search).get('beute'));
-    for (let i = 0; i < testItems; i++) inventory.add(generateItem(this.player.level, RARITIES[i % RARITIES.length].id));
+
+    this.applySave(save);
+    this.showName(save.name);
+
+    // Zum Testen (Testlauf, wird nie gespeichert): ?stufe=5 startet auf Stufe 5,
+    // ?beute=10 legt 10 gewürfelte Items ins Inventar, von jeder Seltenheit reihum.
+    if (test.level > 1) this.player.setLevel(test.level);
+    for (let i = 0; i < test.loot; i++) inventory.add(generateItem(this.player.level, RARITIES[i % RARITIES.length].id));
 
     const loot = new GroundLoot(this, inventory, hud, this.floaters);
     this.combat = new Combat(this, this.grid, this.player, enemies, hud, this.floaters, { x: spawn.x, y: spawn.y }, inventory, loot);
+    this.combat.onSaveEvent = () => this.requestSave();
+
+    // Menü "Spielstände": Slots wechseln, anlegen, löschen, exportieren, importieren.
+    this.saveMenu = new SaveMenu({
+      saveNow: () => this.saveNow(),
+      rename: (name) => this.rename(name),
+      settings: () => this.settings.values,
+    });
+    // Beide Menüs sitzen am selben Platz: Öffnet man das eine, geht das andere zu.
+    byId('saves-button').addEventListener('click', () => this.settings.close());
+    byId('settings-button').addEventListener('click', () => this.saveMenu.close());
+    this.startAutosave();
 
     this.clickMarker = this.add.image(0, 0, 'click-marker').setOrigin(0).setDepth(5).setVisible(false);
     this.blockedMarker = this.add.image(0, 0, 'blocked-marker').setOrigin(0).setDepth(20).setVisible(false);
@@ -146,6 +187,7 @@ export class WorldScene extends Phaser.Scene {
       // Esc beendet erst den Bearbeitungsmodus, schließt dann die Einstellungen, dann das Inventar
       // (außer es ist angepinnt), sonst hebt es das Ziel auf.
       if (this.hudLayout.editing) this.hudLayout.setEditing(false);
+      else if (this.saveMenu.isOpen) this.saveMenu.close();
       else if (this.settings.isOpen) this.settings.close();
       else if (this.inventoryWindow.isOpen && !this.inventoryWindow.pinned) this.inventoryWindow.close();
       else this.combat.clearTarget();
@@ -165,6 +207,7 @@ export class WorldScene extends Phaser.Scene {
 
   update(time: number, rawDelta: number): void {
     const delta = Math.min(rawDelta, MAX_FRAME_MS);
+    this.playedMs += delta;
     const cursor = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
 
     // Erst die Kampfregeln (Gegner, Angriffe, Ziel verfolgen), dann die Bewegung der Figur.
@@ -187,6 +230,95 @@ export class WorldScene extends Phaser.Scene {
     // Über einem Gegner wird der Mauszeiger zur Hand.
     this.input.setDefaultCursor(this.player.alive && this.combat.enemyAt(cursor) ? 'pointer' : 'default');
   }
+
+  // ---------------------------------------------------------------- Speichern und Laden
+
+  /** Übernimmt einen Spielstand: Inventar, Ausrüstung, Gold, Stufe, EP, Leben, Position, Boss-Timer. */
+  private applySave(save: SaveGame): void {
+    this.playedMs = save.playedMs;
+    // Erst die Ausrüstung (setzt über onChange die Werte der Figur), dann Stufe und Leben.
+    this.inventory.load(save.bag, save.equipped, save.gold);
+    this.player.restore(save.character.level, save.character.xp, save.character.hp);
+
+    // Die Figur steht wieder dort, wo sie war – außer die Stelle ist inzwischen verbaut (Karte geändert).
+    const at = save.position;
+    if (at && this.grid.isBoxFree(at.x, at.y, BODY_RADIUS)) this.player.pos.set(at.x, at.y);
+
+    // Ein besiegter Boss bleibt weg, bis seine Zeit um ist. Die Uhr lief weiter, während das Spiel zu war.
+    for (const [key, boss] of this.bosses) {
+      const remaining = (save.bossRespawnAt[key] ?? 0) - Date.now();
+      if (remaining > 0) boss.startDead(Math.min(remaining, BOSS_RESPAWN_MS));
+    }
+  }
+
+  /** Der aktuelle Stand des Spiels als Spielstand. */
+  private snapshot(base: SaveGame): SaveGame {
+    const player = this.player;
+    const bossRespawnAt: Record<string, number> = {};
+    for (const [key, boss] of this.bosses) {
+      if (boss.respawnRemainingMs > 0) bossRespawnAt[key] = Date.now() + boss.respawnRemainingMs;
+    }
+    return {
+      ...base,
+      savedAt: Date.now(),
+      playedMs: Math.round(this.playedMs),
+      // Liegt die Figur am Boden, wacht sie nach dem Laden mit vollem Leben im Dorf auf.
+      character: { level: player.level, xp: player.xp, hp: player.alive ? player.hp : null },
+      position: player.alive ? { x: Math.round(player.pos.x), y: Math.round(player.pos.y) } : null,
+      gold: this.inventory.gold,
+      bag: [...this.inventory.bag],
+      equipped: { ...this.inventory.equipped },
+      settings: this.settings.values,
+      bossRespawnAt,
+    };
+  }
+
+  /**
+   * Speichert sofort in den Slot dieses Spiels. Im Testlauf (kein Slot) und kurz vor
+   * einem Slot-Wechsel (`frozen`) passiert nichts.
+   */
+  private saveNow(): void {
+    window.clearTimeout(this.saveTimer);
+    this.saveTimer = 0;
+    if (session.slotId === null || session.frozen || !session.save) return;
+    session.save = this.snapshot(session.save);
+    const ok = writeSlot(session.slotId, session.save);
+    // Den Hinweis nur einmal zeigen, nicht alle paar Sekunden.
+    if (!ok && !this.saveFailed) this.hud.flash('Speichern fehlgeschlagen');
+    this.saveFailed = !ok;
+  }
+
+  /** Speichert gleich (nach SAVE_DELAY_MS). Mehrere Ereignisse kurz hintereinander ergeben ein Speichern. */
+  private requestSave(): void {
+    if (this.saveTimer !== 0) return;
+    this.saveTimer = window.setTimeout(() => this.saveNow(), SAVE_DELAY_MS);
+  }
+
+  /** Regelmäßig speichern – und sofort, wenn die Seite verlassen, neu geladen oder der Tab gewechselt wird. */
+  private startAutosave(): void {
+    window.setInterval(() => this.saveNow(), AUTOSAVE_INTERVAL_MS);
+    window.addEventListener('pagehide', () => this.saveNow());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this.saveNow();
+    });
+  }
+
+  /** Neuer Name für die laufende Figur (aus dem Menü "Spielstände"). */
+  private rename(name: string): void {
+    if (!session.save) return;
+    session.save.name = cleanName(name);
+    this.showName(session.save.name);
+    this.saveNow();
+  }
+
+  /** Trägt den Namen der Figur überall ein: Schild über der Figur, Spielerrahmen, Charakterfenster. */
+  private showName(name: string): void {
+    this.nameplates.setPlayerName(name);
+    byId('player-name').textContent = name;
+    byId('character-name').textContent = `${name} · ${WARRIOR.name}`;
+  }
+
+  // ---------------------------------------------------------------- Maus
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
     if (!pointer.leftButtonDown() || !this.player.alive) return;

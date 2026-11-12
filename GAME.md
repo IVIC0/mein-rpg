@@ -49,8 +49,9 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     Zielauswahl auf, und nach dem Neuladen ist es wieder da. `I`, `C` und × schließen es weiterhin.
     Der Kampf läuft bei offenem Fenster immer weiter.
   - Position, Größe und Pin merkt sich der Browser (`localStorage`, getrennt vom Spielstand).
-- **Knopf-Leiste** oben rechts *(Umgesetzt)*: kleine Knöpfe für Inventar und Einstellungen;
-  weitere (Talente, Karte) kommen dort dazu. Was die Einstellungen können, steht in Abschnitt 2b.
+- **Knopf-Leiste** oben rechts *(Umgesetzt)*: kleine Knöpfe für Inventar, Spielstände (Diskette,
+  Abschnitt 11) und Einstellungen; weitere (Talente, Karte) kommen dort dazu. Was die
+  Einstellungen können, steht in Abschnitt 2b.
   `T` Talente kommt mit dem Talentbaum. *(Vorschlag)*
 - **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
 - **Tränke:** `Q` Heiltrank. *(Vorschlag, kommt mit dem Händler)* Einen Manatrank gibt es nicht.
@@ -59,7 +60,8 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 
 - **Schild über der eigenen Figur:** Name, Stufe und Lebensbalken wie bei den Gegnern, aber mit
   grünem Namen und grünem Balken (Gegner: rot). Liegt die Figur am Boden, ist es weg. *(Entschieden;
-  Farbe Grün und der Name „Krieger" sind Startwerte – einen eigenen Figurennamen gibt es noch nicht.)*
+  die Farbe Grün ist ein Startwert.)* Der Name ist seit Meilenstein 7 der eigene Figurenname
+  (Abschnitt 11).
 - **Einstellungen** (Zahnrad oben rechts): ein schmales Menü mit drei zugeklappten Bereichen,
   dazu „HUD verschieben …", „Fenster zurücksetzen" und „Alles auf Standard".
 
@@ -76,8 +78,8 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 - **Alles auf Standard** setzt alle Einstellungen, die Plätze der HUD-Elemente und das
   Inventarfenster zurück.
 - **Technik:** Alle Einstellungen liegen in einem einzigen Objekt (`Settings` in
-  `src/ui/settings.ts`, nur einfache Werte) – so können sie mit Meilenstein 7 in den Spielstand.
-  Bis dahin merkt sie sich der Browser (`localStorage`). Der Platz eines Elements ist als
+  `src/ui/settings.ts`, nur einfache Werte). Seit Meilenstein 7 liegt es im Spielstand – jeder
+  Slot hat seine eigenen Einstellungen (Abschnitt 11). Der Platz eines Elements ist als
   Verschiebung gegenüber dem Standard-Platz gespeichert, damit z. B. die Skill-Leiste auch bei
   anderer Fenstergröße unten in der Mitte verankert bleibt.
 
@@ -241,8 +243,9 @@ Intelligenz und Mana gibt es beim Krieger nicht – sie kommen eventuell mit dem
   Ausdauer, Geschick) kommen nur von der Ausrüstung. *(Vorschlag)*
 - **Zum Testen:** `?stufe=5` an die Adresse hängen, dann startet die Figur auf Stufe 5.
   `?beute=12` legt 12 gewürfelte Items ins Inventar (jede Seltenheit reihum), `?elite=1`
-  macht jeden normalen Gegner zur Elite; alles zusammen: `?stufe=5&beute=12&elite=1`. Solange es kein Speichern gibt (Meilenstein 7), beginnt
-  jedes Neuladen wieder auf Stufe 1 und mit leerem Inventar.
+  macht jeden normalen Gegner zur Elite; alles zusammen: `?stufe=5&beute=12&elite=1`.
+  Mit einem dieser Parameter läuft ein **Testlauf**, der nie gespeichert wird und keinen Slot
+  berührt (Abschnitt 11). Für Tests, die man weiterspielen will, gibt es die Test-Spielstände.
 
 Alle Werte stehen in `src/data/progression.ts` (Kurve, EP) und `src/data/warrior.ts` (Zuwachs).
 
@@ -359,8 +362,7 @@ Weitere Regeln *(Vorschlag)*:
   angelegte Waffe ist auch beim Zuschlagen zu sehen.
 - **Symbole:** Waffen und Schilde stammen aus „Tiny Dungeon". Helm, Rüstung, Handschuhe,
   Stiefel, Amulett und Ring fehlen dort und sind selbst gezeichnet (`tools/lib/item-icons.mjs`).
-- Noch nicht dabei: Verkaufen und Tränke (Händler, Meilenstein 8), Speichern des Inventars
-  (Meilenstein 7).
+- Noch nicht dabei: Verkaufen und Tränke (Händler, Meilenstein 8).
 
 Alle Werte stehen in `src/data/items.ts` (Seltenheiten, Basis-Items, Affixe),
 `src/data/loot.ts` (Drop-Tabellen je Gegnerrang, Gold, Inventargröße) und `src/data/stats.ts` (Attribute).
@@ -485,14 +487,88 @@ Alle Gegner sind etwas langsamer als die Figur – weglaufen geht also immer (au
   besonders guten Drops. *(Entschieden)*
 - Keine Dungeons, keine Paragon-Level. *(Entschieden – nicht gewählt)*
 
-## 11. Speichern
+## 11. Speichern *(Meilenstein 7, umgesetzt)*
 
-- Auto-Save im Browser (`localStorage`). *(Entschieden)*
-- Spielstand als Datei exportieren und wieder importieren (Schutz vor gelöschten
-  Browserdaten, Gerätewechsel). *(Entschieden)*
-- Spielstand bekommt eine Versionsnummer, damit alte Stände nach Updates noch laden. *(Vorschlag)*
-- Auto-Save bei Levelaufstieg, Item-Aufnahme, Zonenwechsel und alle 30 Sekunden. *(Vorschlag)*
-- Vorerst 1 Charakter; mehrere Slots kommen mit der zweiten Klasse. *(Vorschlag)*
+Von dir vorgegeben *(Entschieden)*: Speichern im Browser (`localStorage`), automatisch und beim
+Neuladen wieder da; mehrere Slots mit Anlegen, Löschen (mit Sicherheitsabfrage) und Umbenennen;
+der zuletzt gespielte Slot lädt von selbst; Test-Spielstände aus Vorlagen in einem eigenen Slot;
+Export/Import als Datei; Versionsnummer; Namenseingabe pro Slot. Alles, was unten als
+**Startwert** markiert ist, habe ich mir dazu ausgedacht.
+
+**Was im Spielstand steht** (`SaveGame` in `src/save/saveGame.ts`):
+- Name der Figur, Stufe, EP, aktuelles Leben, Position, Gold, Inventar, Ausrüstung.
+- Die HUD-Einstellungen aus Abschnitt 2b – also **pro Slot** und im Export mit dabei. Ein neuer
+  Slot übernimmt eine Kopie der gerade aktiven Einstellungen; der allererste übernimmt die, die
+  sich der Browser seit Schritt 6b gemerkt hatte. *(Startwert)*
+- Respawn-Zeitpunkt besiegter Bosse, Spielzeit, Zeitpunkt des letzten Speicherns, Format-Nummer.
+- Nicht darin: die Werte der Figur (Leben, Angriffskraft, Rüstung …) – sie ergeben sich aus Stufe
+  und Ausrüstung und werden beim Laden neu berechnet, damit Balancing-Änderungen sofort gelten.
+  Ebenfalls nicht: Position und Pin des Inventarfensters (bleibt pro Browser, wie bisher).
+
+**Was beim Neuladen verloren geht** *(Startwert)*: Abklingzeiten und Buffs, der Wuchtschlag-Zähler,
+Items, die noch am Boden liegen, und der Zustand normaler Gegner – sie stehen alle wieder frisch
+an ihrem Platz (Elites werden neu gewürfelt). Lag die Figur beim Speichern am Boden, wacht sie mit
+vollem Leben im Dorf auf (der Verlust durch den Tod ist dann schon abgezogen).
+
+**Wann gespeichert wird** (Werte in `src/data/save.ts`, *Startwerte*):
+- alle 30 Sekunden,
+- 1 Sekunde nach einem wichtigen Ereignis: Item aufgehoben, Gold erhalten (also nach jedem
+  besiegten Gegner), an-/abgelegt, weggeworfen, Stufenaufstieg, Tod, Aufwachen, Boss besiegt,
+  Einstellung geändert,
+- sofort beim Verlassen, Neuladen oder Wegschalten der Seite und mit „Jetzt speichern".
+
+**Slots:** 3 normale Slots plus 1 Slot „Test" *(Anzahl 3 ist ein Startwert, `SLOT_COUNT`)*.
+- Menü „Spielstände" (Diskette oben rechts): je Slot Laden, Umbenennen, Export, Löschen; leere
+  Slots haben „Neue Figur …". Der aktive Slot ist gelb umrandet.
+- Jeder Slot hat einen eigenen Schlüssel im Browser. Gespeichert wird nur in den Slot, der beim
+  Laden der Seite gewählt wurde – ein Slot kann also nie einen anderen überschreiben. Ein
+  Slot-Wechsel speichert den laufenden Stand und lädt dann die Seite neu. *(Technik: Startwert)*
+- Start des Spiels: Der zuletzt gespielte Slot lädt von selbst. Gibt es noch gar keinen
+  Spielstand, fragt das Spiel nach dem Namen und legt Slot 1 an. Wurde der zuletzt gespielte Slot
+  gelöscht oder lässt er sich nicht laden, erscheint die Auswahl „Spielstand wählen".
+- Löschen fragt immer nach („… wirklich löschen?"), der Abbrechen-Knopf ist vorausgewählt.
+- **Name:** höchstens 16 Zeichen, nicht leer *(Startwert)*. Er steht im Schild über der Figur, im
+  Spielerrahmen und im Charakterfenster („Name · Krieger") und lässt sich im Menü ändern.
+
+**Test-Spielstände:** Im Menü Vorlage wählen und „Test-Spielstand anlegen". Er landet immer im
+Slot „Test" (ersetzt dort ohne Nachfrage den vorigen Test-Spielstand), wird gleich geladen und
+speichert wie jeder andere Slot – die normalen Slots bleiben unberührt. Vorlagen stehen in
+`src/data/testSaves.ts` (Stufe, Gold, Ausrüstung je Platz mit Seltenheit, Inventar als Liste von
+Seltenheiten; die Items werden beim Anlegen gewürfelt). *Startwerte:*
+
+| Vorlage | Stufe | Gold | Ausrüstung | Inventar |
+|---|---|---|---|---|
+| Stufe 1 – neu | 1 | 0 | – | leer |
+| Stufe 5 – etwas Loot | 5 | 150 | Waffe und Stiefel grün, Brust und Helm weiß | 6 Items (3 weiß, 2 grün, 1 blau) |
+| Stufe 10 – voll ausgerüstet | 10 | 1500 | alle 9 Plätze: Waffe und Brust lila, Ring 2 grün, Rest blau | 8 Items, jede Seltenheit dabei |
+
+**Test-Parameter in der Adresse** (`?stufe`, `?beute`, `?elite`) *(Startwert)*: Ist einer davon
+gesetzt, läuft ein **Testlauf** – eine frische „Testfigur", die in keinem Slot liegt. Es wird
+nichts geladen und nichts gespeichert, auch der „zuletzt gespielte Slot" bleibt, wie er ist.
+Der Testlauf benutzt die HUD-Einstellungen des zuletzt gespielten Slots als Kopie; Änderungen
+daran gehen beim Neuladen verloren. Im Menü steht ein Hinweis mit „Testlauf beenden" (lädt ohne
+die Parameter neu). Auch `?elite=1` allein ist ein Testlauf – sonst könnte man in einem echten
+Slot Elite-Beute farmen.
+
+**Export/Import:** „Export" lädt den Slot als Datei herunter (`mein-rpg-Name-Datum.json`,
+derselbe Text wie im Browser). „Importieren …" legt eine Datei in den **ersten freien** normalen
+Slot und lädt sie nicht von selbst. Sind alle Slots belegt, gibt es eine Meldung – ein Import
+überschreibt nie etwas. *(Startwert)*
+
+**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **1**. Ändert sich der Aufbau,
+wird sie erhöht und in `MIGRATIONS` (`src/save/saveGame.ts`) eingetragen, wie ein alter Stand ins
+neue Format kommt.
+- Alter Stand: wird beim Laden Schritt für Schritt umgebaut.
+- Stand aus einer **neueren** Spielversion, zu alter Stand ohne Umbau oder kaputte Daten: Der Slot
+  wird als „Nicht ladbar: …" mit Grund angezeigt und **nicht angerührt** (man kann ihn noch
+  exportieren oder löschen).
+- Einzelne unbrauchbare Werte (z. B. ein Item, dessen Basis-Item es nicht mehr gibt) fallen weg
+  bzw. werden durch Standardwerte ersetzt, der Rest lädt.
+
+**Boss-Respawn** *(Startwert)*: Im Spielstand steht der Zeitpunkt, zu dem ein besiegter Boss
+wiederkommt (Uhrzeit, nicht Restzeit). Neuladen bringt ihn also nicht zurück und setzt die
+5 Minuten auch nicht neu an; die Zeit läuft weiter, während das Spiel zu ist. Wer nach dem Sieg
+schließt und später wiederkommt, findet ihn wieder vor. Der Timer gilt pro Slot.
 
 ---
 
@@ -511,7 +587,7 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 | 5b ✅ | Feinschliff Loot | Drop-Chance 10 % und Drop-Tabellen je Gegnerrang, Rüstung abgeflacht (max. 75 %), Inventarfenster verschiebbar/anpinnbar, Knopf-Leiste, Namensschilder über Gegnern | Loot seltener, aber wertiger ist und das Fenster beim Kämpfen nicht stört |
 | 6 ✅ | Elites | Zufällige Elite-Spawns mit 1–3 Eigenschaften und besserem Loot, dazu ein Boss in der Ruine | Elites erkennbar gefährlicher und lohnender sind |
 | 6b ✅ | HUD und Einstellungen | Schild über der eigenen Figur, HUD-Elemente ein-/ausblenden, skalieren, Deckkraft, im Bearbeitungsmodus verschieben, alles zurücksetzen | sich das HUD nach eigenem Geschmack einrichten lässt |
-| 7 | Speichern | Auto-Save, Export/Import, Versionsnummer, Einstellungen aus 6b mit in den Spielstand | Seite neu laden nichts verliert |
+| 7 ✅ | Speichern | Auto-Save, 3 Slots + Test-Slot mit Vorlagen, Namenseingabe, Export/Import, Versionsnummer, Einstellungen aus 6b mit in den Spielstand | Seite neu laden nichts verliert |
 | 8 | Händler + Feinschliff | 1 Händler (verkaufen, Tränke kaufen), Balancing, `CREDITS.md` | Gold und volles Inventar einen Zweck haben |
 
 **Bewusst nicht in V1:** Talentbaum, Aufwerten, Quests, weitere Zonen und Klassen,
@@ -521,7 +597,8 @@ Der Talentbaum ist das Erste nach V1 – bei nur 10 Leveln und 9 Punkten trägt 
 nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 
 **Reihenfolge nach V1** *(Vorschlag)*: Talentbaum → Quests + Stadt ausbauen → Aufwerten
-(Schmied) → Zone 2 → zweite Klasse + Charakter-Slots → Weltbosse → Endlos-Turm.
+(Schmied) → Zone 2 → zweite Klasse → Weltbosse → Endlos-Turm. (Die Charakter-Slots gibt es seit
+Meilenstein 7.)
 
 ## 13. Geplante Features
 
@@ -567,5 +644,13 @@ Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap f
 11. Namen von Elites: Die Eigenschaften stehen unter dem Namen statt davor („Schnelle
     Waldspinne") – dafür müsste jede Eigenschaft nach dem Geschlecht des Gegners gebeugt werden.
 12. HUD-Einstellungen (6b): Grenzen der Regler und die Farbe des eigenen Schilds sind Startwerte.
-    Offen: Soll die Figur einen eigenen Namen bekommen (statt „Krieger")? Sollen die Einstellungen
-    beim Export des Spielstands (Meilenstein 7) mitwandern oder pro Browser bleiben?
+    Seit Meilenstein 7 liegen die Einstellungen pro Slot im Spielstand und wandern beim Export
+    mit. Passt das, oder sollen sie lieber für alle Slots gemeinsam gelten?
+13. Speichern (Meilenstein 7), von mir gesetzte Startwerte zum Prüfen:
+    - Neuladen mitten im Kampf: Die Gegner stehen danach wieder friedlich an ihrem Platz – man
+      kann sich so aus einem Kampf retten (das Leben bleibt aber, wie es war). Stört das?
+    - Items am Boden gehen beim Neuladen verloren (z. B. bei vollem Inventar).
+    - Ein neuer Test-Spielstand ersetzt den alten im Slot „Test" ohne Nachfrage.
+    - Dasselbe Spiel in zwei Browser-Tabs mit demselben Slot: Der Tab, der zuletzt speichert,
+      gewinnt. Verschiedene Slots in zwei Tabs stören sich nicht.
+    - Spielstände liegen nur in diesem Browser. Vor „Browserdaten löschen" exportieren.

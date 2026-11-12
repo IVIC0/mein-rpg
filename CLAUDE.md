@@ -16,6 +16,8 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/items.ts` – Seltenheiten, Basis-Items und Affixe (Wertespannen, erlaubte Plätze)
    - `src/data/loot.ts` – Drop-Tabellen je Gegnerrang (Drop-Chance, Seltenheits-Anteile), Gold pro Gegner, Inventargröße
    - `src/data/stats.ts` – Werte auf Items und was ein Attributpunkt bringt
+   - `src/data/save.ts` – Speichern: Format-Nummer, Anzahl Slots, Auto-Save-Abstände, Namenslänge
+   - `src/data/testSaves.ts` – Vorlagen für Test-Spielstände
    - `tools/build-map.mjs` (Liste `ENEMY_GROUPS`) – welche Gegner mit welcher Stufe wo stehen;
      nach Änderungen `npm run assets`
 
@@ -46,6 +48,12 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
   `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/Nameplates.ts`.
 - Einstellungen des Spielers liegen in einem Objekt (`Settings` in `src/ui/settings.ts`, dort auch
   Standardwerte und Regler-Grenzen). Menü: `src/ui/SettingsMenu.ts`, Anwenden und Verschieben: `src/ui/HudLayout.ts`.
+- Speichern: Aufbau des Spielstands, Prüfen und Umbau alter Formate in `src/save/saveGame.ts`,
+  Slots im Browser und der laufende Spielstand (`session`) in `src/save/slots.ts`, Menü in
+  `src/ui/SaveMenu.ts`, Dialoge in `src/ui/dialog.ts`. Übernehmen und Einsammeln des Stands:
+  `applySave` / `snapshot` in `src/scenes/WorldScene.ts`. Kommt etwas Neues dazu, das gespeichert
+  werden soll: dort ergänzen. Ändert sich der Aufbau: `SAVE_VERSION` erhöhen und in `MIGRATIONS` eintragen.
+- Die Test-Parameter `?stufe`, `?beute`, `?elite` starten einen Testlauf, der nie gespeichert wird.
 - `public/assets/` wird erzeugt – nicht von Hand ändern.
 - Die Versionsnummer in `package.json` folgt den Meilensteinen (Meilenstein 4 = 0.4.0).
 - Der Nutzer ist Programmier-Anfänger: Code knapp kommentieren, verständlich halten.

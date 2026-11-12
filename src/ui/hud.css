@@ -598,6 +598,7 @@
   position: absolute;
   right: 10px;
   top: 50px;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -673,6 +674,180 @@
 #settings button:hover,
 #hud-edit-bar button:hover {
   border-color: #e8d9a0;
+}
+
+/* ---------------------------------------------------------------- Spielstände und Dialoge */
+
+/* Solange kein Spiel läuft (Namenseingabe, Slot-Auswahl), ist vom HUD nur das Spielstand-Menü zu sehen. */
+.no-game #hud > :not(#saves) {
+  display: none !important;
+}
+
+/* Das Menü "Spielstände": gleicher Platz und gleiches Aussehen wie die Einstellungen. */
+#saves {
+  position: absolute;
+  right: 10px;
+  top: 50px;
+  /* Über dem Inventarfenster, das in der Standard-Lage am selben Rand sitzt. */
+  z-index: 2;
+  width: 300px;
+  max-height: calc(100vh - 70px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #6f7566 transparent;
+  box-sizing: border-box;
+  padding: 8px 10px 10px;
+  font-size: 12px;
+  background: rgba(22, 26, 22, 0.94);
+  border: 2px solid #0c0f0c;
+  border-radius: 4px;
+  pointer-events: auto;
+}
+
+/* Vor dem Spiel steht die Auswahl in der Bildmitte. */
+.no-game #saves {
+  left: 0;
+  right: 0;
+  top: 15vh;
+  width: 340px;
+  margin: 0 auto;
+}
+
+#saves .window-title {
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.save-row {
+  margin-bottom: 6px;
+  padding: 5px 7px 6px;
+  background: #1a1e19;
+  border: 1px solid #0c0f0c;
+  border-radius: 3px;
+}
+
+/* Der Slot, mit dem gerade gespielt wird. */
+.save-row.active {
+  border-color: #ffd34d;
+}
+
+.save-info {
+  color: #f4ecd2;
+}
+
+.save-date,
+.saves-hint {
+  font-size: 10px;
+  color: #c9bf9f;
+}
+
+.save-error,
+.saves-notice {
+  color: #ffb36b;
+}
+
+.saves-notice,
+.saves-hint {
+  margin: 0 0 6px;
+}
+
+.save-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+#saves > #saves-body > .save-buttons {
+  margin-bottom: 6px;
+}
+
+#saves button,
+#saves select,
+#dialog button,
+#dialog input {
+  padding: 3px 7px;
+  font: inherit;
+  color: inherit;
+  background: #2e342c;
+  border: 1px solid #0c0f0c;
+  border-radius: 3px;
+}
+
+#saves button,
+#dialog button {
+  cursor: pointer;
+}
+
+#saves select {
+  flex: 1;
+  min-width: 0;
+}
+
+#saves button:hover,
+#dialog button:hover {
+  border-color: #e8d9a0;
+}
+
+/* Dunkler Schleier über allem; der Dialog steht in der Mitte. */
+#dialog {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 13px/1.4 'Trebuchet MS', Verdana, sans-serif;
+  color: #f4ecd2;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dialog-box {
+  box-sizing: border-box;
+  width: 320px;
+  max-width: calc(100vw - 20px);
+  padding: 10px 12px 12px;
+  background: #161a16;
+  border: 2px solid #0c0f0c;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.dialog-box p {
+  margin: 0;
+}
+
+#dialog input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 5px 7px;
+  font-size: 14px;
+  user-select: text;
+}
+
+#dialog input:focus {
+  outline: none;
+  border-color: #e8d9a0;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+/* Knopf für etwas Endgültiges (Löschen). */
+#dialog button.danger {
+  background: #6b2420;
+  border-color: #3a1016;
+}
+
+/* Name und Klasse über der Ausrüstung im Charakterfenster. */
+#character-name {
+  margin-bottom: 6px;
+  font-weight: bold;
+  text-align: center;
+  color: #7be07b;
 }
 
 /* ---------------------------------------------------------------- Namensschilder über Figur und Gegnern */
