@@ -37,6 +37,14 @@ export const MELEE_APPROACH = 16;
 /** So lange nach dem letzten Treffer gilt die Figur noch als "im Kampf" (Millisekunden). */
 export const COMBAT_TIMEOUT_MS = 5000;
 
+/**
+ * Rüstung senkt erlittenen Schaden – mit abnehmender Wirkung:
+ *   Schadensreduktion = maxReduction × Rüstung / (Rüstung + halfAt)
+ * Mehr als `maxReduction` (0.75 = 75 %) geht nie. Bei `halfAt` Rüstung ist die Hälfte
+ * davon erreicht (100 Rüstung = 37,5 %). Gilt für die Figur und für Gegner.
+ */
+export const ARMOR = { maxReduction: 0.75, halfAt: 100 };
+
 /** Ein getöteter Gegner erscheint nach dieser Zeit wieder an seinem Platz. */
 export const ENEMY_RESPAWN_MS = 30000;
 

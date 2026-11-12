@@ -1,6 +1,6 @@
 // Loot: Seltenheiten, Basis-Items und Affixe. Aus diesen Listen würfelt der
 // Item-Generator (src/items/generator.ts) jedes Item zusammen.
-// Drop-Chancen und Inventargröße stehen in src/data/loot.ts.
+// Drop-Chancen, Seltenheits-Anteile je Gegnerrang und Inventargröße stehen in src/data/loot.ts.
 
 import type { StatId } from './stats';
 
@@ -15,18 +15,16 @@ export interface RarityDef {
   color: string;
   /** So viele Affixe hat ein Item dieser Seltenheit. */
   affixes: number;
-  /** Anteil an den Drops normaler Gegner in Prozent – alle zusammen ergeben 100. */
-  dropWeight: number;
 }
 
 /** Von häufig nach selten sortiert. */
 export const RARITIES: RarityDef[] = [
-  { id: 'common', name: 'Gewöhnlich', color: '#f2f2f2', affixes: 0, dropWeight: 60 },
-  { id: 'uncommon', name: 'Ungewöhnlich', color: '#4fd35a', affixes: 1, dropWeight: 28 },
-  { id: 'rare', name: 'Selten', color: '#4d9bff', affixes: 2, dropWeight: 9 },
-  { id: 'epic', name: 'Episch', color: '#b668ff', affixes: 3, dropWeight: 2.5 },
-  { id: 'legendary', name: 'Legendär', color: '#ff9a2e', affixes: 4, dropWeight: 0.45 },
-  { id: 'mythic', name: 'Mythisch', color: '#ff4038', affixes: 5, dropWeight: 0.05 },
+  { id: 'common', name: 'Gewöhnlich', color: '#f2f2f2', affixes: 0 },
+  { id: 'uncommon', name: 'Ungewöhnlich', color: '#4fd35a', affixes: 1 },
+  { id: 'rare', name: 'Selten', color: '#4d9bff', affixes: 2 },
+  { id: 'epic', name: 'Episch', color: '#b668ff', affixes: 3 },
+  { id: 'legendary', name: 'Legendär', color: '#ff9a2e', affixes: 4 },
+  { id: 'mythic', name: 'Mythisch', color: '#ff4038', affixes: 5 },
 ];
 
 // ---------------------------------------------------------------- Plätze

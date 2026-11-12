@@ -113,10 +113,7 @@ export class Combat {
   }
 
   private select(enemy: Enemy | null): void {
-    if (this.target === enemy) return;
-    this.target?.setSelected(false);
     this.target = enemy;
-    enemy?.setSelected(true);
   }
 
   /** Nach einem Klick auf einen Gegner: so lange nachlaufen, bis er in Reichweite ist. */

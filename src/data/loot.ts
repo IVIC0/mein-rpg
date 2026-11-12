@@ -1,10 +1,29 @@
 // Drops, Gold und Inventar. Seltenheiten und Affixe stehen in src/data/items.ts.
 
+import type { RarityId } from './items';
+
 /** So viele Plätze hat das Inventar. */
 export const INVENTORY_SIZE = 40;
 
-/** Chance, dass ein normaler Gegner ein Item fallen lässt (0.3 = 30 %). Itemlevel = Stufe des Gegners. */
-export const ITEM_DROP_CHANCE = 0.3;
+/** Rang eines Gegners. Elites kommen mit Meilenstein 6, Bosse später – ihre Werte stehen schon hier. */
+export type EnemyRank = 'normal' | 'elite' | 'boss';
+
+export interface DropTable {
+  /** Chance, dass der Gegner ein Item fallen lässt (0.1 = 10 %). Itemlevel = Stufe des Gegners. */
+  itemChance: number;
+  /** Anteil jeder Seltenheit an den Drops in Prozent – alle zusammen ergeben 100. */
+  rarity: Record<RarityId, number>;
+}
+
+/**
+ * Drop-Tabelle je Gegnerrang. Beispiel normaler Gegner: 10 % Chance auf ein Item,
+ * davon sind 13 % selten – also im Schnitt ein seltenes Item auf 77 Gegner.
+ */
+export const DROP_TABLES: Record<EnemyRank, DropTable> = {
+  normal: { itemChance: 0.1, rarity: { common: 50, uncommon: 32, rare: 13, epic: 4, legendary: 0.9, mythic: 0.1 } },
+  elite: { itemChance: 1, rarity: { common: 0, uncommon: 45, rare: 37, epic: 14, legendary: 3.6, mythic: 0.4 } },
+  boss: { itemChance: 1, rarity: { common: 0, uncommon: 0, rare: 55, epic: 34, legendary: 10, mythic: 1 } },
+};
 
 /**
  * Gold pro besiegtem Gegner: eine Zahl zwischen min und max, dazu perLevel × Stufe des Gegners.
