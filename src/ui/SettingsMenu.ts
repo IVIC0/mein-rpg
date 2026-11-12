@@ -126,7 +126,7 @@ export class SettingsMenu {
 
   /** Bereich "Schwierigkeit": vier Knöpfe, zwei Regler und die Anzeige der Belohnung. */
   private buildDifficulty(difficulty: Difficulty, onChange: () => void): void {
-    const section = this.section('Schwierigkeit');
+    const section = this.section('Schwierigkeit (dieser Spielstand)');
     const reward = document.createElement('div');
     const buttons: { button: HTMLButtonElement; values: Difficulty }[] = [];
     // Zeigt die Belohnung und markiert den Knopf, der zu den Reglern passt.

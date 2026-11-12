@@ -133,6 +133,8 @@ Oben rechts unter der Knopf-Leiste. Alle Zahlen und Farben sind **Startwerte** v
 ## 4. Kampfsystem
 
 - **Stil:** sehr simpel – Ziel anwählen + Auto-Angriff, die Skills lösen von selbst aus. *(Entschieden, umgesetzt)*
+  Ab Zone 2 bekommen Gegner eigene Fähigkeiten (Fernkampf, Heilen, Beschwören …); die Bedienung
+  bleibt dieselbe. *(Entschieden, Abschnitt 15.5)*
   - Der Auto-Angriff ist unverändert: Ziel anklicken, die Figur läuft hin und schlägt zu.
   - Skills werden nie gedrückt. Jeder Skill hat eine Auslöse-Bedingung (z. B. „jeder
     5. Schlag"); trifft sie zu, löst er aus – sofern er freigeschaltet und abgeklungen ist.
@@ -224,18 +226,18 @@ Krieger-Skills für V1 *(Umgesetzt; Zahlen sind Startwerte fürs Balancing)*:
 
 ## 6. Progression
 
-- **Maximallevel 40** mit vier Zonen, bewusst langsam – mehrere Wochen. Später mit weiteren
-  Zonen auf bis zu 60 erweiterbar. *(Entschieden, Abschnitt 15.1 – ersetzt „Maximallevel 60")*
+- **Maximallevel 40** mit den ersten vier Zonen, später mit weiteren Zonen erweiterbar bis 60.
+  Bewusst langsam – mehrere Wochen. *(Entschieden; Kurve in Abschnitt 15.1 – ersetzt „Maximallevel 60")*
   Im Spiel liegt das Cap noch bei 10 und steigt mit jeder neuen Zone (20 → 30 → 40).
 - **Talentbaum** als einziges Auswahlsystem beim Leveln. *(Entschieden)*
 - Grundwerte (Leben, Angriffskraft, Rüstung …) steigen pro Level automatisch – keine frei
   verteilbaren Attributpunkte. *(folgt aus deiner Auswahl)*
-- 1 Talentpunkt pro Level ab Level 2 (39 Punkte auf Stufe 40). *(Vorschlag)*
+- 1 Talentpunkt pro Level ab Level 2 (39 Punkte auf 40, 59 auf 60). *(Vorschlag)*
 - Pro Klasse 3 Bäume (Krieger z. B. Waffen / Wut / Schutz) mit passiven Boni und
   Skill-Verbesserungen. *(Vorschlag)*
 - Aktive Skills werden auf festen Stufen freigeschaltet, der Talentbaum verbessert sie. *(Entschieden)*
 - Talente gegen Gold zurücksetzbar. *(Vorschlag)*
-- Zieltempo: ca. 45 Spielstunden bis Stufe 40. *(Vorschlag, wird durch Balancing eingestellt)*
+- Zieltempo: ca. 45 Spielstunden bis Level 40. *(Vorschlag, wird durch Balancing eingestellt)*
 
 Attribute *(Umgesetzt mit dem Loot, Zahlen sind Startwerte)*: Stärke, Ausdauer, Geschick.
 Sie kommen von der Ausrüstung und werden umgerechnet: 1 Stärke = 1 Angriffskraft,
@@ -680,7 +682,7 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 | 7 ✅ | Speichern | Auto-Save, 3 Slots + Test-Slot mit Vorlagen, Namenseingabe, Export/Import, Versionsnummer, Einstellungen aus 6b mit in den Spielstand | Seite neu laden nichts verliert |
 | 8 ✅ | Händler | 1 Händler im Dorf (Ausrüstung kaufen, Items verkaufen, Heiltrank mit Taste `Q`), Items am Boden im Spielstand, Einstellungen global, Spielname „Rogoi Offline". `CREDITS.md` gibt es seit Meilenstein 2. Balancing bleibt laufende Arbeit (Offene Punkte) | Gold und volles Inventar einen Zweck haben |
 
-| 9 ✅ | Inhaltsplan | Nur Planung, kein Code: Levelcap und Kurve, Zonen, Endgame, Loot-Vielfalt, Daten-Aufbau, Schwierigkeit, Meilensteine 10–20, Assets (Abschnitt 15) | der Plan steht und deine Fragen in 15.9 beantwortet sind |
+| 9 ✅ | Inhaltsplan | Nur Planung, kein Code: Levelcap und Kurve, Zonen, Endgame, Loot-Vielfalt, Daten-Aufbau, Schwierigkeit, Meilensteine 10–20, Assets (Abschnitt 15) | der Plan steht und die Fragen in 15.9 beantwortet sind |
 
 **Bewusst nicht in V1:** Talentbaum, Aufwerten, Quests, weitere Zonen und Klassen,
 Endlos-Turm, Weltbosse, Sound. (Der Räuberhauptmann ist ein fester Zonen-Boss, kein Weltboss.)
@@ -711,9 +713,11 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
 
 1. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe – Vorschlag steht in Abschnitt 15.3, Umsetzung in Meilenstein 17.
 2. Lauf-Animation: kommt später als Feinschliff, vorerst reicht das Hüpfen. *(Entschieden)*
-3. Gegner in Grünwald: Erledigt *(Entschieden)* – Ratten, Spinnen und Wegelagerer bleiben. Mit
-   Meilenstein 11 kommt das Wildschwein dazu (ist in „Ninja Adventure"). Einen Wolf hat kein
-   Pack; als Ersatz dient die Hyäne oder der Hund aus „Ninja Adventure" (Abschnitt 15.2).
+3. Gegner in Grünwald: „Tiny Dungeon" enthält keine Wölfe, Wildschweine oder Goblins.
+   Erledigt *(Entschieden)*: Wolf und Wildschwein kommen nur, wenn ein Pack sie liefert; sonst
+   bleibt es bei Ratten, Spinnen, Wegelagerern plus Fledermäusen und Goblins (Abschnitt 15.2).
+   Stand Meilenstein 10: Das Wildschwein ist in „Ninja Adventure" und kommt mit Meilenstein 11
+   dazu. Einen Wolf hat kein Pack; als Ersatz dient die Hyäne oder der Hund aus „Ninja Adventure".
 4. Skill-Symbole sind vorerst Waffenbilder aus „Tiny Dungeon" (Hammer, Axt, Schwert,
    Schild). Eigene Symbole wären schöner.
 5. Mana: beim Krieger gestrichen *(Entschieden)*. Ob der Magier später Mana bekommt, ist offen.
@@ -752,7 +756,8 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
     - Dasselbe Spiel in zwei Browser-Tabs mit demselben Slot: Der Tab, der zuletzt speichert,
       gewinnt. Verschiedene Slots in zwei Tabs stören sich nicht.
     - Spielstände liegen nur in diesem Browser. Vor „Browserdaten löschen" exportieren.
-14. Inhaltsplan (Schritt 9): Erledigt – deine Antworten stehen in Abschnitt 15.9.
+14. Inhaltsplan (Schritt 9): Erledigt – deine Antworten stehen in Abschnitt 15.9. Alle Zahlen im
+    Plan bleiben Startwerte fürs Balancing.
 15. Meilenstein 10, von mir gesetzte Startwerte zum Prüfen im Spiel:
     - Minimap (`src/data/minimap.ts`): Größe 140 Pixel, Ausschnitt 35 Kacheln, Farben und Größen
       der Punkte. Sie zeigt alle Gegner im Ausschnitt, auch hinter Bäumen.
@@ -764,20 +769,21 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
 
 ---
 
-## 15. Inhaltsplan nach V1 *(Schritt 9 – Planung; Grundsatzfragen entschieden)*
+## 15. Inhaltsplan nach V1 *(Schritt 9 – nur Planung)*
 
-Ziel: Das Spiel soll über Wochen tragen, im MMO-Stil und ohne Seasons. Der Plan stammt von mir;
-die Grundsatzfragen hast du in 15.9 beantwortet *(Entschieden)* – deine Antworten sind in den
-Abschnitten 15.1–15.8 eingearbeitet. Zahlen bleiben Startwerte fürs Balancing.
+Ziel: Das Spiel soll über Wochen tragen, im MMO-Stil und ohne Seasons. Die Richtung ist seit
+deinen Antworten in 15.9 **entschieden** und in den Abschnitten 15.1–15.8 eingearbeitet; alle
+Zahlen, Namen und Details sind Startwerte von mir.
 
 ### 15.1 Levelcap und Levelkurve
 
-**Levelcap 40** (vier Zonen mit je 10 Stufen), später erweiterbar bis 60 *(Entschieden – ersetzt
-„Maximallevel 60" aus Abschnitt 6)*. Grund: 60 Stufen auf vier Zonen wären 15–17 Stufen pro Zone
-mit denselben fünf Gegnertypen, das zieht sich. Mit einer fünften und sechsten Zone (z. B.
-Drachenberge) lässt sich das Cap später auf 50 und 60 anheben, ohne etwas umzubauen – die Kurve
-ist nur eine Liste in `src/data/progression.ts`. Im Spiel steigt das Cap schrittweise mit den
-Zonen: 10 (jetzt) → 20 (Meilenstein 13) → 30 (Meilenstein 16) → 40 (Meilenstein 19).
+**Levelcap 40** mit vier Zonen zu je 10 Stufen, später erweiterbar bis 60 *(Entschieden – ersetzt
+„Maximallevel 60" aus Abschnitt 6)*. Grund: 60 Stufen auf
+vier Zonen wären 15–17 Stufen pro Zone mit denselben fünf Gegnertypen, das zieht sich. Mit einer
+fünften und sechsten Zone (z. B. Drachenberge) lässt sich das Cap später auf 50 und 60 anheben,
+ohne etwas umzubauen – die Kurve ist nur eine Liste in `src/data/progression.ts`. Im Spiel steigt
+das Cap schrittweise mit den Zonen: 10 (jetzt) → 20 (Meilenstein 13) → 30 (Meilenstein 16) →
+40 (Meilenstein 19).
 
 | Stufen | Zone | Dauer | Minuten je Stufe (Anfang → Ende) | EP je Aufstieg (Anfang → Ende) |
 |---|---|---|---|---|
@@ -823,7 +829,7 @@ Schmied und Turm-Eingang).
 
 | Neu | Inhalt |
 |---|---|
-| Gegner | Fledermaus (3–6, nur in der Höhle), Goblin (5–9), Goblin-Schleuderer (6–10, Fernkampf), **Wildschwein** (Bild aus „Ninja Adventure") und als Wolf-Ersatz **Hyäne oder Hund** (ebenfalls „Ninja Adventure" – einen Wolf hat kein Pack) *(Entschieden)*. Damit 8 Typen. Stufen der beiden Tiere *(Vorschlag)*: Hyäne/Hund 2–5, Wildschwein 4–7; ob Hyäne oder Hund besser passt, entscheide ich beim Einbau am Bild |
+| Gegner | Fledermaus (3–6, nur in der Höhle), Goblin (5–9), Goblin-Schleuderer (6–10; wirft erst ab Meilenstein 13, bis dahin Nahkampf). Wolf und Wildschwein nur, wenn ein Pack sie liefert *(Entschieden)* – Stand Meilenstein 10: **Wildschwein** ist in „Ninja Adventure", ein Wolf in keinem Pack, als Wolf-Ersatz dient **Hyäne oder Hund** (ebenfalls „Ninja Adventure"). Damit 8 Typen. Stufen der beiden Tiere *(Vorschlag)*: Hyäne/Hund 2–5, Wildschwein 4–7; ob Hyäne oder Hund besser passt, entscheide ich beim Einbau am Bild |
 | POIs | Spinnenhöhle (unter dem Pilzhain), Goblin-Lager (zwischen Großer Lichtung und Ostlichtung), 3 Truhen, fester Elite-Platz „Brutmutter" (Waldspinne, Stufe 6, Regenerierend + Vampirisch) |
 | Boss | Räuberhauptmann (10), wie gehabt |
 | Quests (6) | „Rattenplage" (10 Ratten) · „Spinnenseide" (8 Seide sammeln) · „Die Brutmutter" (Elite) · „Goblin-Diebesgut" (5 Kisten im Lager) · „In die Höhle" (Höhlenende erreichen) · „Der Räuberhauptmann" (Boss) |
@@ -864,7 +870,7 @@ Drachenberge (aus der alten Skizze in Abschnitt 9) wären Zone 5, falls das Cap 
 Quest-Ding fallen, oder Kisten im Lager), Boss, Elite jagen, Erkunden (einen POI erreichen).
 Belohnung: EP, Gold und bei Elite-/Boss-Quests ein Item mit fester Mindest-Seltenheit. Wenig Text
 (zwei Sätze je Quest), Questlog mit Taste `L`, Zähler unter der Minimap. Dazu je Außenposten ein
-**Kopfgeld-Brett**: eine wiederholbare Quest, die alle 30 Minuten wechselt *(Entschieden: ja)*.
+**Kopfgeld-Brett** *(Entschieden)*: eine wiederholbare Quest, die alle 30 Minuten wechselt.
 
 Gegner mit Fähigkeiten (Fernkampf, Heiler, Beschwörer …) sind gewollt *(Entschieden)* – der Kampf
 darf damit mehr sein als „Ziel anwählen und zuschauen". Die Zonen Orkhügel, Nebelmoor und
@@ -875,11 +881,13 @@ Aschenfeste sind mit Namen, Themen und Bossen so in Ordnung *(Entschieden)*.
 Vier Dinge greifen ineinander: Weltbosse und Sets geben die besten Items, der Turm misst, wie
 stark man ist, und das Aufwerten frisst Gold und Material aus beidem.
 
-- **Alte Zonen bleiben leicht** *(Entschieden)*: Es gibt kein Hochschalten der Zonen auf
-  Stufe 40. Grünwald, Orkhügel und Nebelmoor bleiben auf ihrem Stufenbereich. Folge fürs Endgame:
-  Auf Maximalstufe lohnen sich für Beute die Aschenfeste, ihr Weltboss und der Turm; die
-  Weltbosse der alten Zonen sind dann leicht und vor allem für ihre Set-Teile und den Kodex da.
-  Wer es dort schwerer will, hat den Schwierigkeitsregler (15.6).
+- **Alte Zonen bleiben leicht** *(Entschieden)*: Gegner behalten ihre Stufe, es gibt kein
+  Hochschalten auf Stufe 40. Folge: Am Cap spielt das Endgame in der Aschenfeste (Elite-Plätze,
+  Bosse, Weltboss) und im Turm. Die Weltbosse und Sets der ersten drei Zonen sind Ziele für
+  unterwegs – ihre Items haben das Itemlevel der Zone und werden am Cap abgelöst; am Cap sind
+  sie leicht und vor allem noch für den Kodex da. Sollte das Endgame dadurch zu dünn werden, ist
+  der Turm die Stelle zum Nachlegen (mehr Raum-Vorlagen, eigene Turm-Bosse). Wer es in den alten
+  Zonen schwerer will, hat den Schwierigkeitsregler (15.6).
 - **Weltbosse:** einer je Zone, Respawn alle 45 Minuten in echter Zeit (wie der Boss, auch bei
   geschlossenem Spiel). Stufe = Obergrenze der Zone (10 / 20 / 30 / 40), Leben ×20, zwei bis drei
   eigene Fähigkeiten. Beute: 3 Items aus der Boss-Tabelle, dazu eine Chance auf ein Set-Teil der
@@ -901,8 +909,8 @@ stark man ist, und das Aufwerten frisst Gold und Material aus beidem.
 
   Kosten: Gold (steigt mit Itemlevel, Seltenheit und Stufe) und **Schmiedesteine**. Die fallen
   bei Elites, Bossen, Weltbossen und aus Truhen; außerdem **zerlegt** der Schmied Items zu
-  Steinen (je seltener, desto mehr). So hat auch Ausschuss einen Zweck. Zerlegen zählt nicht
-  als Crafting *(Entschieden)*.
+  Steinen (je seltener, desto mehr) *(Entschieden)*. So hat auch Ausschuss einen Zweck. Zerlegen
+  zählt nicht als Crafting.
 - **Kodex:** ein Fenster, das festhält, was man schon geschafft hat – gefundene Legendär-Effekte
   und Set-Teile, besiegte Bosse und Weltbosse, Turm-Rekord. Reines Sammelziel, kein Bonus.
 
@@ -996,7 +1004,7 @@ lädt genau diese eine. Der Umbau passiert **einmal** (Meilenstein 11), danach g
 Von dir entschieden *(Entschieden)*: vier Knöpfe plus freie Regler, mehr EP und Gold ab über
 100 %, **pro Spielstand**. Die Zahlen sind Startwerte von mir, alle in `src/data/difficulty.ts`.
 
-- In den Einstellungen gibt es den Bereich „Schwierigkeit" mit zwei Reglern: **Gegnerleben** und
+- In den Einstellungen gibt es den Bereich „Schwierigkeit (dieser Spielstand)" mit zwei Reglern: **Gegnerleben** und
   **Gegnerschaden**, je 50–300 % in 10-%-Schritten, Standard 100 %. Dazu vier Knöpfe als
   Abkürzung; der passende ist gelb umrandet.
 
@@ -1028,19 +1036,19 @@ das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter 
 
 | # | Meilenstein | Inhalt | Aufwand |
 |---|---|---|---|
-| 10 ✅ | Minimap, Rückkauf, Schwierigkeit | **Minimap** unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe (rot, Elite gold, Boss lila), Händler; HUD-Element mit Schalter, Größe, Deckkraft, verschiebbar. **Rückkauf:** eigener Reiter beim Händler mit den letzten 10 verkauften Items zum Verkaufspreis, im Spielstand. **Schwierigkeitsregler** (15.6) | 1 Sitzung, klein |
-| 11 | Zonen-Fundament | Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 4. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus, Goblins, Wildschwein und Hyäne/Hund (Wolf-Ersatz) ergänzt. Erste Figuren aus den neuen Packs, `CREDITS.md` ergänzen | 2–3 Sitzungen, groß |
+| 10 ✅ | Minimap, Rückkauf, Schwierigkeit | **Minimap** unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe (rot, Elite gold, Boss lila), Händler; HUD-Element mit Schalter, Größe, Deckkraft, verschiebbar. **Rückkauf:** eigener Reiter beim Händler mit den letzten 10 verkauften Items zum Verkaufspreis; die Liste steht im Spielstand, das älteste fällt raus. **Schwierigkeit** (15.6): zwei Regler plus vier Knöpfe, pro Spielstand, Bonus auf EP und Gold über 100 %. Spielstand Format 3 | 1–2 Sitzungen, klein bis mittel |
+| 11 | Zonen-Fundament | Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 4. Die hochgeladenen Packs einbinden (Figuren von 0x72 und Ninja Adventure neben Kenney, kein Umstellen der vorhandenen Figuren), `CREDITS.md` ergänzen. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus und Goblins ergänzt; Wolf und Wildschwein nur, wenn ein Pack sie hat – also Wildschwein und als Wolf-Ersatz Hyäne/Hund (15.8) | 2–3 Sitzungen, groß |
 | 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD (unter der Minimap), Kopfgeld-Brett, die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
 | 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, große Karte (`M`), Cap 20, neue Assets | 2–3 Sitzungen, groß |
 | 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
 | 15 | Loot-Vielfalt | Neue Affixe, Waffen-Unterschiede, zwei neue Waffen, 12 Legendär-Effekte | 1–2 Sitzungen, mittel |
 | 16 | Zone 3: Nebelmoor | Zone, Fähigkeiten Beschwören / Gift / Teilen, Cap 30 | 1–2 Sitzungen, mittel |
-| 17 | Schmied | Aufwerten bis +10, Zerlegen zu Schmiedesteinen | 1 Sitzung, mittel |
-| 18 | Sets und Weltbosse | 4 Zonen-Sets, je Zone ein Weltboss mit Timer und Anzeige auf der Karte | 1–2 Sitzungen, mittel |
-| 19 | Zone 4: Aschenfeste | Zone, Fähigkeit Boden-Effekt, Boss mit Phasen, Cap 40 | 1–2 Sitzungen, mittel |
-| 20 | Endgame | Endlos-Turm, Turm-Set, Kodex. Kein Hochschalten alter Zonen (15.3) | 2–3 Sitzungen, groß |
+| 17 | Schmied | Aufwerten bis +10, Items zu Schmiedesteinen zerlegen | 1 Sitzung, mittel |
+| 18 | Sets und Weltbosse | Die Sets der bis dahin fertigen Zonen (Grünwald, Orkhügel, Nebelmoor) als epische Items mit Zusatz „Set", je Zone ein Weltboss auf Zonen-Stufe mit Timer und Anzeige auf der Karte | 1–2 Sitzungen, mittel |
+| 19 | Zone 4: Aschenfeste | Zone, Fähigkeit Boden-Effekt, Boss mit Phasen, Weltboss und Set der Zone, Cap 40 | 1–2 Sitzungen, mittel |
+| 20 | Endgame | Endlos-Turm (Tod beendet den Lauf, Wiedereinstieg alle 5 Ebenen), Turm-Set, Kodex. Kein Hochschalten alter Zonen (15.3) | 2 Sitzungen, groß |
 
-Zusammen rund 15–23 Sitzungen. Nach Meilenstein 13 gibt es etwa 11 Stunden Inhalt, nach 16 etwa
+Zusammen rund 15–23 Sitzungen. Der Talentbaum bleibt Meilenstein 14 *(Entschieden)*. Nach Meilenstein 13 gibt es etwa 11 Stunden Inhalt, nach 16 etwa
 25, nach 19 etwa 45 plus Endgame. Nicht im Plan und später: zweite Klasse, Sound, Nebel des
 Krieges, Lauf-Animation der eigenen Figur, einheitlicher Figuren-Stil (der Stilmix ist vorerst
 in Ordnung, 15.9 Frage 2), Cap über 40 mit Zone 5 und 6.
@@ -1084,30 +1092,33 @@ für die Turm-Räume. „Tiny Town" hat Burgmauern (schon in der Ruine verwendet
 
 Was kein Pack löst:
 - **Einheitlicher Stil.** Die Figuren von 0x72 und Ninja Adventure sehen anders aus als Kenneys
-  (andere Farben, teils höher als 16 Pixel). Nebeneinander fällt das auf. Sauberste Lösung: alle
-  Figuren (auch die eigene) aus einem Pack nehmen. Der Stilmix ist vorerst in Ordnung
-  *(Entschieden)*; umgestellt wird höchstens später.
+  (andere Farben, teils höher als 16 Pixel). Nebeneinander fällt das auf. Der Mix ist
+  vorerst in Ordnung *(Entschieden)*; alle Figuren (auch die eigene) auf ein Pack umzustellen
+  wäre die sauberste Lösung und bleibt eine spätere Möglichkeit.
 - **Deine genauen Wunsch-Gegner.** Was es im Pack nicht gibt, wird umbenannt (wie Wölfe →
   Waldspinnen in V1) oder umgefärbt.
-- **Der Download.** Ich komme von hier weder an kenney.nl noch an itch.io. Erledigt: Du lädst
-  die Packs selbst als ZIP nach `assets-src/` *(Entschieden)*; den Rest (Zuschneiden,
-  Zusammensetzen, `CREDITS.md`) mache ich.
+- **Der Download.** Ich komme von hier weder an kenney.nl noch an itch.io. Du lädst die Packs
+  selbst nach `assets-src/` ins Repo hoch *(Entschieden)*, am besten vor Meilenstein 11 – erledigt,
+  die vier ZIPs liegen dort (Tabelle oben); den Rest (Zuschneiden, Zusammensetzen, `CREDITS.md`)
+  mache ich.
 
-### 15.9 Fragen an dich – beantwortet *(Entschieden, Meilenstein 10)*
+### 15.9 Fragen und deine Antworten *(alle entschieden)*
 
-| # | Frage | Deine Antwort | Eingearbeitet in |
+| # | Frage | Deine Antwort | Wo es im Plan steht |
 |---|---|---|---|
-| 1 | Levelcap 40 oder 60? | **Cap 40**, später erweiterbar bis 60 | Abschnitt 6, 15.1 |
-| 2 | Dürfen Figuren aus 0x72 / Ninja Adventure neben Kenney stehen? | **Stilmix ist erstmal ok** | 15.7, 15.8 |
-| 3 | Packs laden? | **Du lädst sie selbst** als ZIP nach `assets-src/` (Ninja Adventure ohne Audio; einen Wolf enthält es nicht). Die vier ZIPs liegen dort | 15.8 |
-| 4 | Passen Orkhügel, Nebelmoor, Aschenfeste? | **Zonen ok** | 15.2 |
-| 5 | Gegner mit Fähigkeiten gewollt? | **Ja** | 15.2, Meilenstein 13 |
-| 6 | Schwierigkeit: Regler oder Stufen, Belohnung, global oder pro Spielstand? | **Vier Knöpfe plus freie Regler; mehr EP und Gold ab über 100 %; pro Spielstand** (im Spielstand-Format, alte Stände laden weiter) | 15.6, Abschnitt 11 – umgesetzt |
-| 7 | Zählt Zerlegen als Crafting? | **Zerlegen ist ok** | Abschnitt 7, 15.3, Meilenstein 17 |
-| 8 | Sets als epische Items mit Zusatz? | **Ja** | 15.4 |
-| 9 | Zonen auf Maximalstufe im Endgame? | **Nein – alte Zonen bleiben leicht** | 15.3, Meilenstein 20 |
-| 10 | Turm: Tod beendet den Lauf, Wiedereinstieg alle 5 Ebenen? | **Ok** | 15.3 |
-| 11 | Talentbaum früher? | **Wie geplant Meilenstein 14** | 15.7 |
-| 12 | Rückkauf: Liste im Spielstand, 10 Items, das älteste fällt raus? | **Ok** | Abschnitt 7b – umgesetzt |
-| 13 | Kopfgeld-Brett? | **Ja** | 15.2, Meilenstein 12 |
-| 14 | Wolf und Wildschwein in Grünwald? | **Nur, wenn ein Pack sie liefert:** Wildschwein ist in Ninja Adventure, Wolf nicht – Ersatz Hyäne oder Hund | 15.2, Meilenstein 11, Offener Punkt 3 |
+| 1 | Levelcap 40 oder 60? | Cap 40, später erweiterbar bis 60 | 15.1, Abschnitt 6 |
+| 2 | Figuren aus mehreren Packs mischen? | Stilmix ist erstmal in Ordnung | 15.8, Meilenstein 11 |
+| 3 | Wer lädt die Packs? | Du lädst sie selbst hoch (als ZIP nach `assets-src/`, Ninja Adventure ohne Audio). Die vier ZIPs liegen seit Meilenstein 10 dort | 15.8, Meilenstein 11 |
+| 4 | Orkhügel, Nebelmoor, Aschenfeste? | Ja | 15.2 |
+| 5 | Gegner mit Fähigkeiten? | Ja | 15.5, Meilensteine 13 / 16 / 19 |
+| 6 | Schwierigkeit: Bedienung, Belohnung, Geltung? | Vier Knöpfe plus freie Regler, mehr EP und Gold über 100 %, pro Spielstand | 15.6, Abschnitt 11, Meilenstein 10 – umgesetzt |
+| 7 | Zerlegen beim Schmied trotz „kein Crafting"? | Ja, Zerlegen ist in Ordnung | 15.3, Meilenstein 17 |
+| 8 | Sets als epische Items mit Zusatz? | Ja | 15.4, Meilensteine 18 / 19 |
+| 9 | Zonen im Endgame auf Maximalstufe? | Nein, alte Zonen bleiben leicht | 15.3 (gestrichen aus Meilenstein 20) |
+| 10 | Turm: Tod beendet den Lauf, Wiedereinstieg alle 5 Ebenen? | Ja | 15.3, Meilenstein 20 |
+| 11 | Talentbaum als Meilenstein 14? | Ja, wie geplant | 15.7 |
+| 12 | Rückkauf: 10 Items, im Spielstand, ältestes fällt raus? | Ja | Abschnitt 7b, Meilenstein 10 – umgesetzt |
+| 13 | Kopfgeld-Brett? | Ja | 15.2, Meilenstein 12 |
+| 14 | Wolf und Wildschwein? | Nur wenn ein Pack sie liefert. Wildschwein ist in Ninja Adventure, Wolf nicht – Ersatz Hyäne oder Hund | 15.2, 15.8, Meilenstein 11, Offener Punkt 3 |
+
+Derzeit ist keine Frage offen. Meilenstein 10 ist umgesetzt; nächster Schritt: Meilenstein 11.
