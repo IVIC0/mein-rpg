@@ -387,8 +387,8 @@ voller Ausrüstung auf Stufe 10 ein knapper Kampf von rund 30–40 Sekunden.
 **Erkennbar** *(Umgesetzt)*: Elite und Boss sind größer und stehen in einem pulsierenden Schein.
 Das Namensschild ist größer und farbig (Elite gold mit ★ und den Eigenschaften unter dem Namen,
 Boss lila mit ☠), der Lebensbalken breiter. Der Zielrahmen bekommt einen farbigen Rand und eine
-Zeile „Elite · Schnell · Gepanzert" bzw. „Boss". Namensschilder sieht man auch bei der
-Einstellung „nur Ziel, Angreifer und Verletzte" erst dann – der Schein und die Größe bleiben.
+Zeile „Elite · Schnell · Gepanzert" bzw. „Boss". Sind die Namensschilder in den Einstellungen
+auf „nur Ziel, Angreifer und Verletzte" gestellt, erkennt man Elites von Weitem an Größe und Schein.
 
 ## 9. Welt & Setting
 
