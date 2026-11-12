@@ -53,6 +53,12 @@ export class Inventory {
     this.onChange();
   }
 
+  /** Bezahlt `amount` Gold (z. B. beim Händler). Vorher prüfen, ob genug da ist. */
+  spendGold(amount: number): void {
+    this.gold = Math.max(0, this.gold - amount);
+    this.onChange();
+  }
+
   /** Zieht `fraction` des Goldes ab (0.05 = 5 %) und gibt den Verlust zurück. */
   loseGold(fraction: number): number {
     const loss = Math.round(this.gold * fraction);

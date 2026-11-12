@@ -1,6 +1,6 @@
-# GAME.md – Design-Dokument
+# GAME.md – Design-Dokument für „Rogoi Offline"
 
-Solo-Browser-RPG im MMO-Stil. Kein Multiplayer. Ziel: wochenlange Motivation durch
+**Rogoi Offline** ist ein Solo-Browser-RPG im MMO-Stil. Kein Multiplayer. Ziel: wochenlange Motivation durch
 Leveln, zufälliges Loot und Elite-Jagd.
 
 Legende: **Entschieden** = von dir im Interview festgelegt. **Vorschlag** = von mir
@@ -17,6 +17,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 | Hosting | GitHub Pages (statisch, kein Server) | Entschieden |
 | Multiplayer | Nein | Entschieden |
 | Sprache im Spiel | Deutsch (UI, Itemnamen, Quests) | Entschieden |
+| Name | „Rogoi Offline" (steht als `GAME_TITLE` in `src/config.ts`). Repo, `package.json`, Pages-Adresse und die Schlüssel im Browser-Speicher heißen aus technischen Gründen weiter `mein-rpg` – nicht umbenennen, sonst gehen Spielstände verloren | Entschieden |
 | Deploy | GitHub Action baut und veröffentlicht bei Push auf `main` | Vorschlag |
 | UI-Fenster (Inventar, Tooltips, Talente) | Als HTML/CSS über dem Spiel-Canvas statt in Phaser gezeichnet – Text bleibt scharf, Tooltips sind viel einfacher | Vorschlag |
 | Karten | Tilemaps im Tiled-Format (JSON), Zonen werden von Claude gebaut | Entschieden |
@@ -54,7 +55,8 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   Einstellungen können, steht in Abschnitt 2b.
   `T` Talente kommt mit dem Talentbaum. *(Vorschlag)*
 - **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
-- **Tränke:** `Q` Heiltrank. *(Vorschlag, kommt mit dem Händler)* Einen Manatrank gibt es nicht.
+- **Tränke:** `Q` trinkt einen Heiltrank. *(Umgesetzt, Abschnitt 7b)* Einen Manatrank gibt es nicht.
+- **Händler:** Klick auf den Händler im Dorf = hinlaufen und handeln. *(Umgesetzt, Abschnitt 7b)*
 
 ## 2b. HUD und Einstellungen *(Schritt 6b, umgesetzt)*
 
@@ -78,8 +80,8 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 - **Alles auf Standard** setzt alle Einstellungen, die Plätze der HUD-Elemente und das
   Inventarfenster zurück.
 - **Technik:** Alle Einstellungen liegen in einem einzigen Objekt (`Settings` in
-  `src/ui/settings.ts`, nur einfache Werte). Seit Meilenstein 7 liegt es im Spielstand – jeder
-  Slot hat seine eigenen Einstellungen (Abschnitt 11). Der Platz eines Elements ist als
+  `src/ui/settings.ts`, nur einfache Werte). Die Einstellungen sind **global**: Sie gelten für
+  alle Slots und liegen im Browser, nicht im Spielstand *(Entschieden)*. Der Platz eines Elements ist als
   Verschiebung gegenüber dem Standard-Platz gespeichert, damit z. B. die Skill-Leiste auch bei
   anderer Fenstergröße unten in der Mitte verankert bleibt.
 
@@ -255,7 +257,7 @@ Alle Werte stehen in `src/data/progression.ts` (Kurve, EP) und `src/data/warrior
   Werten. *(Entschieden)*
 - **6 Seltenheiten:** Gewöhnlich, Ungewöhnlich, Selten, Episch, Legendär, Mythisch. *(Entschieden)*
 - **Händler + Gold:** Items verkaufen, Tränke und Basis-Ausrüstung kaufen. Ein einfacher
-  Händler ist schon in V1 dabei. *(Entschieden)*
+  Händler ist schon in V1 dabei. *(Entschieden, umgesetzt – Abschnitt 7b)*
 - **Aufwerten:** Items mit Material/Gold bis maximal **+10** verstärken. *(Entschieden)*
   - +1 bis +5: gelingt immer.
   - Ab +6: Fehlschlag-Risiko. Bei Fehlschlag fällt das Item **eine Stufe zurück**,
@@ -362,10 +364,59 @@ Weitere Regeln *(Vorschlag)*:
   angelegte Waffe ist auch beim Zuschlagen zu sehen.
 - **Symbole:** Waffen und Schilde stammen aus „Tiny Dungeon". Helm, Rüstung, Handschuhe,
   Stiefel, Amulett und Ring fehlen dort und sind selbst gezeichnet (`tools/lib/item-icons.mjs`).
-- Noch nicht dabei: Verkaufen und Tränke (Händler, Meilenstein 8).
 
 Alle Werte stehen in `src/data/items.ts` (Seltenheiten, Basis-Items, Affixe),
 `src/data/loot.ts` (Drop-Tabellen je Gegnerrang, Gold, Inventargröße) und `src/data/stats.ts` (Attribute).
+
+## 7b. Händler *(Meilenstein 8, umgesetzt)*
+
+Von dir vorgegeben *(Entschieden)*: Items verkaufen, Ausrüstung kaufen, Sicherheits-Klick beim
+Verkaufen ab Episch, Sortiment und Gold im Spielstand. Der Heiltrank stand schon im Konzept
+(Abschnitt 2 und 7). Alle Zahlen und Details unten sind **Startwerte** von mir, alle in
+`src/data/shop.ts`.
+
+- **Wo:** Der Händler steht auf dem Dorfplatz rechts oberhalb des Brunnens (Platz in
+  `tools/build-map.mjs`, Marker `haendler`). Über ihm steht sein Name in Gold, der Mauszeiger
+  wird über ihm zur Hand. Seine Kachel ist ein Hindernis.
+- **Handeln:** Klick auf ihn – die Figur läuft hin, das Händler-Fenster geht links auf, das
+  Inventar rechts dazu. Entfernt sich die Figur (mehr als 56 Pixel) oder stirbt sie, schließt
+  es sich; `Esc` und × ebenfalls. Der Kampf läuft weiter.
+- **Kaufen:** Linksklick auf ein Item im Regal. Unter jedem Item steht der Preis (rot = zu teuer).
+  Der Tooltip zeigt wie im Inventar die Werte und den Vergleich mit dem angelegten Item.
+- **Verkaufen:** Rechtsklick auf ein Item im Inventar, solange der Händler offen ist. Der
+  Tooltip zeigt den Erlös. Angelegte Items muss man erst ablegen.
+- **Sicherheits-Klick:** Bei Episch, Legendär und Mythisch pulsiert das Feld nach dem ersten
+  Rechtsklick rot und der Tooltip fragt nach; erst ein zweiter Rechtsklick innerhalb von
+  3 Sekunden verkauft. Maus weg oder Zeit um = abgebrochen.
+- Verkauft ist verkauft – einen Rückkauf gibt es nicht (siehe Offene Punkte).
+
+**Preise** – abgeleitet aus Itemlevel und Seltenheit:
+Wert = (10 + 6 × Itemlevel) × Faktor der Seltenheit. Kaufen kostet den Wert, Verkaufen bringt 20 %.
+
+| Seltenheit | Faktor | Kauf Itemlevel 1 | Kauf Itemlevel 5 | Kauf Itemlevel 10 | Verkauf Itemlevel 10 |
+|---|---|---|---|---|---|
+| Gewöhnlich | 1 | 16 | 40 | 70 | 14 |
+| Ungewöhnlich | 2,5 | 40 | 100 | 175 | 35 |
+| Selten | 6 | 96 | 240 | 420 | 84 |
+| Episch | 15 | – | – | – | 210 |
+| Legendär | 40 | – | – | – | 560 |
+| Mythisch | 100 | – | – | – | 1 400 |
+
+Zum Einordnen: Ein normaler Gegner gibt auf Stufe 5 rund 7, auf Stufe 10 rund 12 Gold. Ein
+blaues Item kostet also etwa 30–35 Gegner; als Beute fällt eins im Schnitt alle 77 Gegner.
+
+**Sortiment:** 8 gewürfelte Items auf der Stufe der Figur (Itemlevel = ihre Stufe zum Zeitpunkt
+der Lieferung), jede Art gleich oft. Seltenheit: 60 % Gewöhnlich, 32 % Ungewöhnlich, 8 % Selten –
+der Händler führt bewusst nur einfache Ware, die besten Stücke gibt es weiter nur als Beute.
+Gekauftes ist weg, bis neue Ware kommt: alle **10 Minuten** wird das ganze Regal neu gewürfelt.
+Die Uhr läuft in echter Zeit weiter, auch wenn das Spiel zu ist (wie beim Boss). Sortiment und
+Lieferzeitpunkt stehen im Spielstand, also pro Slot.
+
+**Heiltrank:** heilt 40 % des maximalen Lebens, 30 Sekunden Abklingzeit, höchstens 5 im Gepäck
+(sie belegen keinen Inventar-Platz). Preis = 10 + 4 × Stufe der Figur (Stufe 1: 14, Stufe 5: 30,
+Stufe 10: 50 Gold). Der Händler hat immer welche. Der Trank steht als Feld mit Anzahl und
+Abklingzeit am Ende der Skill-Leiste; er ist das Einzige dort, das man selbst auslöst (`Q`).
+Die Abklingzeit wird nicht gespeichert.
 
 ## 8. Elite- und Boss-Gegner
 
@@ -496,25 +547,29 @@ Export/Import als Datei; Versionsnummer; Namenseingabe pro Slot. Alles, was unte
 **Startwert** markiert ist, habe ich mir dazu ausgedacht.
 
 **Was im Spielstand steht** (`SaveGame` in `src/save/saveGame.ts`):
-- Name der Figur, Stufe, EP, aktuelles Leben, Position, Gold, Inventar, Ausrüstung.
-- Die HUD-Einstellungen aus Abschnitt 2b – also **pro Slot** und im Export mit dabei. Ein neuer
-  Slot übernimmt eine Kopie der gerade aktiven Einstellungen; der allererste übernimmt die, die
-  sich der Browser seit Schritt 6b gemerkt hatte. *(Startwert)*
+- Name der Figur, Stufe, EP, aktuelles Leben, Position, Gold, Inventar, Ausrüstung, Heiltränke.
+- Items, die am Boden liegen, mit Platz und Liegezeit *(Entschieden, seit Meilenstein 8)*. Die
+  3 Minuten bis zum Verschwinden zählen nur Spielzeit – bei geschlossenem Spiel läuft nichts ab.
+- Sortiment des Händlers und wann neue Ware kommt (Abschnitt 7b).
 - Respawn-Zeitpunkt besiegter Bosse, Spielzeit, Zeitpunkt des letzten Speicherns, Format-Nummer.
 - Nicht darin: die Werte der Figur (Leben, Angriffskraft, Rüstung …) – sie ergeben sich aus Stufe
   und Ausrüstung und werden beim Laden neu berechnet, damit Balancing-Änderungen sofort gelten.
-  Ebenfalls nicht: Position und Pin des Inventarfensters (bleibt pro Browser, wie bisher).
+- Ebenfalls nicht: die **HUD-Einstellungen** aus Abschnitt 2b. Sie sind global *(Entschieden)*:
+  eine Fassung für alle Slots, im Browser gemerkt, nicht im Export. Auch ein Testlauf benutzt
+  und ändert sie. Position und Pin des Inventarfensters bleiben wie bisher pro Browser.
+  (In Meilenstein 7 lagen die Einstellungen kurz pro Slot im Spielstand. Beim ersten Start mit
+  Meilenstein 8 werden die des zuletzt gespielten Slots einmalig als globale übernommen.)
 
-**Was beim Neuladen verloren geht** *(Startwert)*: Abklingzeiten und Buffs, der Wuchtschlag-Zähler,
-Items, die noch am Boden liegen, und der Zustand normaler Gegner – sie stehen alle wieder frisch
+**Was beim Neuladen verloren geht** *(Startwert)*: Abklingzeiten (auch die des Heiltranks) und
+Buffs, der Wuchtschlag-Zähler und der Zustand normaler Gegner – sie stehen alle wieder frisch
 an ihrem Platz (Elites werden neu gewürfelt). Lag die Figur beim Speichern am Boden, wacht sie mit
 vollem Leben im Dorf auf (der Verlust durch den Tod ist dann schon abgezogen).
 
 **Wann gespeichert wird** (Werte in `src/data/save.ts`, *Startwerte*):
 - alle 30 Sekunden,
-- 1 Sekunde nach einem wichtigen Ereignis: Item aufgehoben, Gold erhalten (also nach jedem
-  besiegten Gegner), an-/abgelegt, weggeworfen, Stufenaufstieg, Tod, Aufwachen, Boss besiegt,
-  Einstellung geändert,
+- 1 Sekunde nach einem wichtigen Ereignis: Item fällt zu Boden, aufgehoben, Gold erhalten (also
+  nach jedem besiegten Gegner), an-/abgelegt, weggeworfen, gekauft, verkauft, Trank getrunken,
+  neue Ware beim Händler, Stufenaufstieg, Tod, Aufwachen, Boss besiegt,
 - sofort beim Verlassen, Neuladen oder Wegschalten der Seite und mit „Jetzt speichern".
 
 **Slots:** 3 normale Slots plus 1 Slot „Test" *(Anzahl 3 ist ein Startwert, `SLOT_COUNT`)*.
@@ -533,31 +588,33 @@ vollem Leben im Dorf auf (der Verlust durch den Tod ist dann schon abgezogen).
 **Test-Spielstände:** Im Menü Vorlage wählen und „Test-Spielstand anlegen". Er landet immer im
 Slot „Test" (ersetzt dort ohne Nachfrage den vorigen Test-Spielstand), wird gleich geladen und
 speichert wie jeder andere Slot – die normalen Slots bleiben unberührt. Vorlagen stehen in
-`src/data/testSaves.ts` (Stufe, Gold, Ausrüstung je Platz mit Seltenheit, Inventar als Liste von
+`src/data/testSaves.ts` (Stufe, Gold, Tränke, Ausrüstung je Platz mit Seltenheit, Inventar als Liste von
 Seltenheiten; die Items werden beim Anlegen gewürfelt). *Startwerte:*
 
-| Vorlage | Stufe | Gold | Ausrüstung | Inventar |
-|---|---|---|---|---|
-| Stufe 1 – neu | 1 | 0 | – | leer |
-| Stufe 5 – etwas Loot | 5 | 150 | Waffe und Stiefel grün, Brust und Helm weiß | 6 Items (3 weiß, 2 grün, 1 blau) |
-| Stufe 10 – voll ausgerüstet | 10 | 1500 | alle 9 Plätze: Waffe und Brust lila, Ring 2 grün, Rest blau | 8 Items, jede Seltenheit dabei |
+| Vorlage | Stufe | Gold | Tränke | Ausrüstung | Inventar |
+|---|---|---|---|---|---|
+| Stufe 1 – neu | 1 | 0 | 0 | – | leer |
+| Stufe 5 – etwas Loot | 5 | 150 | 2 | Waffe und Stiefel grün, Brust und Helm weiß | 6 Items (3 weiß, 2 grün, 1 blau) |
+| Stufe 10 – voll ausgerüstet | 10 | 1500 | 5 | alle 9 Plätze: Waffe und Brust lila, Ring 2 grün, Rest blau | 8 Items, jede Seltenheit dabei |
 
 **Test-Parameter in der Adresse** (`?stufe`, `?beute`, `?elite`) *(Startwert)*: Ist einer davon
 gesetzt, läuft ein **Testlauf** – eine frische „Testfigur", die in keinem Slot liegt. Es wird
 nichts geladen und nichts gespeichert, auch der „zuletzt gespielte Slot" bleibt, wie er ist.
-Der Testlauf benutzt die HUD-Einstellungen des zuletzt gespielten Slots als Kopie; Änderungen
-daran gehen beim Neuladen verloren. Im Menü steht ein Hinweis mit „Testlauf beenden" (lädt ohne
+Der Händler hat im Testlauf jedes Mal frische Ware. Im Menü steht ein Hinweis mit „Testlauf beenden" (lädt ohne
 die Parameter neu). Auch `?elite=1` allein ist ein Testlauf – sonst könnte man in einem echten
 Slot Elite-Beute farmen.
 
-**Export/Import:** „Export" lädt den Slot als Datei herunter (`mein-rpg-Name-Datum.json`,
+**Export/Import:** „Export" lädt den Slot als Datei herunter (`rogoi-offline-Name-Datum.json`,
 derselbe Text wie im Browser). „Importieren …" legt eine Datei in den **ersten freien** normalen
 Slot und lädt sie nicht von selbst. Sind alle Slots belegt, gibt es eine Meldung – ein Import
 überschreibt nie etwas. *(Startwert)*
 
-**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **1**. Ändert sich der Aufbau,
+**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **2**. Ändert sich der Aufbau,
 wird sie erhöht und in `MIGRATIONS` (`src/save/saveGame.ts`) eingetragen, wie ein alter Stand ins
 neue Format kommt.
+- Format 1 (Meilenstein 7) → 2 (Meilenstein 8): Die Einstellungen fallen aus dem Spielstand;
+  neu sind Tränke (Start: 0), Items am Boden (Start: keine) und das Händler-Sortiment (Start:
+  frische Ware beim ersten Besuch). Alte Spielstände und alte Export-Dateien laden weiter.
 - Alter Stand: wird beim Laden Schritt für Schritt umgebaut.
 - Stand aus einer **neueren** Spielversion, zu alter Stand ohne Umbau oder kaputte Daten: Der Slot
   wird als „Nicht ladbar: …" mit Grund angezeigt und **nicht angerührt** (man kann ihn noch
@@ -588,7 +645,7 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 | 6 ✅ | Elites | Zufällige Elite-Spawns mit 1–3 Eigenschaften und besserem Loot, dazu ein Boss in der Ruine | Elites erkennbar gefährlicher und lohnender sind |
 | 6b ✅ | HUD und Einstellungen | Schild über der eigenen Figur, HUD-Elemente ein-/ausblenden, skalieren, Deckkraft, im Bearbeitungsmodus verschieben, alles zurücksetzen | sich das HUD nach eigenem Geschmack einrichten lässt |
 | 7 ✅ | Speichern | Auto-Save, 3 Slots + Test-Slot mit Vorlagen, Namenseingabe, Export/Import, Versionsnummer, Einstellungen aus 6b mit in den Spielstand | Seite neu laden nichts verliert |
-| 8 | Händler + Feinschliff | 1 Händler (verkaufen, Tränke kaufen), Balancing, `CREDITS.md` | Gold und volles Inventar einen Zweck haben |
+| 8 ✅ | Händler | 1 Händler im Dorf (Ausrüstung kaufen, Items verkaufen, Heiltrank mit Taste `Q`), Items am Boden im Spielstand, Einstellungen global, Spielname „Rogoi Offline". `CREDITS.md` gibt es seit Meilenstein 2. Balancing bleibt laufende Arbeit (Offene Punkte) | Gold und volles Inventar einen Zweck haben |
 
 **Bewusst nicht in V1:** Talentbaum, Aufwerten, Quests, weitere Zonen und Klassen,
 Endlos-Turm, Weltbosse, Sound. (Der Räuberhauptmann ist ein fester Zonen-Boss, kein Weltboss.)
@@ -632,8 +689,14 @@ Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap f
    Figur durch die neue Formel etwas mehr (Stufe 10: rund +12 %), Gegner ebenfalls (rund +7 %).
 7. Loot-Balancing: Drop-Tabellen (10 % bei normalen Gegnern), Gold pro Gegner, Wertespannen der Affixe und die
    Umrechnung der Attribute sind erste Schätzungen.
-8. Inventar ohne Händler: Bis Meilenstein 8 kann man überzählige Items nur wegwerfen, und
-   Gold hat noch keinen Zweck.
+8. Händler (Meilenstein 8), von mir gesetzte Startwerte zum Prüfen im Spiel (alle in
+   `src/data/shop.ts`): Preisformel und Faktoren, 20 % Erlös, 8 Regalplätze, 60/32/8 %
+   Seltenheiten, neue Ware alle 10 Minuten, Trank (40 %, 30 s, höchstens 5, Preis).
+   - Kein Rückkauf: Ein versehentlich verkauftes weißes, grünes oder blaues Item ist weg.
+     Soll der Händler die letzten verkauften Items zum selben Preis zurückgeben?
+   - Sortiment auf der Stufe der Figur: Wer aufsteigt, sieht bis zur nächsten Lieferung noch
+     die alte Ware.
+   - Der Händler-Platz und sein Bild (Figur aus „Tiny Dungeon") sind Startwerte.
 9. Vielfalt: Jede Item-Art außer der Waffe hat erst 5–7 mögliche Affixe, die drei Waffen
    unterscheiden sich nur im Aussehen. Mehr Affixe und eigene Waffenwerte (z. B. Dolch
    schneller, Axt stärker) wären ein möglicher Ausbau.
@@ -644,12 +707,11 @@ Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap f
 11. Namen von Elites: Die Eigenschaften stehen unter dem Namen statt davor („Schnelle
     Waldspinne") – dafür müsste jede Eigenschaft nach dem Geschlecht des Gegners gebeugt werden.
 12. HUD-Einstellungen (6b): Grenzen der Regler und die Farbe des eigenen Schilds sind Startwerte.
-    Seit Meilenstein 7 liegen die Einstellungen pro Slot im Spielstand und wandern beim Export
-    mit. Passt das, oder sollen sie lieber für alle Slots gemeinsam gelten?
+    Erledigt *(Entschieden)*: Die Einstellungen sind global, nicht pro Slot (Abschnitt 11).
 13. Speichern (Meilenstein 7), von mir gesetzte Startwerte zum Prüfen:
     - Neuladen mitten im Kampf: Die Gegner stehen danach wieder friedlich an ihrem Platz – man
       kann sich so aus einem Kampf retten (das Leben bleibt aber, wie es war). Stört das?
-    - Items am Boden gehen beim Neuladen verloren (z. B. bei vollem Inventar).
+    - Erledigt *(Entschieden)*: Items am Boden bleiben beim Neuladen liegen.
     - Ein neuer Test-Spielstand ersetzt den alten im Slot „Test" ohne Nachfrage.
     - Dasselbe Spiel in zwei Browser-Tabs mit demselben Slot: Der Tab, der zuletzt speichert,
       gewinnt. Verschiedene Slots in zwei Tabs stören sich nicht.

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Solo-Browser-RPG mit Phaser 3, Vite und TypeScript. Konzept, Fahrplan und alle
+**Rogoi Offline** – Solo-Browser-RPG mit Phaser 3, Vite und TypeScript. Konzept, Fahrplan und alle
 Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 
 ## Regeln
@@ -16,6 +16,7 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/items.ts` – Seltenheiten, Basis-Items und Affixe (Wertespannen, erlaubte Plätze)
    - `src/data/loot.ts` – Drop-Tabellen je Gegnerrang (Drop-Chance, Seltenheits-Anteile), Gold pro Gegner, Inventargröße
    - `src/data/stats.ts` – Werte auf Items und was ein Attributpunkt bringt
+   - `src/data/shop.ts` – Händler: Preisformel, Sortiment (Größe, Seltenheiten, Lieferzeit), Heiltrank
    - `src/data/save.ts` – Speichern: Format-Nummer, Anzahl Slots, Auto-Save-Abstände, Namenslänge
    - `src/data/testSaves.ts` – Vorlagen für Test-Spielstände
    - `tools/build-map.mjs` (Liste `ENEMY_GROUPS`) – welche Gegner mit welcher Stufe wo stehen;
@@ -47,12 +48,19 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 - UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster) ist HTML/CSS über dem Canvas:
   `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/Nameplates.ts`.
 - Einstellungen des Spielers liegen in einem Objekt (`Settings` in `src/ui/settings.ts`, dort auch
-  Standardwerte und Regler-Grenzen). Menü: `src/ui/SettingsMenu.ts`, Anwenden und Verschieben: `src/ui/HudLayout.ts`.
+  Standardwerte und Regler-Grenzen). Sie sind global (Browser), nicht Teil des Spielstands. Menü: `src/ui/SettingsMenu.ts`, Anwenden und Verschieben: `src/ui/HudLayout.ts`.
 - Speichern: Aufbau des Spielstands, Prüfen und Umbau alter Formate in `src/save/saveGame.ts`,
   Slots im Browser und der laufende Spielstand (`session`) in `src/save/slots.ts`, Menü in
   `src/ui/SaveMenu.ts`, Dialoge in `src/ui/dialog.ts`. Übernehmen und Einsammeln des Stands:
   `applySave` / `snapshot` in `src/scenes/WorldScene.ts`. Kommt etwas Neues dazu, das gespeichert
   werden soll: dort ergänzen. Ändert sich der Aufbau: `SAVE_VERSION` erhöhen und in `MIGRATIONS` eintragen.
+- Händler: Regeln in `src/items/Shop.ts`, Fenster in `src/ui/ShopWindow.ts`, Figur in
+  `src/entities/Merchant.ts`; verkauft wird per Rechtsklick im Inventar-Fenster. Der Item-Tooltip
+  (`src/ui/ItemTooltip.ts`) gehört beiden Fenstern.
+- Name: Das Spiel heißt „Rogoi Offline" (`GAME_TITLE` in `src/config.ts`). Repo-Name, `name` in
+  `package.json`, `base` in `vite.config.ts`, die Schlüssel im Browser-Speicher (`mein-rpg.…`) und
+  das Kennzeichen `app: 'mein-rpg'` im Spielstand bleiben, wie sie sind – sonst bricht die
+  Pages-Adresse oder alte Spielstände gehen verloren.
 - Die Test-Parameter `?stufe`, `?beute`, `?elite` starten einen Testlauf, der nie gespeichert wird.
 - `public/assets/` wird erzeugt – nicht von Hand ändern.
 - Die Versionsnummer in `package.json` folgt den Meilensteinen (Meilenstein 4 = 0.4.0).

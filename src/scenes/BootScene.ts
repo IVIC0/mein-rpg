@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GAME_TITLE } from '../config';
 
 /** Lädt alle Grafiken und Karten und startet danach die Spielwelt. */
 export class BootScene extends Phaser.Scene {
@@ -9,9 +10,9 @@ export class BootScene extends Phaser.Scene {
   preload(): void {
     const { width, height } = this.scale;
     const label = this.add
-      .text(width / 2, height / 2, 'Lade … 0 %', { fontFamily: 'monospace', fontSize: '20px', color: '#e8d9a0' })
+      .text(width / 2, height / 2, `${GAME_TITLE} lädt … 0 %`, { fontFamily: 'monospace', fontSize: '20px', color: '#e8d9a0' })
       .setOrigin(0.5);
-    this.load.on('progress', (value: number) => label.setText(`Lade … ${Math.round(value * 100)} %`));
+    this.load.on('progress', (value: number) => label.setText(`${GAME_TITLE} lädt … ${Math.round(value * 100)} %`));
     this.load.on('loaderror', (file: Phaser.Loader.File) => label.setText(`Fehler beim Laden: ${file.key}`));
 
     // Die Tilesets haben 1 px Rand um jede Kachel (margin 1, spacing 2), siehe tools/build-tilesets.mjs.

@@ -11,7 +11,7 @@
  "version": "1.10",
  "tiledversion": "1.11.0",
  "nextlayerid": 6,
- "nextobjectid": 40,
+ "nextobjectid": 41,
  "layers": [
   {
    "id": 1,
@@ -343,6 +343,18 @@
     },
     {
      "id": 2,
+     "name": "haendler",
+     "type": "npc",
+     "x": 408,
+     "y": 1128,
+     "width": 0,
+     "height": 0,
+     "point": true,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 3,
      "name": "pilzhain",
      "type": "gebiet",
      "x": 392,
@@ -354,7 +366,7 @@
      "visible": true
     },
     {
-     "id": 3,
+     "id": 4,
      "name": "lichtung",
      "type": "gebiet",
      "x": 1064,
@@ -366,7 +378,7 @@
      "visible": true
     },
     {
-     "id": 4,
+     "id": 5,
      "name": "ostlichtung",
      "type": "gebiet",
      "x": 1576,
@@ -378,7 +390,7 @@
      "visible": true
     },
     {
-     "id": 5,
+     "id": 6,
      "name": "suedlichtung",
      "type": "gebiet",
      "x": 1448,
@@ -390,7 +402,7 @@
      "visible": true
     },
     {
-     "id": 6,
+     "id": 7,
      "name": "ruine",
      "type": "gebiet",
      "x": 1560,
@@ -402,7 +414,7 @@
      "visible": true
     },
     {
-     "id": 7,
+     "id": 8,
      "name": "westlichtung",
      "type": "gebiet",
      "x": 744,
@@ -426,7 +438,7 @@
    "visible": true,
    "objects": [
     {
-     "id": 8,
+     "id": 9,
      "name": "ratte",
      "type": "gegner",
      "x": 760,
@@ -445,7 +457,7 @@
      ]
     },
     {
-     "id": 9,
+     "id": 10,
      "name": "ratte",
      "type": "gegner",
      "x": 680,
@@ -464,7 +476,7 @@
      ]
     },
     {
-     "id": 10,
+     "id": 11,
      "name": "ratte",
      "type": "gegner",
      "x": 808,
@@ -483,7 +495,7 @@
      ]
     },
     {
-     "id": 11,
+     "id": 12,
      "name": "ratte",
      "type": "gegner",
      "x": 744,
@@ -502,7 +514,7 @@
      ]
     },
     {
-     "id": 12,
+     "id": 13,
      "name": "ratte",
      "type": "gegner",
      "x": 424,
@@ -521,7 +533,7 @@
      ]
     },
     {
-     "id": 13,
+     "id": 14,
      "name": "ratte",
      "type": "gegner",
      "x": 360,
@@ -540,7 +552,7 @@
      ]
     },
     {
-     "id": 14,
+     "id": 15,
      "name": "ratte",
      "type": "gegner",
      "x": 488,
@@ -559,7 +571,7 @@
      ]
     },
     {
-     "id": 15,
+     "id": 16,
      "name": "spinne",
      "type": "gegner",
      "x": 424,
@@ -578,7 +590,7 @@
      ]
     },
     {
-     "id": 16,
+     "id": 17,
      "name": "spinne",
      "type": "gegner",
      "x": 312,
@@ -597,7 +609,7 @@
      ]
     },
     {
-     "id": 17,
+     "id": 18,
      "name": "spinne",
      "type": "gegner",
      "x": 312,
@@ -616,7 +628,7 @@
      ]
     },
     {
-     "id": 18,
+     "id": 19,
      "name": "ratte",
      "type": "gegner",
      "x": 1096,
@@ -635,7 +647,7 @@
      ]
     },
     {
-     "id": 19,
+     "id": 20,
      "name": "ratte",
      "type": "gegner",
      "x": 1176,
@@ -654,7 +666,7 @@
      ]
     },
     {
-     "id": 20,
+     "id": 21,
      "name": "ratte",
      "type": "gegner",
      "x": 968,
@@ -673,7 +685,7 @@
      ]
     },
     {
-     "id": 21,
+     "id": 22,
      "name": "ratte",
      "type": "gegner",
      "x": 1064,
@@ -692,7 +704,7 @@
      ]
     },
     {
-     "id": 22,
+     "id": 23,
      "name": "spinne",
      "type": "gegner",
      "x": 1144,
@@ -711,7 +723,7 @@
      ]
     },
     {
-     "id": 23,
+     "id": 24,
      "name": "spinne",
      "type": "gegner",
      "x": 1000,
@@ -730,7 +742,7 @@
      ]
     },
     {
-     "id": 24,
+     "id": 25,
      "name": "spinne",
      "type": "gegner",
      "x": 1000,
@@ -749,7 +761,7 @@
      ]
     },
     {
-     "id": 25,
+     "id": 26,
      "name": "spinne",
      "type": "gegner",
      "x": 1432,
@@ -768,7 +780,7 @@
      ]
     },
     {
-     "id": 26,
+     "id": 27,
      "name": "spinne",
      "type": "gegner",
      "x": 1512,
@@ -787,7 +799,7 @@
      ]
     },
     {
-     "id": 27,
+     "id": 28,
      "name": "spinne",
      "type": "gegner",
      "x": 1368,
@@ -806,7 +818,7 @@
      ]
     },
     {
-     "id": 28,
+     "id": 29,
      "name": "spinne",
      "type": "gegner",
      "x": 1448,
@@ -825,7 +837,7 @@
      ]
     },
     {
-     "id": 29,
+     "id": 30,
      "name": "spinne",
      "type": "gegner",
      "x": 1592,
@@ -844,7 +856,7 @@
      ]
     },
     {
-     "id": 30,
+     "id": 31,
      "name": "spinne",
      "type": "gegner",
      "x": 1512,
@@ -863,7 +875,7 @@
      ]
     },
     {
-     "id": 31,
+     "id": 32,
      "name": "spinne",
      "type": "gegner",
      "x": 1672,
@@ -882,7 +894,7 @@
      ]
     },
     {
-     "id": 32,
+     "id": 33,
      "name": "wegelagerer",
      "type": "gegner",
      "x": 1592,
@@ -901,7 +913,7 @@
      ]
     },
     {
-     "id": 33,
+     "id": 34,
      "name": "wegelagerer",
      "type": "gegner",
      "x": 1560,
@@ -920,7 +932,7 @@
      ]
     },
     {
-     "id": 34,
+     "id": 35,
      "name": "wegelagerer",
      "type": "gegner",
      "x": 1512,
@@ -939,7 +951,7 @@
      ]
     },
     {
-     "id": 35,
+     "id": 36,
      "name": "wegelagerer",
      "type": "gegner",
      "x": 1432,
@@ -958,7 +970,7 @@
      ]
     },
     {
-     "id": 36,
+     "id": 37,
      "name": "wegelagerer",
      "type": "gegner",
      "x": 1672,
@@ -977,7 +989,7 @@
      ]
     },
     {
-     "id": 37,
+     "id": 38,
      "name": "wegelagerer",
      "type": "gegner",
      "x": 1592,
@@ -996,7 +1008,7 @@
      ]
     },
     {
-     "id": 38,
+     "id": 39,
      "name": "wegelagerer",
      "type": "gegner",
      "x": 1592,
@@ -1015,7 +1027,7 @@
      ]
     },
     {
-     "id": 39,
+     "id": 40,
      "name": "raeuberhauptmann",
      "type": "gegner",
      "x": 1448,

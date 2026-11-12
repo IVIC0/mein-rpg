@@ -1,8 +1,8 @@
 // Alle Einstellungen des Spielers in EINEM Objekt (`Settings`).
-// Es besteht nur aus einfachen Werten (an/aus, Zahlen) und liegt deshalb mit im
-// Spielstand (`settings` in src/save/saveGame.ts) – jeder Slot hat seine eigenen Einstellungen.
+// Es besteht nur aus einfachen Werten (an/aus, Zahlen). Die Einstellungen gelten für
+// alle Spielstände gemeinsam: Der Browser merkt sie sich, sie stehen nicht im Spielstand.
 
-import { loadUi } from './storage';
+import { loadUi, saveUi } from './storage';
 
 /** Die HUD-Elemente, die sich verschieben lassen. */
 export const HUD_ITEMS = [
@@ -92,16 +92,36 @@ export function normalizeSettings(stored?: unknown): Settings {
   return mergeDeep(DEFAULT_SETTINGS as unknown as Plain, stored) as unknown as Settings;
 }
 
-/**
- * Die Einstellungen, die sich der Browser vor Meilenstein 7 gemerkt hat (damals noch ohne
- * Spielstand). Der erste neue Spielstand übernimmt sie; gibt es keine, kommt der Standard.
- */
-export function loadLegacySettings(): Settings {
+/** Liest die Einstellungen aus dem Browser; gibt es keine, kommt der Standard. */
+export function loadSettings(): Settings {
   const stored = loadUi<Plain>(STORAGE_KEY, {});
   const settings = normalizeSettings(stored);
   // Alte Einstellung aus Schritt 5b übernehmen.
   if (typeof stored.showAllNameplates === 'boolean') settings.enemyPlates.showAll = stored.showAllNameplates;
   return settings;
+}
+
+export function saveSettings(settings: Settings): void {
+  saveUi(STORAGE_KEY, settings);
+}
+
+/**
+ * Einmaliger Umzug: In Meilenstein 7 lagen die Einstellungen im Spielstand (Format 1, pro Slot).
+ * Seit Meilenstein 8 sind sie global. Damit nichts verloren geht, werden beim ersten Start
+ * die Einstellungen des zuletzt gespielten alten Spielstands übernommen.
+ * `saveText` = dessen gespeicherter Text (null = es gibt keinen).
+ */
+export function adoptSettingsFromOldSave(saveText: string | null): void {
+  const marker = loadUi('einstellungen-umzug', { done: false });
+  if (marker.done) return;
+  saveUi('einstellungen-umzug', { done: true });
+  if (saveText === null) return;
+  try {
+    const old = JSON.parse(saveText) as Plain;
+    if (old.version === 1 && typeof old.settings === 'object' && old.settings !== null) saveSettings(normalizeSettings(old.settings));
+  } catch {
+    // Kaputter Spielstand: dann bleiben die Einstellungen des Browsers.
+  }
 }
 
 /** Setzt `settings` auf die Standardwerte zurück. Das Objekt selbst bleibt dasselbe. */

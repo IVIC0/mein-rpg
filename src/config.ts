@@ -1,5 +1,8 @@
 // Zentrale Stellschrauben des Spiels.
 
+/** Name des Spiels, so wie er im Spiel und im Browser-Tab steht. */
+export const GAME_TITLE = 'Rogoi Offline';
+
 /** Kantenlänge einer Kachel in Welt-Pixeln. */
 export const TILE = 16;
 
