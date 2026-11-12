@@ -13,6 +13,9 @@ import { Inventory } from '../items/Inventory';
 import { FloatingText } from '../ui/FloatingText';
 import { Hud } from '../ui/Hud';
 import { InventoryWindow } from '../ui/InventoryWindow';
+import { Nameplates } from '../ui/Nameplates';
+import { SettingsMenu } from '../ui/SettingsMenu';
+import { byId } from '../ui/dom';
 import { Grid, type Point } from '../world/Grid';
 import { findWaypoints } from '../world/pathfinding';
 
@@ -31,7 +34,7 @@ const MAX_FRAME_MS = 100;
  *   Hindernissen entlang. Loslassen = stehen bleiben.
  *
  * Skills lösen von selbst aus (siehe Combat). I oder C öffnet Charakter & Inventar.
- * Esc schließt das Fenster bzw. hebt die Zielauswahl auf.
+ * Esc schließt das Fenster (wenn es nicht angepinnt ist) bzw. hebt die Zielauswahl auf.
  */
 export class WorldScene extends Phaser.Scene {
   private grid!: Grid;
@@ -39,6 +42,8 @@ export class WorldScene extends Phaser.Scene {
   private combat!: Combat;
   private floaters!: FloatingText;
   private inventoryWindow!: InventoryWindow;
+  private nameplates!: Nameplates;
+  private settings!: SettingsMenu;
   private clickMarker!: Phaser.GameObjects.Image;
   private blockedMarker!: Phaser.GameObjects.Image;
 
@@ -86,14 +91,14 @@ export class WorldScene extends Phaser.Scene {
     const startLevel = Number(new URLSearchParams(window.location.search).get('stufe'));
     if (startLevel > 1) this.player.setLevel(startLevel);
 
-    const floaterRoot = document.getElementById('floaters');
-    if (!floaterRoot) throw new Error('Element #floaters fehlt in index.html.');
-    this.floaters = new FloatingText(floaterRoot);
+    this.floaters = new FloatingText(byId('floaters'));
+    this.nameplates = new Nameplates(byId('nameplates'), enemies);
     const hud = new Hud(SKILLS);
 
     // Inventar und Ausrüstung: nach jeder Änderung bekommt die Figur ihre neuen Werte.
     const inventory = new Inventory();
     this.inventoryWindow = new InventoryWindow(inventory, this.player, hud);
+    this.settings = new SettingsMenu(() => this.inventoryWindow.resetLayout());
     inventory.onChange = () => {
       this.player.setGear(inventory.equippedStats(), inventory.equipped.weapon?.icon ?? null);
       this.inventoryWindow.render();
@@ -126,7 +131,9 @@ export class WorldScene extends Phaser.Scene {
     this.game.events.on(Phaser.Core.Events.BLUR, this.cancelPress, this);
 
     this.input.keyboard?.on('keydown-ESC', () => {
-      if (this.inventoryWindow.isOpen) this.inventoryWindow.close();
+      // Esc schließt erst die Einstellungen, dann das Inventar (außer es ist angepinnt), sonst hebt es das Ziel auf.
+      if (this.settings.isOpen) this.settings.close();
+      else if (this.inventoryWindow.isOpen && !this.inventoryWindow.pinned) this.inventoryWindow.close();
       else this.combat.clearTarget();
     });
     this.input.keyboard?.on('keydown-I', () => this.inventoryWindow.toggle());
@@ -200,6 +207,7 @@ export class WorldScene extends Phaser.Scene {
 
   private renderFloaters(): void {
     this.floaters.render(this.cameras.main);
+    this.nameplates.render(this.cameras.main, this.player, this.combat.target, this.settings.values.showAllNameplates);
   }
 
   private applyZoom(): void {

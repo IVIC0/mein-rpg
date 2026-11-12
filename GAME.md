@@ -41,7 +41,17 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 - **Skills:** lösen automatisch aus, es gibt keine Skill-Tasten. Die Tasten `1`–`6`
   entfallen. *(Entschieden, umgesetzt – siehe Abschnitt 4 und 5)*
 - **Fenster:** `I` oder `C` öffnet „Charakter & Inventar" (ein gemeinsames Fenster), `Esc`
-  schließt es. Unten rechts gibt es dafür auch einen Knopf. *(Umgesetzt)*
+  schließt es. *(Umgesetzt)*
+  - Das Fenster lässt sich an der Titelzeile verschieben und an der Ecke unten rechts in der
+    Größe ziehen (bei breiterem Fenster passen mehr Inventar-Felder in eine Zeile, bei zu
+    kleinem wird gescrollt).
+  - Pinnnadel in der Titelzeile = anpinnen: Das Fenster bleibt offen, `Esc` hebt dann nur die
+    Zielauswahl auf, und nach dem Neuladen ist es wieder da. `I`, `C` und × schließen es weiterhin.
+    Der Kampf läuft bei offenem Fenster immer weiter.
+  - Position, Größe und Pin merkt sich der Browser (`localStorage`, getrennt vom Spielstand).
+- **Knopf-Leiste** oben rechts *(Umgesetzt)*: kleine Knöpfe für Inventar und Einstellungen;
+  weitere (Talente, Karte) kommen dort dazu. In den Einstellungen: „Namen über allen Gegnern
+  zeigen" (an/aus) und „Fenster zurücksetzen".
   `T` Talente kommt mit dem Talentbaum. *(Vorschlag)*
 - **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
 - **Tränke:** `Q` Heiltrank. *(Vorschlag, kommt mit dem Händler)* Einen Manatrank gibt es nicht.
@@ -95,7 +105,19 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   - Respawn 30 Sekunden nach dem Tod am selben Platz.
   - Im Leerlauf schlendern Gegner ein paar Schritte um ihren Platz.
 - **Schadensformel** *(Umgesetzt)*: Schaden = Angriffskraft × Skill-Faktor × Streuung
-  (85–115 %) × 100 / (100 + Rüstung), mindestens 1. 100 Rüstung halbieren den Schaden.
+  (85–115 %) × (1 − Schadensreduktion), mindestens 1.
+  - **Rüstung** *(seit Schritt 5b abgeflacht)*: Schadensreduktion = 75 % × Rüstung / (Rüstung + 100).
+    Jeder weitere Punkt bringt weniger, mehr als 75 % geht nie. Gilt für Figur und Gegner.
+    Werte: `ARMOR` in `src/config.ts`. Das Charakterfenster zeigt die Reduktion hinter der Rüstung.
+
+    | Rüstung | 10 | 46 | 100 | 150 | 200 | 400 |
+    |---|---|---|---|---|---|---|
+    | Reduktion neu | 7 % | 24 % | 37,5 % | 45 % | 50 % | 60 % |
+    | Reduktion alt (100 / (100 + Rüstung)) | 9 % | 32 % | 50 % | 60 % | 67 % | 80 % |
+
+    Stufe 10: ohne Ausrüstung 46 Rüstung = 24 %, mit fünf Rüstungsteilen (Itemlevel 10, ca. 107
+    Rüstung) 39 %, mit zusätzlichen „Gehärtet"-Affixen (ca. 140) 44 %. Volle Ausrüstung senkt
+    den erlittenen Schaden damit um rund 20–27 % (vorher 30–39 %).
   Kritische Treffer (Krieger: 5 % Chance) machen 150 %. Ausrüstung erhöht Angriffskraft,
   Rüstung, Krit-Chance und Krit-Schaden (siehe Abschnitt 7).
 - **Treffer-Feedback** *(Entschieden, umgesetzt)*:
@@ -173,8 +195,9 @@ Intelligenz und Mana gibt es beim Krieger nicht – sie kommen eventuell mit dem
   Auf Stufe 10 also 282 Leben, 39 Angriffskraft, 46 Rüstung (ohne Ausrüstung).
 - **Stufenaufstieg:** Das Leben ist sofort wieder voll, eine Meldung zeigt die neue
   Stufe, den Zuwachs und neu freigeschaltete Skills.
-- **Anzeige:** Stufe und EP-Balken im Rahmen oben links. Im Zielrahmen ist die Stufe des
-  Gegners rot, wenn er 2 oder mehr Stufen über der Figur liegt, und grau, wenn er nur noch
+- **Anzeige:** Stufe und EP-Balken im Rahmen oben links. Über jedem Gegner stehen Name, Stufe
+  und Lebensbalken (in den Einstellungen umstellbar auf: nur Ziel, Angreifer und Verletzte).
+  Dort und im Zielrahmen ist die Stufe des Gegners rot, wenn er 2 oder mehr Stufen über der Figur liegt, und grau, wenn er nur noch
   verringerte EP bringt.
 - Leben, Angriffskraft und Rüstung steigen pro Stufe direkt. Die Attribute (Stärke,
   Ausdauer, Geschick) kommen nur von der Ausrüstung. *(Vorschlag)*
@@ -201,14 +224,36 @@ Alle Werte stehen in `src/data/progression.ts` (Kurve, EP) und `src/data/warrior
 
 Seltenheiten *(Farben entschieden, Zahlen Vorschlag – Startwerte fürs Balancing)*:
 
-| Seltenheit | Farbe | Affixe | Drop-Anteil (normaler Gegner) |
+| Seltenheit | Farbe | Affixe |
+|---|---|---|
+| Gewöhnlich | Weiß | 0 |
+| Ungewöhnlich | Grün | 1 |
+| Selten | Blau | 2 |
+| Episch | Lila | 3 |
+| Legendär | Orange | 4 |
+| Mythisch | Rot | 5 |
+
+**Drop-Tabelle je Gegnerrang** *(Schritt 5b; `DROP_TABLES` in `src/data/loot.ts`)*: erst wird
+gewürfelt, ob ein Item fällt, dann die Seltenheit.
+
+| | Normal | Elite | Boss |
 |---|---|---|---|
-| Gewöhnlich | Weiß | 0 | 60 % |
-| Ungewöhnlich | Grün | 1 | 28 % |
-| Selten | Blau | 2 | 9 % |
-| Episch | Lila | 3 | 2,5 % |
-| Legendär | Orange | 4 | 0,45 % |
-| Mythisch | Rot | 5 | 0,05 % |
+| **Drop-Chance** | **10 %** | **100 %** | **100 %** |
+| Gewöhnlich | 50 % | – | – |
+| Ungewöhnlich | 32 % | 45 % | – |
+| Selten | 13 % | 37 % | 55 % |
+| Episch | 4 % | 14 % | 34 % |
+| Legendär | 0,9 % | 3,6 % | 10 % |
+| Mythisch | 0,1 % | 0,4 % | 1 % |
+
+- Normaler Gegner, im Schnitt ein Item auf so viele Gegner: irgendeins 10 · Selten 77 ·
+  Episch 250 · Legendär 1 111 · Mythisch 10 000. Auf dem Weg zu Stufe 10 (rund 500 Gegner)
+  sind das etwa 50 Items: 25 weiße, 16 grüne, 6–7 blaue, 2 lila.
+- Vorher (30 %, Anteile 60 / 28 / 9 / 2,5 / 0,45 / 0,05) waren 88 % aller Drops weiß oder grün.
+  Bei nur noch 10 % Drop-Chance wäre das zu viel Ausschuss, deshalb sind die Anteile leicht
+  nach oben verschoben (jetzt 82 %).
+- Elite und Boss sind vorbereitet, greifen aber erst, wenn es sie gibt (Elites: Meilenstein 6,
+  Bosse nach V1). Bis dahin haben alle Gegner den Rang „normal".
 
 Weitere Regeln *(Vorschlag)*:
 
@@ -225,8 +270,8 @@ Weitere Regeln *(Vorschlag)*:
 ### Loot in V1 *(Umgesetzt, Zahlen sind Startwerte fürs Balancing)*
 
 - **Drops:** Jeder besiegte Gegner gibt Gold (Stufe 1: 2–5, Stufe 10: 11–14) und lässt mit
-  30 % Chance ein Item fallen. Itemlevel = Stufe des Gegners. Die Seltenheit wird nach der
-  Tabelle oben gewürfelt.
+  10 % Chance ein Item fallen (Elite/Boss: siehe Drop-Tabelle oben). Itemlevel = Stufe des
+  Gegners. Die Seltenheit wird nach der Drop-Tabelle gewürfelt.
 - **Aufheben:** Das Item liegt mit einem Schein in der Farbe seiner Seltenheit am Boden
   (ab Selten zusätzlich ein Lichtstrahl). Läuft die Figur darüber, wandert es ins Inventar;
   der Name steigt über der Figur auf und steht kurz unten links in der Beute-Liste. Ist das
@@ -280,7 +325,7 @@ Weitere Regeln *(Vorschlag)*:
   Elites (Meilenstein 6), Speichern des Inventars (Meilenstein 7).
 
 Alle Werte stehen in `src/data/items.ts` (Seltenheiten, Basis-Items, Affixe),
-`src/data/loot.ts` (Drop-Chance, Gold, Inventargröße) und `src/data/stats.ts` (Attribute).
+`src/data/loot.ts` (Drop-Tabellen je Gegnerrang, Gold, Inventargröße) und `src/data/stats.ts` (Attribute).
 
 ## 8. Elite-Gegner
 
@@ -371,6 +416,7 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 | 3 ✅ | Kampf | Ziel wählen, Auto-Angriff, 3 Gegnertypen mit Aggro/Leash/Respawn, Lebensbalken, 4 Krieger-Skills, Tod + Respawn | man Gegner töten und sterben kann |
 | 4 ✅ | Leveln | EP, Levelkurve 1–10, Wertezuwachs, Skill-Freischaltung auf festen Stufen | Level 10 erreichbar ist und sich stärker anfühlt |
 | 5 ✅ | Loot | Item-Generator (Affixe, 6 Seltenheiten, Itemlevel), Drops, Inventar, Ausrüstung, Tooltip mit Vergleich | ein Fund die Werte sichtbar verbessert |
+| 5b ✅ | Feinschliff Loot | Drop-Chance 10 % und Drop-Tabellen je Gegnerrang, Rüstung abgeflacht (max. 75 %), Inventarfenster verschiebbar/anpinnbar, Knopf-Leiste, Namensschilder über Gegnern | Loot seltener, aber wertiger ist und das Fenster beim Kämpfen nicht stört |
 | 6 | Elites | Zufällige Elite-Spawns mit 1–3 Eigenschaften und besserem Loot | Elites erkennbar gefährlicher und lohnender sind |
 | 7 | Speichern | Auto-Save, Export/Import, Versionsnummer | Seite neu laden nichts verliert |
 | 8 | Händler + Feinschliff | 1 Händler (verkaufen, Tränke kaufen), Balancing, `CREDITS.md` | Gold und volles Inventar einen Zweck haben |
@@ -390,13 +436,13 @@ Von dir gewünscht, noch nicht umgesetzt. *(Entschieden)*
 
 | Feature | Wann | Inhalt |
 |---|---|---|
-| Minimap | direkt nach Meilenstein 3 (Kampf) | Kleine Übersichtskarte oben rechts im Bild: Gelände, eigene Position, Gegner in der Nähe |
+| Minimap | direkt nach Meilenstein 3 (Kampf) | Kleine Übersichtskarte oben rechts im Bild, unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe |
 | Große Karte | sobald es mehrere Zonen gibt | Taste `M` öffnet und schließt die Karte der ganzen Zone |
 | Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
 | Mehr Skills als Plätze | nach V1, zusammen mit dem Talentbaum | Mit der Zeit 8–10 Skills pro Klasse freischalten, aber nur 4 aktive Plätze. Die Auswahl ist der Build. |
 | Legendäre Items mit einzigartigen Effekten | nach V1, baut auf dem Loot (Meilenstein 5) auf | Legendäre Items verändern Skills, z. B. „Rundumschlag hinterlässt Feuerspur". |
 
-Die Ecke oben rechts bleibt im HUD für die Minimap frei.
+Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap frei.
 
 ## 14. Offene Punkte
 
@@ -410,9 +456,11 @@ Die Ecke oben rechts bleibt im HUD für die Minimap frei.
 5. Mana: beim Krieger gestrichen *(Entschieden)*. Ob der Magier später Mana bekommt, ist offen.
 6. Balancing: Levelkurve, Wertezuwachs, Gegnerstufen und Skill-Stufen sind erste
    Schätzungen (Ziel: 2–3 Stunden bis Stufe 10) und müssen im Spiel erprobt werden.
-   Mit Ausrüstung ist die Figur jetzt deutlich stärker (auf Stufe 10 grob +50 % Angriffskraft
-   und doppelte Rüstung) – eventuell müssen die Gegner nachziehen.
-7. Loot-Balancing: Drop-Chance (30 %), Gold pro Gegner, Wertespannen der Affixe und die
+   Mit Ausrüstung ist die Figur deutlich stärker (auf Stufe 10 grob +50 % Angriffskraft). Die
+   Rüstung ist seit 5b abgeflacht; ob die Angriffskraft der Ausrüstung auch gebremst werden
+   muss oder die Gegner nachziehen, muss das Spielen zeigen. Ohne Ausrüstung kassiert die
+   Figur durch die neue Formel etwas mehr (Stufe 10: rund +12 %), Gegner ebenfalls (rund +7 %).
+7. Loot-Balancing: Drop-Tabellen (10 % bei normalen Gegnern), Gold pro Gegner, Wertespannen der Affixe und die
    Umrechnung der Attribute sind erste Schätzungen.
 8. Inventar ohne Händler: Bis Meilenstein 8 kann man überzählige Items nur wegwerfen, und
    Gold hat noch keinen Zweck.

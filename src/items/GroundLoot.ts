@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
 import { RARITIES } from '../data/items';
-import { GOLD_DROP, ITEM_DROP_CHANCE, LOOT_DESPAWN_MS, LOOT_PICKUP_DELAY_MS, LOOT_PICKUP_RADIUS, LOOT_SCATTER } from '../data/loot';
+import { DROP_TABLES, GOLD_DROP, LOOT_DESPAWN_MS, LOOT_PICKUP_DELAY_MS, LOOT_PICKUP_RADIUS, LOOT_SCATTER } from '../data/loot';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 import type { FloatingText } from '../ui/FloatingText';
 import type { Hud } from '../ui/Hud';
-import { generateItem, rarityById, type Item } from './generator';
+import { generateItem, rarityById, rollRarity, type Item } from './generator';
 import type { Inventory } from './Inventory';
 
 /** Items am Boden liegen über der Karte, aber unter allen Figuren. */
@@ -48,7 +48,10 @@ export class GroundLoot {
     this.inventory.addGold(gold);
     this.floaters.spawn(enemy.pos.x, enemy.pos.y - 4, `+${gold} Gold`, 'gold');
 
-    if (Math.random() < ITEM_DROP_CHANCE) this.place(generateItem(enemy.level), enemy.pos.x, enemy.pos.y);
+    // Drop-Chance und Seltenheit hängen vom Rang des Gegners ab (normal, Elite, Boss).
+    if (Math.random() < DROP_TABLES[enemy.rank].itemChance) {
+      this.place(generateItem(enemy.level, rollRarity(enemy.rank)), enemy.pos.x, enemy.pos.y);
+    }
   }
 
   /** Einmal pro Frame: aufheben, was unter der Figur liegt, und alte Items verschwinden lassen. */

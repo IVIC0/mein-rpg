@@ -7,13 +7,13 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 
 1. **Balancing-Werte gehören in Config-Dateien.** Schaden, EP, Drop-Raten, Leben,
    Abklingzeiten usw. stehen nie verteilt im Code, sondern hier:
-   - `src/config.ts` – allgemeine Stellschrauben (Tempo, Reichweiten, Respawn-Zeiten, Treffer-Feedback)
+   - `src/config.ts` – allgemeine Stellschrauben (Tempo, Reichweiten, Rüstungsformel, Respawn-Zeiten, Treffer-Feedback)
    - `src/data/warrior.ts` – Werte, Zuwachs pro Stufe und Skills des Kriegers
      (Auslöse-Bedingung `trigger` und Wirkung `effect` je Skill)
    - `src/data/enemies.ts` – Gegnertypen und ihr Zuwachs pro Stufe
    - `src/data/progression.ts` – Levelkurve, EP pro Gegner, EP- und Gold-Verlust beim Tod
    - `src/data/items.ts` – Seltenheiten, Basis-Items und Affixe (Wertespannen, erlaubte Plätze)
-   - `src/data/loot.ts` – Drop-Chance, Gold pro Gegner, Inventargröße
+   - `src/data/loot.ts` – Drop-Tabellen je Gegnerrang (Drop-Chance, Seltenheits-Anteile), Gold pro Gegner, Inventargröße
    - `src/data/stats.ts` – Werte auf Items und was ein Attributpunkt bringt
    - `tools/build-map.mjs` (Liste `ENEMY_GROUPS`) – welche Gegner mit welcher Stufe wo stehen;
      nach Änderungen `npm run assets`
@@ -42,7 +42,7 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 - Loot: Items sind einfache Daten (`Item` in `src/items/generator.ts`), damit sie sich später speichern lassen.
 - Sprache: Texte im Spiel, Kommentare und Doku auf Deutsch.
 - UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster) ist HTML/CSS über dem Canvas:
-  `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`.
+  `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/Nameplates.ts`.
 - `public/assets/` wird erzeugt – nicht von Hand ändern.
 - Die Versionsnummer in `package.json` folgt den Meilensteinen (Meilenstein 4 = 0.4.0).
 - Der Nutzer ist Programmier-Anfänger: Code knapp kommentieren, verständlich halten.

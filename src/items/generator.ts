@@ -1,4 +1,5 @@
 import { AFFIXES, BASE_SPREAD, ITEM_BASES, PREFIX_ENDINGS, RARITIES, type AffixDef, type ItemBaseDef, type ItemSlot, type RarityDef, type RarityId } from '../data/items';
+import { DROP_TABLES, type EnemyRank } from '../data/loot';
 import { STATS, emptyStats, roundStat, type StatId, type Stats } from '../data/stats';
 
 /** Ein gewürfelter Wert samt der Spanne, in der er liegen konnte – der Tooltip zeigt beides. */
@@ -36,12 +37,12 @@ export interface Item {
 let nextId = 1;
 
 /**
- * Würfelt ein Item mit dem Itemlevel `level`: erst die Seltenheit, dann das
+ * Würfelt ein Item mit dem Itemlevel `level` und der Seltenheit `rarityId`: erst das
  * Basis-Item, dann so viele Affixe, wie die Seltenheit vorgibt.
- * `rarityId` legt die Seltenheit fest (zum Testen), sonst wird sie gewürfelt.
+ * Die Seltenheit eines Drops würfelt vorher `rollRarity`.
  */
-export function generateItem(level: number, rarityId?: RarityId): Item {
-  const rarity = rarityId ? rarityById(rarityId) : rollRarity();
+export function generateItem(level: number, rarityId: RarityId): Item {
+  const rarity = rarityById(rarityId);
   // Erst die Art würfeln, dann das Basis-Item: sonst gäbe es mehr Waffen als Helme, nur weil es drei Waffen gibt.
   const slots = [...new Set(ITEM_BASES.map((candidate) => candidate.slot))];
   const slot = pick(slots);
@@ -81,15 +82,16 @@ export function itemStats(item: Item | null): Stats {
   return stats;
 }
 
-/** Würfelt die Seltenheit nach den Anteilen `dropWeight`. */
-function rollRarity(): RarityDef {
-  const total = RARITIES.reduce((sum, rarity) => sum + rarity.dropWeight, 0);
+/** Würfelt die Seltenheit eines Drops nach der Tabelle des Gegnerrangs (DROP_TABLES in src/data/loot.ts). */
+export function rollRarity(rank: EnemyRank): RarityId {
+  const weights = DROP_TABLES[rank].rarity;
+  const total = RARITIES.reduce((sum, rarity) => sum + weights[rarity.id], 0);
   let roll = Math.random() * total;
   for (const rarity of RARITIES) {
-    roll -= rarity.dropWeight;
-    if (roll < 0) return rarity;
+    roll -= weights[rarity.id];
+    if (roll < 0) return rarity.id;
   }
-  return RARITIES[0];
+  return RARITIES[0].id;
 }
 
 function rollAffix(affix: AffixDef, level: number): RolledAffix {

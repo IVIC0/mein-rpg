@@ -35,6 +35,9 @@
   <body>
     <div id="game"></div>
 
+    <!-- Name, Stufe und Lebensbalken über jedem Gegner (füllt src/ui/Nameplates.ts). -->
+    <div id="nameplates"></div>
+
     <!-- Schadenszahlen, die über der Welt aufsteigen (füllt src/ui/FloatingText.ts). -->
     <div id="floaters"></div>
 
@@ -80,13 +83,30 @@
       <!-- Zuletzt aufgehobene Items (füllt Hud.logLoot). -->
       <div id="loot-log"></div>
 
-      <button id="bag-button" type="button">Inventar <kbd>I</kbd></button>
+      <!-- Knopf-Leiste oben rechts. Neue Knöpfe (Talente, Karte …) kommen hier dazu. -->
+      <div id="topbar">
+        <button id="bag-button" class="topbar-button" type="button" title="Charakter &amp; Inventar (I)">
+          <span class="sprite-icon topbar-icon"></span>
+        </button>
+        <button id="settings-button" class="topbar-button" type="button" title="Einstellungen">⚙</button>
+      </div>
+
+      <!-- Einstellungen (füllt src/ui/SettingsMenu.ts). -->
+      <div id="settings" hidden>
+        <div class="window-title"><span>Einstellungen</span></div>
+        <label><input id="setting-plates" type="checkbox" /> Namen über allen Gegnern zeigen</label>
+        <button id="setting-reset-windows" type="button">Fenster zurücksetzen</button>
+      </div>
 
       <!-- Charakter & Inventar (Taste I oder C). Die Felder baut src/ui/InventoryWindow.ts. -->
       <div id="inventory" hidden>
-        <div class="window-title">
+        <!-- An der Titelzeile lässt sich das Fenster verschieben. -->
+        <div class="window-title" id="inventory-title">
           <span>Charakter &amp; Inventar</span>
-          <button id="inventory-close" type="button" title="Schließen (Esc)">×</button>
+          <span class="window-buttons">
+            <button id="inventory-pin" type="button" title="Anpinnen: Fenster bleibt offen (Esc schließt es nicht)">📌</button>
+            <button id="inventory-close" type="button" title="Schließen (I)">×</button>
+          </span>
         </div>
         <div class="window-columns">
           <div class="window-column">
@@ -102,6 +122,8 @@
             <div class="window-help">Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen</div>
           </div>
         </div>
+        <!-- Ecke unten rechts: daran lässt sich die Größe ziehen. -->
+        <div id="inventory-resize" title="Größe ändern"></div>
       </div>
       <div id="item-tooltip" hidden></div>
 

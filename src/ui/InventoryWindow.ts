@@ -5,6 +5,30 @@ import { itemStats, rarityById, type Item, type RolledValue } from '../items/gen
 import type { Inventory } from '../items/Inventory';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
+import { loadUi, saveUi } from './storage';
+import { damageReduction } from '../combat/damage';
+
+/**
+ * Was sich das Fenster merkt. null = Standard: Position rechts in der Bildmitte,
+ * Breite aus hud.css, Höhe passend zum Inhalt.
+ */
+interface WindowLayout {
+  left: number | null;
+  top: number | null;
+  width: number | null;
+  height: number | null;
+  /** Angepinnt: das Fenster bleibt offen – Esc schließt es nicht, und es ist nach dem Neuladen wieder da. */
+  pinned: boolean;
+}
+
+const DEFAULT_LAYOUT: WindowLayout = { left: null, top: null, width: null, height: null, pinned: false };
+
+/** Abstand des Fensters zum Bildrand in der Standard-Position (Pixel); oben bleibt Platz für die Knopf-Leiste. */
+const EDGE_GAP = 10;
+const TOP_GAP = 50;
+
+/** Von der Titelzeile bleibt beim Verschieben mindestens so viel im Bild (Pixel). */
+const KEEP_VISIBLE = 40;
 
 /** Ein Feld im Fenster: entweder ein Inventar-Platz oder ein Ausrüstungsplatz. */
 type CellRef = { kind: 'bag'; index: number } | { kind: 'equip'; slot: EquipSlot };
@@ -21,6 +45,9 @@ interface Cell {
  *
  * Linksklick auf ein Item im Inventar legt es an, Linksklick auf angelegte Ausrüstung
  * legt sie ab. Umschalt + Linksklick wirft ein Item aus dem Inventar weg.
+ *
+ * Das Fenster lässt sich an der Titelzeile verschieben, an der Ecke unten rechts in der
+ * Größe ziehen und mit der Pinnnadel anpinnen. Position, Größe und Pin werden gemerkt.
  */
 export class InventoryWindow {
   private readonly root = byId('inventory');
@@ -32,6 +59,8 @@ export class InventoryWindow {
   /** Das Feld unter dem Mauszeiger – sein Tooltip wird nach jeder Änderung neu geschrieben. */
   private hovered: Cell | null = null;
   private statsHtml = '';
+  private layout: WindowLayout = loadUi('inventar', DEFAULT_LAYOUT);
+  private readonly bagButton = byId('bag-button');
 
   constructor(
     private readonly inventory: Inventory,
@@ -43,13 +72,39 @@ export class InventoryWindow {
     const bag = byId('bag');
     inventory.bag.forEach((_, index) => this.addCell(bag, { kind: 'bag', index }, ''));
 
-    byId('bag-button').addEventListener('click', (event) => {
+    this.bagButton.addEventListener('click', () => {
       this.toggle();
       // Fokus abgeben: sonst würde die Leertaste den Knopf noch einmal drücken.
-      (event.currentTarget as HTMLElement).blur();
+      this.bagButton.blur();
     });
     byId('inventory-close').addEventListener('click', () => this.close());
-    this.render();
+    byId('inventory-pin').addEventListener('click', (event) => {
+      this.layout.pinned = !this.layout.pinned;
+      this.root.classList.toggle('pinned', this.layout.pinned);
+      saveUi('inventar', this.layout);
+      (event.currentTarget as HTMLElement).blur();
+    });
+    byId('inventory-title').addEventListener('pointerdown', (event) => this.startDrag(event, 'move'));
+    byId('inventory-resize').addEventListener('pointerdown', (event) => this.startDrag(event, 'resize'));
+    // Wird das Browserfenster kleiner, rutscht das Fenster zurück ins Bild.
+    window.addEventListener('resize', () => this.applyLayout());
+
+    this.root.classList.toggle('pinned', this.layout.pinned);
+    // Ein angepinntes Fenster ist nach dem Neuladen gleich wieder offen.
+    if (this.layout.pinned) this.open();
+  }
+
+  /** Angepinnt bleibt das Fenster offen: Esc schließt es dann nicht. */
+  get pinned(): boolean {
+    return this.layout.pinned;
+  }
+
+  /** Zurück zu Standard-Position und -Größe, Pin gelöst (Knopf in den Einstellungen). */
+  resetLayout(): void {
+    this.layout = { ...DEFAULT_LAYOUT };
+    this.root.classList.remove('pinned');
+    saveUi('inventar', this.layout);
+    this.applyLayout();
   }
 
   get isOpen(): boolean {
@@ -63,11 +118,14 @@ export class InventoryWindow {
 
   open(): void {
     this.root.hidden = false;
+    this.bagButton.classList.add('active');
     this.render();
+    this.applyLayout();
   }
 
   close(): void {
     this.root.hidden = true;
+    this.bagButton.classList.remove('active');
     this.hovered = null;
     this.tooltip.hidden = true;
   }
@@ -94,7 +152,8 @@ export class InventoryWindow {
     const player = this.player;
     const rows: [string, string][] = [
       ['Angriffskraft', formatStatValue('attackPower', player.attackPower)],
-      ['Rüstung', formatStatValue('armor', player.armor)],
+      // Dahinter steht, wie viel Schaden die Rüstung abfängt, z. B. "(−39 % Schaden)".
+      ['Rüstung', `${formatStatValue('armor', player.armor)} <small>(−${Math.round(damageReduction(player.armor) * 100)} % Schaden)</small>`],
       ['Leben', formatStatValue('maxHp', player.maxHp)],
       ['Krit-Chance', formatStatValue('critChance', player.critChance * 100)],
       ['Krit-Schaden', formatStatValue('critDamage', player.critMultiplier * 100)],
@@ -112,6 +171,72 @@ export class InventoryWindow {
     if (html === this.statsHtml) return;
     this.statsHtml = html;
     this.statsBox.innerHTML = html;
+  }
+
+  /**
+   * Trägt Position und Größe aus `layout` ins Fenster ein und hält es dabei im Bild.
+   * Nur bei offenem Fenster – ein verstecktes Element hat keine Größe.
+   */
+  private applyLayout(): void {
+    if (!this.isOpen) return;
+    const style = this.root.style;
+    // Leerer Text = der Wert aus hud.css gilt (Standard-Breite, Höhe nach Inhalt).
+    style.width = this.layout.width === null ? '' : `${this.layout.width}px`;
+    style.height = this.layout.height === null ? '' : `${this.layout.height}px`;
+
+    const width = this.root.offsetWidth;
+    const height = this.root.offsetHeight;
+    // Standard: rechts am Rand, in der Höhe mittig – aber nicht unter der Knopf-Leiste.
+    const left = this.layout.left ?? window.innerWidth - width - EDGE_GAP;
+    const top = this.layout.top ?? Math.max(TOP_GAP, (window.innerHeight - height) / 2);
+    // Die Titelzeile muss erreichbar bleiben, sonst bekäme man das Fenster nicht mehr zu fassen.
+    style.left = `${Math.round(clamp(left, KEEP_VISIBLE - width, window.innerWidth - KEEP_VISIBLE))}px`;
+    style.top = `${Math.round(clamp(top, 0, window.innerHeight - KEEP_VISIBLE))}px`;
+  }
+
+  /**
+   * Maustaste auf Titelzeile ('move') oder Größen-Ecke ('resize') gedrückt: bis zum
+   * Loslassen folgt das Fenster der Maus. Danach wird die neue Lage gemerkt.
+   */
+  private startDrag(event: PointerEvent, mode: 'move' | 'resize'): void {
+    // Nur die linke Maustaste, und nicht, wenn ein Knopf in der Titelzeile gemeint war.
+    if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
+    event.preventDefault();
+    const rect = this.root.getBoundingClientRect();
+    const startX = event.clientX;
+    const startY = event.clientY;
+
+    const onMove = (move: PointerEvent): void => {
+      const dx = move.clientX - startX;
+      const dy = move.clientY - startY;
+      if (mode === 'move') {
+        this.layout.left = rect.left + dx;
+        this.layout.top = rect.top + dy;
+      } else {
+        // Die Position festhalten, sonst würde ein Fenster in Standard-Lage beim Ziehen mitwandern.
+        this.layout.left = rect.left;
+        this.layout.top = rect.top;
+        this.layout.width = rect.width + dx;
+        this.layout.height = rect.height + dy;
+      }
+      this.applyLayout();
+      this.showTooltip();
+    };
+    const onUp = (): void => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      // Merken, was wirklich gilt: hud.css begrenzt die Größe nach unten und oben.
+      const now = this.root.getBoundingClientRect();
+      this.layout.left = now.left;
+      this.layout.top = now.top;
+      if (mode === 'resize') {
+        this.layout.width = now.width;
+        this.layout.height = now.height;
+      }
+      saveUi('inventar', this.layout);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
   }
 
   private addCell(parent: HTMLElement, ref: CellRef, label: string): void {
@@ -210,4 +335,8 @@ export class InventoryWindow {
 function valueLine(rolled: RolledValue, cssClass: string): string {
   const range = rolled.min === rolled.max ? '' : ` <small>(${formatStatRange(rolled.stat, rolled.min, rolled.max)})</small>`;
   return `<div class="${cssClass}">${formatStatChange(rolled.stat, rolled.value)}${range}</div>`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }

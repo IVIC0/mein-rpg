@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BODY_RADIUS, ENEMY_FIRST_STRIKE_MS, ENEMY_RESPAWN_MS, MELEE_APPROACH, MELEE_RANGE } from '../config';
 import { enemyStats, type EnemyDef } from '../data/enemies';
+import type { EnemyRank } from '../data/loot';
 import type { Grid, Point } from '../world/Grid';
 import { findRoute, findWaypoints } from '../world/pathfinding';
 import { Actor } from './Actor';
@@ -26,14 +27,13 @@ export class Enemy extends Actor {
   /** Angriff und Rüstung auf der Stufe dieses Gegners. */
   readonly attackPower: number;
   readonly armor: number;
+  /** Rang: bestimmt die Drop-Tabelle (src/data/loot.ts). Bis es Elites gibt (Meilenstein 6), sind alle normal. */
+  readonly rank: EnemyRank = 'normal';
 
   private attackCooldown = 0;
   private repathIn = 0;
   private wanderIn = randomBetween(1000, 6000);
   private respawnIn = 0;
-  private selected = false;
-  private readonly barBack: Phaser.GameObjects.Rectangle;
-  private readonly barFill: Phaser.GameObjects.Rectangle;
 
   constructor(
     scene: Phaser.Scene,
@@ -47,22 +47,12 @@ export class Enemy extends Actor {
     this.attackPower = stats.attackPower;
     this.armor = stats.armor;
     this.home = { x, y };
-    // Lebensbalken über dem Kopf: 14 × 3 Pixel dunkler Rahmen, darin 12 × 1 Pixel Füllung.
-    this.barBack = scene.add.rectangle(-7, -15, 14, 3, 0x1a1012).setOrigin(0);
-    this.barFill = scene.add.rectangle(-6, -14, 12, 1, 0xe0403a).setOrigin(0);
-    this.add([this.barBack, this.barFill]);
-    this.refreshBar();
+    // Name, Stufe und Lebensbalken über dem Kopf zeichnet src/ui/Nameplates.ts.
   }
 
   /** Kann die Spielfigur diesen Gegner gerade anwählen und treffen? */
   get targetable(): boolean {
     return this.state === 'idle' || this.state === 'chase';
-  }
-
-  /** Als Ziel markiert: der Lebensbalken ist dann immer zu sehen. */
-  setSelected(selected: boolean): void {
-    this.selected = selected;
-    this.refreshBar();
   }
 
   /** Zieht Leben ab. Wer dabei noch friedlich herumstand, geht zum Angriff über. */
@@ -75,7 +65,6 @@ export class Enemy extends Actor {
       return;
     }
     if (this.state === 'idle') this.startChase();
-    this.refreshBar();
   }
 
   /**
@@ -151,7 +140,6 @@ export class Enemy extends Actor {
   private startReturn(grid: Grid): void {
     this.state = 'return';
     this.hp = this.maxHp;
-    this.refreshBar();
     const route = findWaypoints(grid, this.pos, this.home);
     if (route && route.length > 0) {
       this.walkAlong(route);
@@ -178,7 +166,6 @@ export class Enemy extends Actor {
     this.state = 'dead';
     this.respawnIn = ENEMY_RESPAWN_MS;
     this.stop();
-    this.refreshBar();
     this.scene.tweens.add({ targets: this, alpha: 0, duration: 350, onComplete: () => this.setVisible(false) });
   }
 
@@ -187,19 +174,12 @@ export class Enemy extends Actor {
     this.hp = this.maxHp;
     this.pos.set(this.home.x, this.home.y);
     this.wanderIn = randomBetween(2000, 6000);
-    this.refreshBar();
     this.draw(false, 1000); // 1000 ms: setzt auch ein hängengebliebenes Aufblitzen zurück
     this.scene.tweens.killTweensOf(this);
     this.setVisible(true).setAlpha(0);
     this.scene.tweens.add({ targets: this, alpha: 1, duration: 500 });
   }
 
-  /** Der Balken ist nur zu sehen, wenn der Gegner angeschlagen oder angewählt ist. */
-  private refreshBar(): void {
-    const visible = this.alive && (this.selected || this.hp < this.maxHp);
-    this.barBack.setVisible(visible);
-    this.barFill.setVisible(visible).setScale(this.hp / this.maxHp, 1);
-  }
 }
 
 function randomBetween(min: number, max: number): number {

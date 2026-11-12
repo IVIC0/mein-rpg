@@ -6,6 +6,7 @@
 }
 
 #hud,
+#nameplates,
 #floaters {
   position: fixed;
   inset: 0;
@@ -19,7 +20,7 @@
 
 /* ---------------------------------------------------------------- Rahmen oben links */
 
-/* Die Ecke oben rechts bleibt frei: dort kommt später die Minimap hin. */
+/* Oben rechts sitzt die Knopf-Leiste; die Minimap kommt später darunter. */
 #frames {
   position: absolute;
   left: 10px;
@@ -459,47 +460,160 @@
   text-shadow: 0 1px 2px #000, 0 0 3px #000;
 }
 
-#bag-button {
+/* ---------------------------------------------------------------- Knopf-Leiste oben rechts */
+
+#topbar {
   position: absolute;
   right: 10px;
-  bottom: 14px;
-  padding: 6px 10px;
-  font: inherit;
-  font-weight: bold;
-  color: inherit;
+  top: 10px;
+  display: flex;
+  gap: 4px;
+  padding: 3px;
   background: rgba(22, 26, 22, 0.85);
   border: 2px solid #0c0f0c;
   border-radius: 4px;
-  cursor: pointer;
   pointer-events: auto;
 }
 
-#bag-button:hover {
+.topbar-button {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font: 16px/1 sans-serif;
+  color: #f4ecd2;
+  background: #2e342c;
+  border: 1px solid #0c0f0c;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.topbar-button:hover {
   border-color: #e8d9a0;
 }
 
-#bag-button kbd {
-  margin-left: 4px;
-  padding: 0 5px;
+/* Das zugehörige Fenster ist gerade offen. */
+.topbar-button.active {
+  border-color: #ffd34d;
+  background: #454d3c;
+}
+
+/* Symbol des Inventar-Knopfs: die Rüstung aus characters.png (Bild 133), mittig im Knopf. */
+.topbar-icon {
+  left: 4px;
+  top: 4px;
+  background-position: -19px -199px;
+}
+
+#settings {
+  position: absolute;
+  right: 10px;
+  top: 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  background: rgba(22, 26, 22, 0.94);
+  border: 2px solid #0c0f0c;
+  border-radius: 4px;
+  pointer-events: auto;
+}
+
+#settings label {
+  cursor: pointer;
+}
+
+#settings button {
+  padding: 4px 8px;
   font: inherit;
-  color: #1b2a1f;
-  background: #e8d9a0;
-  border-radius: 2px;
+  color: inherit;
+  background: #2e342c;
+  border: 1px solid #0c0f0c;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+#settings button:hover {
+  border-color: #e8d9a0;
+}
+
+/* ---------------------------------------------------------------- Namensschilder über Gegnern */
+
+/* Die Position setzt Nameplates.ts jeden Frame. */
+.nameplate {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 1px 1px #000, 0 0 3px #000;
+  will-change: transform;
+}
+
+.nameplate-level {
+  margin-left: 4px;
+  color: #c9bf9f;
+}
+
+/* Gleiche Farben wie im Zielrahmen: rot = deutlich stärker, grau = bringt kaum noch EP. */
+.nameplate-level.level-high {
+  color: #ff6a5c;
+}
+
+.nameplate-level.level-low {
+  color: #8a8a80;
+}
+
+.nameplate-bar {
+  width: 40px;
+  height: 5px;
+  margin: 1px auto 0;
+  box-sizing: border-box;
+  background: #1a1012;
+  border: 1px solid #000;
+}
+
+.nameplate-fill {
+  height: 100%;
+  background: #e0403a;
+}
+
+/* Das angewählte Ziel: Name gelb, Balken mit hellem Rand. */
+.nameplate.selected .nameplate-name {
+  color: #ffd34d;
+}
+
+.nameplate.selected .nameplate-bar {
+  border-color: #e8d9a0;
 }
 
 /* ---------------------------------------------------------------- Fenster "Charakter & Inventar" */
 
+/* Position und Größe setzt InventoryWindow.ts (verschieben, Größe ziehen, merken). */
 #inventory {
   position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 540px;
+  min-width: 290px;
+  min-height: 180px;
+  max-width: 100vw;
+  max-height: 100vh;
   padding: 8px 10px 10px;
   background: rgba(22, 26, 22, 0.94);
   border: 2px solid #0c0f0c;
   border-radius: 4px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.5);
   pointer-events: auto;
+}
+
+/* Angepinnt: heller Rand als Erkennungszeichen. */
+#inventory.pinned {
+  border-color: #6f6a4a;
 }
 
 .window-title {
@@ -512,7 +626,16 @@
   text-shadow: 0 1px 0 #000;
 }
 
-#inventory-close {
+#inventory-title {
+  cursor: move;
+}
+
+.window-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.window-buttons button {
   width: 22px;
   height: 22px;
   padding: 0;
@@ -524,16 +647,56 @@
   cursor: pointer;
 }
 
-#inventory-close:hover {
+.window-buttons button:hover {
   border-color: #e8d9a0;
 }
 
+/* Die Pinnnadel ist blass, solange das Fenster nicht angepinnt ist. */
+#inventory-pin {
+  font-size: 11px;
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+#inventory.pinned #inventory-pin {
+  filter: none;
+  opacity: 1;
+  border-color: #ffd34d;
+}
+
+/* Griff unten rechts zum Ziehen der Größe: zwei schräge Striche. */
+#inventory-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, #6f7566 50%, #6f7566 60%, transparent 60%, transparent 75%, #6f7566 75%, #6f7566 85%, transparent 85%);
+}
+
+/* Ist das Fenster kleiner als sein Inhalt, lässt sich der Inhalt scrollen. */
 .window-columns {
   display: flex;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #6f7566 transparent;
 }
 
-/* Ausrüstung: 3 Felder pro Zeile. Inventar: 8 Felder pro Zeile. */
+.window-column {
+  flex: none;
+}
+
+/* Die Inventar-Spalte nimmt den restlichen Platz – so passen bei breitem Fenster mehr Felder in eine Zeile. */
+.window-column:last-child {
+  flex: 1;
+  min-width: 84px;
+}
+
+/* Ausrüstung: 3 Felder pro Zeile. Inventar: so viele, wie in die Breite passen (Standard: 8). */
 #equipment,
 #bag {
   display: grid;
@@ -546,7 +709,7 @@
 }
 
 #bag {
-  grid-template-columns: repeat(8, 40px);
+  grid-template-columns: repeat(auto-fill, 40px);
 }
 
 .item-cell {
