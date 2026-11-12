@@ -2,23 +2,30 @@
 // Daten geprüft und – bei altem Format – ins aktuelle Format gebracht werden.
 // Wo die Spielstände liegen (Slots im Browser), steht in src/save/slots.ts.
 
+import { GAME_TITLE } from '../config';
 import { AFFIXES, EQUIP_SLOTS, ITEM_BASES, RARITIES, type EquipSlot } from '../data/items';
 import { INVENTORY_SIZE } from '../data/loot';
 import { MAX_LEVEL } from '../data/progression';
 import { NAME_MAX_LENGTH, SAVE_VERSION } from '../data/save';
+import { POTION, SHOP_STOCK } from '../data/shop';
 import { STATS, type StatId } from '../data/stats';
 import type { TestSaveDef } from '../data/testSaves';
 import { WARRIOR } from '../data/warrior';
 import { generateItem, type Item, type RolledAffix, type RolledValue } from '../items/generator';
-import { normalizeSettings, type Settings } from '../ui/settings';
+import type { GroundItem } from '../items/GroundLoot';
+import type { ShopData } from '../items/Shop';
 
-/** Daran erkennt das Spiel beim Import, dass eine Datei wirklich ein Spielstand von ihm ist. */
+/**
+ * Daran erkennt das Spiel beim Import, dass eine Datei wirklich ein Spielstand von ihm ist.
+ * Das ist ein technisches Kennzeichen, nicht der Spielname – nicht ändern, sonst laden alte Spielstände nicht mehr.
+ */
 const APP_ID = 'mein-rpg';
 
 /**
  * Ein Spielstand. Er besteht nur aus einfachen Daten (Zahlen, Texte, Listen) und wird
  * als JSON-Text gespeichert. Die Werte der Figur (Leben, Angriffskraft, Rüstung …) stehen
  * nicht darin: Sie ergeben sich aus Stufe und Ausrüstung und werden beim Laden neu berechnet.
+ * Auch die HUD-Einstellungen stehen nicht darin – sie gelten für alle Spielstände (src/ui/settings.ts).
  */
 export interface SaveGame {
   app: typeof APP_ID;
@@ -38,8 +45,12 @@ export interface SaveGame {
   gold: number;
   bag: (Item | null)[];
   equipped: Record<EquipSlot, Item | null>;
-  /** Die HUD-Einstellungen aus src/ui/settings.ts. */
-  settings: Settings;
+  /** Heiltränke im Gepäck. */
+  potions: number;
+  /** Items, die noch am Boden liegen. */
+  groundItems: GroundItem[];
+  /** Das Sortiment des Händlers und wann neue Ware kommt. */
+  shop: ShopData;
   /**
    * Besiegte Bosse: Schlüssel = Boss (Typ und Platz), Wert = Zeitpunkt (Date.now()),
    * zu dem er wieder erscheint. Die Uhr läuft also weiter, auch wenn das Spiel zu ist.
@@ -57,12 +68,20 @@ type Plain = Record<string, unknown>;
  * einen im Format n + 1. Beim Laden werden sie der Reihe nach angewendet, bis SAVE_VERSION
  * erreicht ist. Beispiel für später (Feld "gold" heißt ab Format 2 "coins"):
  *
- *   1: (old) => ({ ...old, version: 2, coins: old.gold }),
+ *   2: (old) => ({ ...old, version: 3, coins: old.gold }),
  */
-const MIGRATIONS: Record<number, (old: Plain) => Plain> = {};
+const MIGRATIONS: Record<number, (old: Plain) => Plain> = {
+  // Format 1 → 2 (Meilenstein 8): Die HUD-Einstellungen sind nicht mehr Teil des Spielstands.
+  // Neu dazugekommen sind Tränke, Items am Boden und das Händler-Sortiment – was fehlt,
+  // füllt normalize() unten mit Standardwerten (keine Tränke, nichts am Boden, frische Ware).
+  1: (old) => {
+    const { settings: _settings, ...rest } = old;
+    return { ...rest, version: 2 };
+  },
+};
 
 /** Ein frischer Spielstand: Stufe 1, leeres Inventar, am Startpunkt. */
-export function newSave(name: string, settings: Settings): SaveGame {
+export function newSave(name: string): SaveGame {
   const now = Date.now();
   return {
     app: APP_ID,
@@ -76,16 +95,19 @@ export function newSave(name: string, settings: Settings): SaveGame {
     gold: 0,
     bag: new Array<Item | null>(INVENTORY_SIZE).fill(null),
     equipped: emptyEquipment(),
-    settings: normalizeSettings(settings),
+    potions: 0,
+    groundItems: [],
+    shop: { stock: [], restockAt: 0 },
     bossRespawnAt: {},
   };
 }
 
 /** Baut einen Test-Spielstand aus einer Vorlage (src/data/testSaves.ts). Die Items werden dabei gewürfelt. */
-export function testSave(def: TestSaveDef, settings: Settings): SaveGame {
-  const save = newSave(def.name, settings);
+export function testSave(def: TestSaveDef): SaveGame {
+  const save = newSave(def.name);
   save.character.level = clampInt(def.level, 1, MAX_LEVEL, 1);
   save.gold = def.gold;
+  save.potions = clampInt(def.potions, 0, POTION.maxCarried, 0);
   for (const slot of EQUIP_SLOTS) {
     const rarity = def.equipped[slot.id];
     if (rarity) save.equipped[slot.id] = generateItem(save.character.level, rarity, slot.accepts);
@@ -114,7 +136,7 @@ export function parseSave(text: string): ParseResult {
     return { ok: false, reason: 'Die Daten sind beschädigt und lassen sich nicht lesen.' };
   }
   if (!isPlain(raw) || raw.app !== APP_ID || typeof raw.version !== 'number') {
-    return { ok: false, reason: 'Das ist kein Spielstand von diesem Spiel.' };
+    return { ok: false, reason: `Das ist kein Spielstand von ${GAME_TITLE}.` };
   }
   if (raw.version > SAVE_VERSION) {
     return {
@@ -155,6 +177,20 @@ function normalize(data: Plain): SaveGame {
     if (item && item.slot === slot.accepts) equipped[slot.id] = item;
   }
 
+  const groundItems: GroundItem[] = [];
+  if (Array.isArray(data.groundItems)) {
+    for (const entry of data.groundItems as unknown[]) {
+      const item = isPlain(entry) ? cleanItem(entry.item) : null;
+      if (!item || !isPlain(entry) || !isNumber(entry.x) || !isNumber(entry.y)) continue;
+      groundItems.push({ item, x: entry.x, y: entry.y, ageMs: isNumber(entry.ageMs) ? Math.max(0, entry.ageMs) : 0 });
+    }
+  }
+
+  // Händler: Fehlt das Sortiment (alter Spielstand), bleibt es leer – dann kommt beim ersten Besuch frische Ware.
+  const storedShop = isPlain(data.shop) ? data.shop : {};
+  const stock = Array.isArray(storedShop.stock) ? (storedShop.stock as unknown[]).slice(0, SHOP_STOCK.size).map(cleanItem) : [];
+  const shop: ShopData = { stock, restockAt: stock.length > 0 && isNumber(storedShop.restockAt) ? storedShop.restockAt : 0 };
+
   const bossRespawnAt: Record<string, number> = {};
   if (isPlain(data.bossRespawnAt)) {
     for (const [key, value] of Object.entries(data.bossRespawnAt)) if (isNumber(value)) bossRespawnAt[key] = value;
@@ -176,7 +212,9 @@ function normalize(data: Plain): SaveGame {
     gold: clampInt(data.gold, 0, Number.MAX_SAFE_INTEGER, 0),
     bag,
     equipped,
-    settings: normalizeSettings(data.settings),
+    potions: clampInt(data.potions, 0, POTION.maxCarried, 0),
+    groundItems,
+    shop,
     bossRespawnAt,
   };
 }

@@ -18,6 +18,9 @@ const SEED = 20261111;
 
 const SPAWN = { x: 22, y: 75 };
 
+// Der Händler steht auf dem Dorfplatz, rechts oberhalb des Brunnens (Werte: src/data/shop.ts).
+const MERCHANT = { x: 25, y: 70 };
+
 const VILLAGE = { cx: 22, cy: 72, rx: 15, ry: 10.5 };
 
 // Lichtungen: Platz für spätere Gegnergruppen. `marker` landet als Punkt in der Karte.
@@ -476,6 +479,7 @@ const toPoint = (m) => ({
 });
 const markers = [
   { name: 'spawn', type: 'spawn', x: SPAWN.x, y: SPAWN.y },
+  { name: 'haendler', type: 'npc', x: MERCHANT.x, y: MERCHANT.y },
   ...CLEARINGS.map((c) => ({ name: c.marker, type: 'gebiet', x: Math.round(c.cx), y: Math.round(c.cy) })),
 ].map(toPoint);
 const enemyPoints = enemySpawns.map(toPoint);

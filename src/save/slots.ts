@@ -144,7 +144,7 @@ export function exportSlot(id: string): void {
 
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-  link.download = `mein-rpg-${name}-${date}.json`;
+  link.download = `rogoi-offline-${name}-${date}.json`;
   link.click();
   URL.revokeObjectURL(link.href);
 }

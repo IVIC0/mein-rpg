@@ -12,6 +12,8 @@ export interface TestSaveDef {
   name: string;
   level: number;
   gold: number;
+  /** Heiltränke im Gepäck (höchstens POTION.maxCarried aus src/data/shop.ts). */
+  potions: number;
   /** Angelegte Ausrüstung: Platz → Seltenheit. Die Werte werden gewürfelt, Itemlevel = Stufe der Figur. */
   equipped: Partial<Record<EquipSlot, RarityId>>;
   /** Inventar: je Eintrag ein zufälliges Item dieser Seltenheit (Itemlevel = Stufe der Figur). */
@@ -24,6 +26,7 @@ export const TEST_SAVES: TestSaveDef[] = [
     name: 'Test Stufe 1',
     level: 1,
     gold: 0,
+    potions: 0,
     equipped: {},
     bag: [],
   },
@@ -32,6 +35,7 @@ export const TEST_SAVES: TestSaveDef[] = [
     name: 'Test Stufe 5',
     level: 5,
     gold: 150,
+    potions: 2,
     equipped: { weapon: 'uncommon', chest: 'common', helmet: 'common', boots: 'uncommon' },
     bag: ['common', 'common', 'common', 'uncommon', 'uncommon', 'rare'],
   },
@@ -40,6 +44,7 @@ export const TEST_SAVES: TestSaveDef[] = [
     name: 'Test Stufe 10',
     level: 10,
     gold: 1500,
+    potions: 5,
     equipped: {
       weapon: 'epic',
       shield: 'rare',

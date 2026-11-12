@@ -43,6 +43,8 @@ export class Nameplates {
   private readonly ownFill: HTMLElement;
   private ownVisible = true;
   private ownPercent = -1;
+  /** Schilder für friedliche Figuren (Händler): nur ein Name an einem festen Platz. */
+  private readonly labels: { x: number; y: number; root: HTMLElement }[] = [];
 
   /** `playerName` = Name der eigenen Figur aus dem Spielstand. */
   constructor(root: HTMLElement, enemies: Enemy[], playerName: string) {
@@ -80,6 +82,15 @@ export class Nameplates {
     });
   }
 
+  /** Ein Namensschild für eine friedliche Figur, die am Punkt (x, y) steht (z. B. der Händler). */
+  addLabel(x: number, y: number, name: string): void {
+    const root = document.createElement('div');
+    root.className = 'nameplate nameplate-npc';
+    root.textContent = name;
+    this.own.parentElement?.appendChild(root);
+    this.labels.push({ x, y, root });
+  }
+
   /** Trägt den Namen der eigenen Figur ein (auch nach dem Umbenennen). */
   setPlayerName(name: string): void {
     this.ownName.textContent = name;
@@ -93,6 +104,11 @@ export class Nameplates {
    */
   render(camera: Phaser.Cameras.Scene2D.Camera, player: Player, target: Enemy | null, settings: Settings): void {
     this.renderOwn(camera, player, settings.playerPlate.scale);
+    for (const label of this.labels) {
+      const x = (label.x - camera.scrollX - camera.width / 2) * camera.zoom + camera.width / 2;
+      const y = (label.y + 5 - 16 - GAP_Y - camera.scrollY - camera.height / 2) * camera.zoom + camera.height / 2;
+      label.root.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
+    }
     const showAll = settings.enemyPlates.showAll;
     const scale = settings.enemyPlates.scale;
     for (const plate of this.plates) {

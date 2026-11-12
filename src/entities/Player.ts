@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BODY_RADIUS, COMBAT_TIMEOUT_MS, PLAYER_SPEED, SWING, SWING_HOLD_MS, SWING_RADIUS, SWING_TRAIL_WIDTH, SWING_WEAPON_FRAME } from '../config';
 import { MAX_LEVEL, xpToNext } from '../data/progression';
+import { POTION } from '../data/shop';
 import { emptyStats, withAttributesApplied, type Stats } from '../data/stats';
 import { SKILLS, WARRIOR, warriorStat, type SkillDef, type SkillId } from '../data/warrior';
 import type { Grid, Point } from '../world/Grid';
@@ -28,6 +29,10 @@ export class Player extends Actor {
   level = 1;
   /** Gesammelte EP innerhalb der aktuellen Stufe. */
   xp = 0;
+
+  /** Heiltränke im Gepäck (Taste Q, Werte in src/data/shop.ts) und die Zeit, bis der nächste wirkt. */
+  potions = 0;
+  potionCooldown = 0;
 
   /** Zeit bis zum nächsten Auto-Angriff in Millisekunden. */
   attackCooldown = 0;
@@ -119,6 +124,19 @@ export class Player extends Actor {
 
   heal(amount: number): void {
     this.hp = Math.min(this.maxHp, this.hp + amount);
+  }
+
+  /**
+   * Trinkt einen Heiltrank. Gibt zurück, wie viel Leben er gebracht hat –
+   * 0 heißt: ging nicht (keiner da, Abklingzeit läuft, Leben voll oder am Boden).
+   */
+  drinkPotion(): number {
+    if (!this.alive || this.potions <= 0 || this.potionCooldown > 0 || this.hp >= this.maxHp) return 0;
+    const before = this.hp;
+    this.heal(this.maxHp * POTION.healFraction);
+    this.potions--;
+    this.potionCooldown = POTION.cooldownMs;
+    return this.hp - before;
   }
 
   /** Faktor auf erlittenen Schaden, 1 = voller Schaden. */
@@ -251,6 +269,7 @@ export class Player extends Actor {
   /** Lässt Abklingzeiten und Buffs ablaufen und regeneriert Leben. */
   tick(deltaMs: number): void {
     this.attackCooldown = Math.max(0, this.attackCooldown - deltaMs);
+    this.potionCooldown = Math.max(0, this.potionCooldown - deltaMs);
     for (const [id, remaining] of this.cooldowns) this.cooldowns.set(id, Math.max(0, remaining - deltaMs));
 
     if (this.buffs.length > 0) {

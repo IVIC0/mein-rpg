@@ -4,22 +4,27 @@ import { BODY_RADIUS, BOSS_RESPAWN_MS, HOLD_DELAY_MS, TILE, zoomForViewport } fr
 import { ENEMIES } from '../data/enemies';
 import { RARITIES } from '../data/items';
 import { AUTOSAVE_INTERVAL_MS, SAVE_DELAY_MS } from '../data/save';
+import { MERCHANT } from '../data/shop';
 import { SKILLS, WARRIOR } from '../data/warrior';
 import { Actor } from '../entities/Actor';
 import { Enemy } from '../entities/Enemy';
+import { Merchant } from '../entities/Merchant';
 import { Player } from '../entities/Player';
 import { generateItem } from '../items/generator';
 import { GroundLoot } from '../items/GroundLoot';
 import { Inventory } from '../items/Inventory';
+import { Shop } from '../items/Shop';
 import { cleanName, type SaveGame } from '../save/saveGame';
 import { readTestParams, session, writeSlot } from '../save/slots';
 import { FloatingText } from '../ui/FloatingText';
 import { Hud } from '../ui/Hud';
 import { HudLayout } from '../ui/HudLayout';
 import { InventoryWindow } from '../ui/InventoryWindow';
+import { ItemTooltip } from '../ui/ItemTooltip';
 import { Nameplates } from '../ui/Nameplates';
 import { SaveMenu } from '../ui/SaveMenu';
 import { SettingsMenu } from '../ui/SettingsMenu';
+import { ShopWindow } from '../ui/ShopWindow';
 import { byId } from '../ui/dom';
 import { Grid, type Point } from '../world/Grid';
 import { findWaypoints } from '../world/pathfinding';
@@ -37,6 +42,8 @@ const MAX_FRAME_MS = 100;
  * - Klick auf ein Hindernis: nichts passiert, ein rotes X zeigt das an.
  * - Gedrückt halten: Figur läuft direkt dem Mauszeiger nach und rutscht an
  *   Hindernissen entlang. Loslassen = stehen bleiben.
+ *
+ * Klick auf den Händler im Dorf: hinlaufen und handeln. Q trinkt einen Heiltrank.
  *
  * Skills lösen von selbst aus (siehe Combat). I oder C öffnet Charakter & Inventar.
  * Esc schließt das Fenster (wenn es nicht angepinnt ist) bzw. hebt die Zielauswahl auf.
@@ -57,6 +64,12 @@ export class WorldScene extends Phaser.Scene {
   private saveMenu!: SaveMenu;
   private inventory!: Inventory;
   private hud!: Hud;
+  private loot!: GroundLoot;
+  private merchant!: Merchant;
+  private shop!: Shop;
+  private shopWindow!: ShopWindow;
+  /** Ist die Figur gerade auf dem Weg zum Händler? Dann öffnet sich der Handel, sobald sie ankommt. */
+  private walkingToMerchant = false;
   /** Die Bosse der Karte mit ihrem Schlüssel im Spielstand (Typ und Platz). */
   private readonly bosses = new Map<string, Enemy>();
   /** Gespielte Zeit dieses Spielstands in Millisekunden. */
@@ -94,7 +107,12 @@ export class WorldScene extends Phaser.Scene {
     objects.forEachTile((tile) => {
       if (tile.index !== -1) blocked[tile.y * map.width + tile.x] = 1;
     });
+    // Der Händler steht fest an seinem Platz – seine Kachel ist ebenfalls ein Hindernis.
+    const merchantAt = map.findObject('Marker', (object) => object.name === 'haendler');
+    if (!merchantAt || merchantAt.x === undefined || merchantAt.y === undefined) throw new Error('Marker "haendler" fehlt in der Karte.');
+    blocked[Grid.toTile(merchantAt.y) * map.width + Grid.toTile(merchantAt.x)] = 1;
     this.grid = new Grid(map.width, map.height, blocked);
+    this.merchant = new Merchant(this, merchantAt.x, merchantAt.y);
 
     const spawn = map.findObject('Marker', (object) => object.name === 'spawn');
     if (!spawn || spawn.x === undefined || spawn.y === undefined) throw new Error('Marker "spawn" fehlt in der Karte.');
@@ -119,15 +137,24 @@ export class WorldScene extends Phaser.Scene {
 
     this.floaters = new FloatingText(byId('floaters'));
     this.nameplates = new Nameplates(byId('nameplates'), enemies, save.name);
+    this.nameplates.addLabel(this.merchant.pos.x, this.merchant.pos.y, MERCHANT.name);
     const hud = new Hud(SKILLS);
     this.hud = hud;
 
     // Inventar und Ausrüstung: nach jeder Änderung bekommt die Figur ihre neuen Werte.
     const inventory = new Inventory();
     this.inventory = inventory;
-    this.inventoryWindow = new InventoryWindow(inventory, this.player, hud);
-    // Einstellungen (ein Objekt: settings.values, aus dem Spielstand) und die Anordnung der HUD-Elemente.
-    this.settings = new SettingsMenu(save.settings, () => this.requestSave());
+    const tooltip = new ItemTooltip(inventory);
+    this.inventoryWindow = new InventoryWindow(inventory, this.player, hud, tooltip);
+    // Händler: Sortiment und Preise (Shop) und sein Fenster.
+    this.shop = new Shop(inventory, this.player);
+    this.shopWindow = new ShopWindow(this.shop, inventory, this.player, hud, tooltip, this.inventoryWindow);
+    this.shop.onChange = () => {
+      this.shopWindow.render();
+      this.requestSave();
+    };
+    // Einstellungen (ein Objekt: settings.values, gilt für alle Spielstände) und die Anordnung der HUD-Elemente.
+    this.settings = new SettingsMenu();
     this.hudLayout = new HudLayout(this.settings.values, hud, () => this.settings.save());
     this.settings.connect({
       onChange: () => this.hudLayout.apply(),
@@ -137,8 +164,13 @@ export class WorldScene extends Phaser.Scene {
     inventory.onChange = () => {
       this.player.setGear(inventory.equippedStats(), inventory.equipped.weapon?.icon ?? null);
       this.inventoryWindow.render();
+      this.shopWindow.render();
       this.requestSave();
     };
+
+    const loot = new GroundLoot(this, inventory, hud, this.floaters);
+    this.loot = loot;
+    loot.onChange = () => this.requestSave();
 
     this.applySave(save);
     this.showName(save.name);
@@ -148,7 +180,6 @@ export class WorldScene extends Phaser.Scene {
     if (test.level > 1) this.player.setLevel(test.level);
     for (let i = 0; i < test.loot; i++) inventory.add(generateItem(this.player.level, RARITIES[i % RARITIES.length].id));
 
-    const loot = new GroundLoot(this, inventory, hud, this.floaters);
     this.combat = new Combat(this, this.grid, this.player, enemies, hud, this.floaters, { x: spawn.x, y: spawn.y }, inventory, loot);
     this.combat.onSaveEvent = () => this.requestSave();
 
@@ -156,7 +187,6 @@ export class WorldScene extends Phaser.Scene {
     this.saveMenu = new SaveMenu({
       saveNow: () => this.saveNow(),
       rename: (name) => this.rename(name),
-      settings: () => this.settings.values,
     });
     // Beide Menüs sitzen am selben Platz: Öffnet man das eine, geht das andere zu.
     byId('saves-button').addEventListener('click', () => this.settings.close());
@@ -189,11 +219,13 @@ export class WorldScene extends Phaser.Scene {
       if (this.hudLayout.editing) this.hudLayout.setEditing(false);
       else if (this.saveMenu.isOpen) this.saveMenu.close();
       else if (this.settings.isOpen) this.settings.close();
+      else if (this.shopWindow.isOpen) this.shopWindow.close();
       else if (this.inventoryWindow.isOpen && !this.inventoryWindow.pinned) this.inventoryWindow.close();
       else this.combat.clearTarget();
     });
     this.input.keyboard?.on('keydown-I', () => this.inventoryWindow.toggle());
     this.input.keyboard?.on('keydown-C', () => this.inventoryWindow.toggle());
+    this.input.keyboard?.on('keydown-Q', () => this.drinkPotion());
 
     // Schadenszahlen erst nach dem Zeichnen platzieren: dann steht die Kamera für diesen Frame fest.
     this.events.on(Phaser.Scenes.Events.RENDER, this.renderFloaters, this);
@@ -213,6 +245,7 @@ export class WorldScene extends Phaser.Scene {
     // Erst die Kampfregeln (Gegner, Angriffe, Ziel verfolgen), dann die Bewegung der Figur.
     this.combat.update(delta);
     this.inventoryWindow.update();
+    this.updateMerchant();
 
     if (!this.player.alive) {
       this.cancelPress();
@@ -227,15 +260,65 @@ export class WorldScene extends Phaser.Scene {
     }
     this.followPlayer();
 
-    // Über einem Gegner wird der Mauszeiger zur Hand.
-    this.input.setDefaultCursor(this.player.alive && this.combat.enemyAt(cursor) ? 'pointer' : 'default');
+    // Über einem Gegner oder dem Händler wird der Mauszeiger zur Hand.
+    const clickable = this.combat.enemyAt(cursor) !== null || this.merchant.contains(cursor);
+    this.input.setDefaultCursor(this.player.alive && clickable ? 'pointer' : 'default');
+  }
+
+  // ---------------------------------------------------------------- Händler und Heiltrank
+
+  /** Klick auf den Händler: Steht die Figur nah genug, öffnet sich der Handel – sonst läuft sie erst hin. */
+  private visitMerchant(): void {
+    this.combat.disengage();
+    if (this.player.distanceTo(this.merchant.pos) <= MERCHANT.openRange) {
+      this.player.stop();
+      this.shopWindow.open();
+      return;
+    }
+    // Ziel ist die Stelle direkt vor ihm (eine Kachel tiefer), auf seiner eigenen Kachel steht er selbst.
+    const route = findWaypoints(this.grid, this.player.pos, { x: this.merchant.pos.x, y: this.merchant.pos.y + TILE });
+    if (!route || route.length === 0) return;
+    this.player.walkAlong(route);
+    this.walkingToMerchant = true;
+  }
+
+  /** Einmal pro Frame: Handel öffnen, wenn die Figur beim Händler ankommt, und schließen, wenn sie weggeht. */
+  private updateMerchant(): void {
+    const distance = this.player.distanceTo(this.merchant.pos);
+    if (this.walkingToMerchant && this.player.alive && distance <= MERCHANT.openRange) {
+      this.walkingToMerchant = false;
+      this.player.stop();
+      this.shopWindow.open();
+    }
+    if (this.shopWindow.isOpen && (distance > MERCHANT.closeRange || !this.player.alive)) this.shopWindow.close();
+    this.shopWindow.update();
+  }
+
+  /** Taste Q: einen Heiltrank trinken (Werte in src/data/shop.ts). */
+  private drinkPotion(): void {
+    const player = this.player;
+    if (!player.alive) return;
+    const healed = player.drinkPotion();
+    if (healed > 0) {
+      this.floaters.spawn(player.pos.x, player.pos.y - 8, `+${Math.round(healed)}`, 'heal');
+      this.hud.flashPotion();
+      this.shopWindow.render();
+      this.requestSave();
+    } else if (player.potions === 0) {
+      this.hud.flash('Kein Heiltrank');
+    } else if (player.potionCooldown > 0) {
+      this.hud.flash('Heiltrank noch nicht bereit');
+    }
   }
 
   // ---------------------------------------------------------------- Speichern und Laden
 
-  /** Übernimmt einen Spielstand: Inventar, Ausrüstung, Gold, Stufe, EP, Leben, Position, Boss-Timer. */
+  /** Übernimmt einen Spielstand: Inventar, Ausrüstung, Gold, Tränke, Stufe, EP, Leben, Position, Items am Boden, Händler, Boss-Timer. */
   private applySave(save: SaveGame): void {
     this.playedMs = save.playedMs;
+    this.player.potions = save.potions;
+    this.shop.load(save.shop);
+    this.loot.load(save.groundItems);
     // Erst die Ausrüstung (setzt über onChange die Werte der Figur), dann Stufe und Leben.
     this.inventory.load(save.bag, save.equipped, save.gold);
     this.player.restore(save.character.level, save.character.xp, save.character.hp);
@@ -268,7 +351,9 @@ export class WorldScene extends Phaser.Scene {
       gold: this.inventory.gold,
       bag: [...this.inventory.bag],
       equipped: { ...this.inventory.equipped },
-      settings: this.settings.values,
+      potions: player.potions,
+      groundItems: this.loot.toData(),
+      shop: this.shop.toData(),
       bossRespawnAt,
     };
   }
@@ -324,10 +409,16 @@ export class WorldScene extends Phaser.Scene {
     if (!pointer.leftButtonDown() || !this.player.alive) return;
     const world = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
 
+    this.walkingToMerchant = false;
     const enemy = this.combat.enemyAt(world);
     if (enemy) {
       this.cancelPress();
       this.combat.engage(enemy);
+      return;
+    }
+    if (this.merchant.contains(world)) {
+      this.cancelPress();
+      this.visitMerchant();
       return;
     }
 

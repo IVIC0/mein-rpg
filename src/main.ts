@@ -6,10 +6,12 @@ import { newSave } from './save/saveGame';
 import { ALL_SLOTS, MAIN_SLOTS, lastSlot, rawSlot, readSlot, readTestParams, session, setLastSlot, slotLabel, writeSlot } from './save/slots';
 import { askName } from './ui/dialog';
 import { SaveMenu } from './ui/SaveMenu';
-import { loadLegacySettings } from './ui/settings';
+import { GAME_TITLE } from './config';
+import { adoptSettingsFromOldSave } from './ui/settings';
 
 const versionLabel = document.getElementById('version');
-if (versionLabel) versionLabel.textContent = `v${__APP_VERSION__}`;
+if (versionLabel) versionLabel.textContent = `${GAME_TITLE} v${__APP_VERSION__}`;
+document.title = GAME_TITLE;
 
 void start();
 
@@ -23,11 +25,11 @@ void start();
 async function start(): Promise<void> {
   const last = lastSlot();
   const lastContent = last ? readSlot(last) : null;
+  // Einmaliger Umzug der HUD-Einstellungen aus einem alten Spielstand (siehe settings.ts).
+  adoptSettingsFromOldSave(rawSlot(last ?? ALL_SLOTS.find((id) => rawSlot(id) !== null) ?? MAIN_SLOTS[0]));
 
   if (readTestParams().active) {
-    // Der Testlauf sieht aus wie gewohnt (Einstellungen des letzten Slots), ändert dort aber nichts.
-    const settings = lastContent?.state === 'ok' ? lastContent.save.settings : loadLegacySettings();
-    session.save = newSave('Testfigur', settings);
+    session.save = newSave('Testfigur');
     startGame();
     return;
   }
@@ -41,10 +43,10 @@ async function start(): Promise<void> {
 
   if (ALL_SLOTS.every((id) => rawSlot(id) === null)) {
     // Allererster Start: Die Figur bekommt einen Namen und landet in Slot 1.
-    const name = (await askName('Willkommen! Wie soll deine Figur heißen?', '', false)) ?? '';
+    const name = (await askName(`Willkommen bei ${GAME_TITLE}! Wie soll deine Figur heißen?`, '', false)) ?? '';
     const slot = MAIN_SLOTS[0];
     session.slotId = slot;
-    session.save = newSave(name, loadLegacySettings());
+    session.save = newSave(name);
     writeSlot(slot, session.save);
     setLastSlot(slot);
     startGame();

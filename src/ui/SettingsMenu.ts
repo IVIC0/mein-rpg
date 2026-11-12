@@ -1,5 +1,5 @@
 import { byId } from './dom';
-import { HUD_ITEMS, OPACITY_RANGE, SCALE_RANGE, resetSettings, type Settings } from './settings';
+import { HUD_ITEMS, OPACITY_RANGE, SCALE_RANGE, loadSettings, resetSettings, saveSettings, type Settings } from './settings';
 
 /** Was das Menü nach außen meldet. */
 interface Callbacks {
@@ -14,19 +14,16 @@ interface Callbacks {
 /**
  * Das kleine Einstellungs-Menü hinter dem Zahnrad oben rechts. Die Bereiche sind
  * zugeklappt, damit es wenig Platz braucht. Alle Werte stehen in `values`
- * (ein Objekt, siehe settings.ts) und gehören zum Spielstand.
+ * (ein Objekt, siehe settings.ts). Sie gelten für alle Spielstände und werden im Browser gemerkt.
  */
 export class SettingsMenu {
+  readonly values: Settings = loadSettings();
   private readonly root = byId('settings');
   private readonly body = byId('settings-body');
   private readonly button = byId('settings-button');
   private callbacks: Callbacks | null = null;
 
-  /** `values` = die Einstellungen aus dem Spielstand; `onSave` wird nach jeder Änderung aufgerufen. */
-  constructor(
-    readonly values: Settings,
-    private readonly onSave: () => void,
-  ) {
+  constructor() {
     this.button.addEventListener('click', () => {
       this.setOpen(!this.isOpen);
       // Fokus abgeben: sonst würde die Leertaste den Knopf noch einmal drücken.
@@ -62,7 +59,7 @@ export class SettingsMenu {
 
   /** Merkt sich die Einstellungen (z. B. nach dem Verschieben eines HUD-Elements). */
   save(): void {
-    this.onSave();
+    saveSettings(this.values);
   }
 
   get isOpen(): boolean {

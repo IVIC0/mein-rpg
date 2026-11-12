@@ -1,10 +1,10 @@
+import { GAME_TITLE } from '../config';
 import { AUTOSAVE_INTERVAL_MS } from '../data/save';
 import { TEST_SAVES } from '../data/testSaves';
 import { cleanName, newSave, parseSave, testSave, type SaveGame } from '../save/saveGame';
 import { ALL_SLOTS, MAIN_SLOTS, TEST_SLOT, deleteSlot, exportSlot, lastSlot, rawSlot, readSlot, restartWith, session, slotLabel, writeSlot } from '../save/slots';
 import { askName, confirmDialog, showMessage } from './dialog';
 import { byId } from './dom';
-import { loadLegacySettings, type Settings } from './settings';
 
 /** Was das Menü vom laufenden Spiel braucht. */
 export interface GameHooks {
@@ -12,8 +12,6 @@ export interface GameHooks {
   saveNow: () => void;
   /** Gibt der laufenden Figur einen neuen Namen. */
   rename: (name: string) => void;
-  /** Die aktuellen Einstellungen – ein neuer Spielstand übernimmt eine Kopie davon. */
-  settings: () => Settings;
 }
 
 /**
@@ -42,7 +40,7 @@ export class SaveMenu {
         this.button.blur();
       });
     } else {
-      byId('saves-title').textContent = 'Spielstand wählen';
+      byId('saves-title').textContent = `${GAME_TITLE} – Spielstand wählen`;
       this.open();
     }
   }
@@ -153,11 +151,6 @@ export class SaveMenu {
     return button;
   }
 
-  /** Einstellungen für einen neuen Spielstand: die aktuellen, vor dem Spiel die des Browsers. */
-  private settingsForNew(): Settings {
-    return this.game ? this.game.settings() : loadLegacySettings();
-  }
-
   private load(id: string): void {
     this.game?.saveNow();
     restartWith(id);
@@ -167,7 +160,7 @@ export class SaveMenu {
     const name = await askName('Neue Figur – wie soll sie heißen?', '', true);
     // Nur in einen wirklich leeren Slot schreiben: nie etwas überschreiben.
     if (name === null || rawSlot(id) !== null) return;
-    if (!writeSlot(id, newSave(name, this.settingsForNew()))) return this.storageFailed();
+    if (!writeSlot(id, newSave(name))) return this.storageFailed();
     this.load(id);
   }
 
@@ -233,7 +226,7 @@ export class SaveMenu {
     this.game?.saveNow();
     // Einfrieren, damit ein gerade laufender Test-Spielstand den neuen nicht überschreibt.
     session.frozen = true;
-    if (!writeSlot(TEST_SLOT, testSave(def, this.settingsForNew()))) {
+    if (!writeSlot(TEST_SLOT, testSave(def))) {
       session.frozen = false;
       return this.storageFailed();
     }

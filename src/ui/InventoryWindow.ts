@@ -1,10 +1,13 @@
-import { EQUIP_SLOTS, ITEM_SLOT_NAMES, type EquipSlot } from '../data/items';
-import { ATTRIBUTE_EFFECTS, ATTRIBUTE_IDS, STATS, STAT_IDS, formatStatChange, formatStatRange, formatStatValue, withAttributesApplied } from '../data/stats';
+import { EQUIP_SLOTS, RARITIES, type EquipSlot } from '../data/items';
+import { SELL_CONFIRM_FROM, SELL_CONFIRM_MS, sellPrice } from '../data/shop';
+import { ATTRIBUTE_EFFECTS, ATTRIBUTE_IDS, STATS, formatStatChange, formatStatValue } from '../data/stats';
 import type { Player } from '../entities/Player';
-import { itemStats, rarityById, type Item, type RolledValue } from '../items/generator';
+import { rarityById, type Item } from '../items/generator';
 import type { Inventory } from '../items/Inventory';
+import type { Shop } from '../items/Shop';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
+import type { ItemTooltip } from './ItemTooltip';
 import { loadUi, saveUi } from './storage';
 import { damageReduction } from '../combat/damage';
 
@@ -45,6 +48,7 @@ interface Cell {
  *
  * Linksklick auf ein Item im Inventar legt es an, Linksklick auf angelegte Ausrüstung
  * legt sie ab. Umschalt + Linksklick wirft ein Item aus dem Inventar weg.
+ * Ist der Händler offen (setShop), verkauft ein Rechtsklick das Item.
  *
  * Das Fenster lässt sich an der Titelzeile verschieben, an der Ecke unten rechts in der
  * Größe ziehen und mit der Pinnnadel anpinnen. Position, Größe und Pin werden gemerkt.
@@ -54,7 +58,12 @@ export class InventoryWindow {
   private readonly statsBox = byId('character-stats');
   private readonly bagCount = byId('bag-count');
   private readonly gold = byId('gold');
-  private readonly tooltip = byId('item-tooltip');
+  private readonly help = byId('inventory-help');
+  /** Der Händler, solange sein Fenster offen ist – dann lässt sich per Rechtsklick verkaufen. */
+  private shop: Shop | null = null;
+  /** Das Feld, das auf den zweiten Sicherheits-Klick zum Verkaufen wartet. */
+  private confirming: Cell | null = null;
+  private confirmTimer = 0;
   private readonly cells: Cell[] = [];
   /** Das Feld unter dem Mauszeiger – sein Tooltip wird nach jeder Änderung neu geschrieben. */
   private hovered: Cell | null = null;
@@ -66,6 +75,7 @@ export class InventoryWindow {
     private readonly inventory: Inventory,
     private readonly player: Player,
     private readonly hud: Hud,
+    private readonly tooltip: ItemTooltip,
   ) {
     const equipment = byId('equipment');
     for (const slot of EQUIP_SLOTS) this.addCell(equipment, { kind: 'equip', slot: slot.id }, slot.label);
@@ -107,6 +117,14 @@ export class InventoryWindow {
     this.applyLayout();
   }
 
+  /** Händler offen (`shop`) oder wieder zu (null): schaltet das Verkaufen per Rechtsklick. */
+  setShop(shop: Shop | null): void {
+    this.shop = shop;
+    this.clearConfirm();
+    this.help.innerHTML = 'Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen' + (shop ? '<br /><b>Rechtsklick: verkaufen</b>' : '');
+    this.showTooltip();
+  }
+
   get isOpen(): boolean {
     return !this.root.hidden;
   }
@@ -127,7 +145,8 @@ export class InventoryWindow {
     this.root.hidden = true;
     this.bagButton.classList.remove('active');
     this.hovered = null;
-    this.tooltip.hidden = true;
+    this.clearConfirm();
+    this.tooltip.hide();
   }
 
   /** Zeichnet alle Felder neu. Aufrufen, wenn sich Inventar oder Ausrüstung geändert haben. */
@@ -245,13 +264,18 @@ export class InventoryWindow {
     box.innerHTML = `<span class="cell-label">${label}</span><span class="item-icon sprite-icon"></span>`;
     const cell: Cell = { ref, box, icon: box.querySelector('.item-icon') as HTMLElement };
     box.addEventListener('click', (event) => this.onClick(cell, event.shiftKey));
+    box.addEventListener('contextmenu', (event) => {
+      event.preventDefault(); // kein Browser-Menü
+      this.onRightClick(cell);
+    });
     box.addEventListener('mouseenter', () => {
       this.hovered = cell;
       this.showTooltip();
     });
     box.addEventListener('mouseleave', () => {
+      this.clearConfirm();
       if (this.hovered === cell) this.hovered = null;
-      this.showTooltip();
+      this.tooltip.hide();
     });
     parent.appendChild(box);
     this.cells.push(cell);
@@ -263,6 +287,7 @@ export class InventoryWindow {
 
   // Die Methoden des Inventars rufen onChange auf – darüber wird das Fenster neu gezeichnet.
   private onClick(cell: Cell, shift: boolean): void {
+    this.clearConfirm();
     const ref = cell.ref;
     if (ref.kind === 'bag') {
       if (shift) this.inventory.discard(ref.index);
@@ -277,64 +302,59 @@ export class InventoryWindow {
     const cell = this.hovered;
     const item = cell ? this.itemIn(cell.ref) : null;
     if (!cell || !item) {
-      this.tooltip.hidden = true;
+      // Nur ausblenden, wenn die Maus über diesem Fenster war – sonst gehört der Tooltip dem Händler-Fenster.
+      if (cell) this.tooltip.hide();
       return;
     }
-    this.tooltip.innerHTML = this.tooltipHtml(item, cell.ref.kind === 'bag');
-    this.tooltip.hidden = false;
-
-    // Links neben dem Fenster auf Höhe des Feldes, damit er nichts im Fenster verdeckt.
-    // Passt er dort nicht hin, rechts neben das Feld. Nie über den unteren Bildrand hinaus.
-    const rect = cell.box.getBoundingClientRect();
-    const windowLeft = this.root.getBoundingClientRect().left;
-    const width = this.tooltip.offsetWidth;
-    const height = this.tooltip.offsetHeight;
-    const left = windowLeft - width - 8 >= 4 ? windowLeft - width - 8 : rect.right + 8;
-    const top = Math.max(4, Math.min(rect.top, window.innerHeight - height - 4));
-    this.tooltip.style.left = `${Math.round(left)}px`;
-    this.tooltip.style.top = `${Math.round(top)}px`;
-  }
-
-  /** `inBag` = das Item liegt im Inventar: dann kommt der Vergleich mit dem angelegten Item dazu. */
-  private tooltipHtml(item: Item, inBag: boolean): string {
-    const rarity = rarityById(item.rarity);
-    const lines = [
-      `<b style="color: ${rarity.color}">${item.name}</b>`,
-      `<i>${rarity.name} · ${ITEM_SLOT_NAMES[item.slot]} · Itemlevel ${item.level}</i>`,
-      valueLine(item.base, 'tip-base'),
-      ...item.affixes.map((affix) => valueLine(affix, 'tip-affix')),
-    ];
-    if (inBag) {
-      lines.push('<hr>', ...this.compareLines(item), '<hr>', '<em>Linksklick: anlegen<br>Umschalt + Linksklick: wegwerfen</em>');
-    } else {
-      lines.push('<hr>', '<em>Linksklick: ablegen</em>');
+    const inBag = cell.ref.kind === 'bag';
+    const hints = inBag ? ['Linksklick: anlegen', 'Umschalt + Linksklick: wegwerfen'] : ['Linksklick: ablegen'];
+    if (inBag && this.shop) {
+      const gold = sellPrice(item.level, item.rarity);
+      if (cell === this.confirming) hints.push(`<span class="tip-down">Wirklich verkaufen? Nochmal Rechtsklick (${gold} Gold)</span>`);
+      else hints.push(`Rechtsklick: verkaufen für ${gold} Gold${needsConfirm(item) ? ' (mit Sicherheits-Klick)' : ''}`);
+    } else if (this.shop) {
+      hints.push('Zum Verkaufen erst ablegen');
     }
-    return lines.join('');
+    // Der Vergleich mit dem angelegten Item gibt es nur für Items im Inventar.
+    this.tooltip.show(item, cell.box, this.root, 'left', inBag, hints);
   }
 
   /**
-   * Vergleich mit dem Item, das beim Anlegen ersetzt würde: was die Figur gewinnt (grün)
-   * und verliert (rot). Attribute sind dabei schon in ihre Wirkung umgerechnet.
+   * Rechtsklick auf ein Item im Inventar, während der Händler offen ist: verkaufen.
+   * Seltene Items (ab SELL_CONFIRM_FROM) brauchen einen zweiten Rechtsklick zur Sicherheit.
    */
-  private compareLines(item: Item): string[] {
-    const current = this.inventory.equipped[this.inventory.slotFor(item)];
-    const gain = withAttributesApplied(itemStats(item));
-    const loss = withAttributesApplied(itemStats(current));
-    const changes = STAT_IDS.map((id) => ({ id, diff: gain[id] - loss[id] })).filter((change) => Math.abs(change.diff) > 0.001);
+  private onRightClick(cell: Cell): void {
+    const ref = cell.ref;
+    if (!this.shop || ref.kind !== 'bag') return;
+    const item = this.inventory.bag[ref.index];
+    if (!item) return;
+    if (needsConfirm(item) && this.confirming !== cell) {
+      this.clearConfirm();
+      this.confirming = cell;
+      cell.box.classList.add('confirm-sell');
+      this.confirmTimer = window.setTimeout(() => this.clearConfirm(), SELL_CONFIRM_MS);
+      this.showTooltip();
+      return;
+    }
+    this.clearConfirm();
+    const gold = this.shop.sell(ref.index);
+    if (gold > 0) this.hud.flash(`Verkauft: +${gold} Gold`);
+  }
 
-    const title = current ? `Beim Anlegen statt „${current.name}“:` : 'Beim Anlegen (Platz ist frei):';
-    if (changes.length === 0) return [`<u>${title}</u>`, '<div>keine Veränderung</div>'];
-    return [
-      `<u>${title}</u>`,
-      ...changes.map((change) => `<div class="${change.diff > 0 ? 'tip-up' : 'tip-down'}">${formatStatChange(change.id, change.diff)}</div>`),
-    ];
+  /** Nimmt den ersten Sicherheits-Klick zurück (Zeit um, Maus weg oder verkauft). */
+  private clearConfirm(): void {
+    window.clearTimeout(this.confirmTimer);
+    if (!this.confirming) return;
+    this.confirming.box.classList.remove('confirm-sell');
+    this.confirming = null;
+    this.showTooltip();
   }
 }
 
-/** Eine Zeile wie "+7 Stärke (5–9)": der Wert und die Spanne, in der er liegen konnte. */
-function valueLine(rolled: RolledValue, cssClass: string): string {
-  const range = rolled.min === rolled.max ? '' : ` <small>(${formatStatRange(rolled.stat, rolled.min, rolled.max)})</small>`;
-  return `<div class="${cssClass}">${formatStatChange(rolled.stat, rolled.value)}${range}</div>`;
+/** Braucht das Verkaufen dieses Items einen zweiten Klick? (Episch und höher) */
+function needsConfirm(item: Item): boolean {
+  const order = RARITIES.map((rarity) => rarity.id);
+  return order.indexOf(item.rarity) >= order.indexOf(SELL_CONFIRM_FROM);
 }
 
 function clamp(value: number, min: number, max: number): number {

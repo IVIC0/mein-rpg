@@ -1,5 +1,6 @@
 import { RANKS, traitName } from '../data/elites';
 import { isTrivial } from '../data/progression';
+import { POTION } from '../data/shop';
 import { WARRIOR, type SkillDef, type SkillId } from '../data/warrior';
 import { byId, iconPosition } from './dom';
 import { describeEffect, describeTrigger } from './skillText';
@@ -50,6 +51,8 @@ export class Hud {
   private readonly levelUpText = byId('levelup-text');
   private readonly lootLog = byId('loot-log');
   private readonly slots: Slot[] = [];
+  /** Das Feld für den Heiltrank am Ende der Skill-Leiste (Taste Q). */
+  private readonly potion: { box: HTMLElement; cooldown: HTMLElement; timer: HTMLElement; count: HTMLElement };
   private messageTimer = 0;
   private levelUpTimer = 0;
   /** Bearbeitungsmodus (HudLayout): der Zielrahmen ist dann auch ohne Ziel zu sehen, damit man ihn ziehen kann. */
@@ -87,6 +90,37 @@ export class Hud {
         count: box.querySelector('.skill-count') as HTMLElement,
       });
     }
+
+    // Der Heiltrank steht hinter den Skills. Er ist das Einzige in der Leiste, das man selbst auslöst.
+    const box = document.createElement('div');
+    box.className = 'skill potion';
+    box.innerHTML = `
+      <span class="skill-icon sprite-icon" style="background-position: ${iconPosition(POTION.frame)}"></span>
+      <span class="skill-cooldown"></span>
+      <span class="skill-timer"></span>
+      <span class="skill-count"></span>
+      <span class="skill-key">Q</span>
+      <span class="skill-tooltip">
+        <b>${POTION.name}</b>
+        <i>${POTION.cooldownMs / 1000} s Abklingzeit</i>
+        <u>Taste Q</u>
+        Heilt ${Math.round(POTION.healFraction * 100)} % des maximalen Lebens.
+        <em>Gibt es beim Händler im Dorf, höchstens ${POTION.maxCarried} im Gepäck.</em>
+      </span>`;
+    bar.appendChild(box);
+    this.potion = {
+      box,
+      cooldown: box.querySelector('.skill-cooldown') as HTMLElement,
+      timer: box.querySelector('.skill-timer') as HTMLElement,
+      count: box.querySelector('.skill-count') as HTMLElement,
+    };
+  }
+
+  /** Lässt das Trank-Feld kurz aufleuchten – die Figur hat gerade getrunken. */
+  flashPotion(): void {
+    this.potion.box.classList.remove('fired');
+    void this.potion.box.offsetWidth;
+    this.potion.box.classList.add('fired');
   }
 
   /** Trägt die aktuellen Werte ein. Einmal pro Frame aufrufen. */
@@ -126,6 +160,12 @@ export class Hud {
       setWidth(this.targetFill, target.hp / target.maxHp);
       setText(this.targetText, `${Math.ceil(target.hp)} / ${target.maxHp}`);
     }
+
+    // Heiltrank: Anzahl, Abklingzeit; ohne Trank ist das Feld dunkel.
+    setHeight(this.potion.cooldown, player.potionCooldown / POTION.cooldownMs);
+    setText(this.potion.timer, player.potionCooldown > 0 ? `${Math.ceil(player.potionCooldown / 1000)}` : '');
+    setText(this.potion.count, `${player.potions}`);
+    this.potion.box.classList.toggle('empty', player.potions === 0);
 
     for (const slot of this.slots) {
       const skill = slot.skill;

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mein RPG</title>
+    <title>Rogoi Offline</title>
     <style>
       html,
       body {
@@ -140,11 +140,33 @@
               <span id="bag-count"></span>
               <span id="gold"></span>
             </div>
-            <div class="window-help">Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen</div>
+            <!-- Ist der Händler offen, ergänzt InventoryWindow.setShop hier "Rechtsklick: verkaufen". -->
+            <div class="window-help" id="inventory-help">Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen</div>
           </div>
         </div>
         <!-- Ecke unten rechts: daran lässt sich die Größe ziehen. -->
         <div id="inventory-resize" title="Größe ändern"></div>
+      </div>
+
+      <!-- Händler (Klick auf den Händler im Dorf). Das Sortiment baut src/ui/ShopWindow.ts. -->
+      <div id="shop" hidden>
+        <div class="window-title">
+          <span>Händler</span>
+          <span class="window-buttons">
+            <button id="shop-close" type="button" title="Schließen (Esc)">×</button>
+          </span>
+        </div>
+        <div id="shop-stock"></div>
+        <div class="bag-footer">
+          <span id="shop-restock"></span>
+          <span id="shop-gold"></span>
+        </div>
+        <div id="shop-potion">
+          <span class="shop-potion-icon"><span id="shop-potion-icon" class="sprite-icon"></span></span>
+          <span id="shop-potion-text"></span>
+          <button id="shop-potion-buy" type="button"></button>
+        </div>
+        <div class="window-help">Linksklick auf Ware: kaufen<br />Rechtsklick auf ein Item im Inventar: verkaufen</div>
       </div>
       <div id="item-tooltip" hidden></div>
 
