@@ -1,3 +1,5 @@
+import type { EnemyRank } from './loot';
+
 // Leveln: Levelkurve, EP pro Gegner und EP-/Gold-Verlust beim Tod.
 // Der Wertezuwachs pro Stufe steht bei der Klasse (warrior.ts) bzw. den Gegnern (enemies.ts).
 
@@ -22,6 +24,9 @@ export const XP_FACTOR_BY_LEVEL_LEAD: Record<number, number> = { 3: 0.75, 4: 0.5
 /** Anteil der EP bei noch größerem Vorsprung. */
 export const XP_FACTOR_TRIVIAL = 0.1;
 
+/** Elite und Boss geben ein Vielfaches an EP. */
+export const XP_RANK_FACTOR: Record<EnemyRank, number> = { normal: 1, elite: 3, boss: 10 };
+
 /** Beim Tod verliert die Figur diesen Anteil der EP, die ihre aktuelle Stufe braucht. Nie Stufenverlust. */
 export const DEATH_XP_LOSS = 0.05;
 
@@ -34,8 +39,8 @@ export function xpToNext(level: number): number {
 }
 
 /** EP, die eine Figur der Stufe `playerLevel` für einen Gegner der Stufe `enemyLevel` bekommt. */
-export function xpForKill(enemyLevel: number, playerLevel: number): number {
-  const full = ENEMY_XP.base + ENEMY_XP.perLevel * enemyLevel;
+export function xpForKill(enemyLevel: number, playerLevel: number, rank: EnemyRank = 'normal'): number {
+  const full = (ENEMY_XP.base + ENEMY_XP.perLevel * enemyLevel) * XP_RANK_FACTOR[rank];
   const lead = playerLevel - enemyLevel;
   const factor = lead <= 2 ? 1 : (XP_FACTOR_BY_LEVEL_LEAD[lead] ?? XP_FACTOR_TRIVIAL);
   return Math.max(1, Math.round(full * factor));

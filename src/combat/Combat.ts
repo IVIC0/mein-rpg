@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { MELEE_APPROACH, MELEE_RANGE, PLAYER_RESPAWN_MS } from '../config';
+import { TRAIT_VALUES } from '../data/elites';
 import { DEATH_GOLD_LOSS, DEATH_XP_LOSS, xpForKill } from '../data/progression';
 import { SKILLS, type SkillDef } from '../data/warrior';
 import type { Enemy } from '../entities/Enemy';
@@ -57,9 +58,11 @@ export class Combat {
     for (const enemy of this.enemies) {
       if (!enemy.targetable) continue;
       // Das Bild sitzt 3 Pixel über dem Standpunkt; 2 Pixel Rand machen das Treffen leichter.
+      // Elite und Boss sind größer (bodyScale) – ihre Klickfläche wächst mit.
+      const half = 8 * enemy.bodyScale + 2;
       const dx = at.x - enemy.pos.x;
-      const dy = at.y - (enemy.pos.y - 3);
-      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) continue;
+      const dy = at.y - (enemy.pos.y + 5 - 8 * enemy.bodyScale);
+      if (Math.abs(dx) > half || Math.abs(dy) > half) continue;
       const distance = Math.hypot(dx, dy);
       if (distance < bestDistance) {
         best = enemy;
@@ -107,7 +110,7 @@ export class Combat {
     // Ziel tot oder auf dem Rückweg: Auswahl aufheben.
     if (this.target && !this.target.targetable) this.clearTarget();
     this.ring.setVisible(this.target !== null);
-    if (this.target) this.ring.setPosition(this.target.x, this.target.y + 4);
+    if (this.target) this.ring.setPosition(this.target.x, this.target.y + 4).setScale(this.target.bodyScale);
 
     this.hud.update(player, this.target);
   }
@@ -218,6 +221,7 @@ export class Combat {
     if (!enemy.alive) {
       this.grantXp(enemy);
       this.loot.dropFrom(enemy);
+      if (enemy.hasTrait('explosiv')) this.explode(enemy.pos.x, enemy.pos.y, enemy.baseAttackPower);
     }
 
     // Ziel besiegt: gleich zum nächsten Angreifer wechseln, falls noch einer da ist.
@@ -232,7 +236,7 @@ export class Combat {
   private grantXp(enemy: Enemy): void {
     const player = this.player;
     if (player.xpToNext === 0) return; // Maximalstufe
-    const amount = xpForKill(enemy.level, player.level);
+    const amount = xpForKill(enemy.level, player.level, enemy.rank);
     const missingHp = player.maxHp - player.hp;
     const levelUps = player.gainXp(amount);
     this.floaters.spawn(player.pos.x, player.pos.y - 16, `+${amount} EP`, 'xp');
@@ -265,19 +269,53 @@ export class Combat {
   private readonly enemyStrikes = (enemy: Enemy): void => {
     const player = this.player;
     if (!player.alive) return;
-    const hit = rollHit(enemy.attackPower, player.armor);
-    const amount = Math.max(1, Math.round(hit.amount * player.damageTakenFactor));
-    player.takeDamage(amount);
-    this.floaters.spawn(player.pos.x, player.pos.y - 16, `${amount}`, 'hurt');
+    const amount = this.hurtPlayer(enemy.attackPower);
 
-    if (!player.alive) {
-      this.killPlayer();
-    } else if (!this.target) {
+    // Vampirische Elites heilen sich um einen Teil des Schadens.
+    if (enemy.hasTrait('vampirisch') && enemy.hp < enemy.maxHp) {
+      const stolen = amount * TRAIT_VALUES.vampirisch.lifeSteal;
+      enemy.heal(stolen);
+      if (stolen >= 1) this.floaters.spawn(enemy.pos.x, enemy.pos.y - 16, `+${Math.round(stolen)}`, 'heal');
+    }
+
+    if (player.alive && !this.target) {
       // Ohne Ziel angegriffen: den Angreifer anwählen. Steht die Figur nur herum, wehrt sie sich.
       this.select(enemy);
       if (!player.hasPath) this.engaging = true;
     }
   };
+
+  /** Ein Treffer mit `attackPower` auf die Figur (ihre Rüstung und Buffs zählen). Gibt den Schaden zurück. */
+  private hurtPlayer(attackPower: number): number {
+    const player = this.player;
+    const hit = rollHit(attackPower, player.armor);
+    const amount = Math.max(1, Math.round(hit.amount * player.damageTakenFactor));
+    player.takeDamage(amount);
+    this.floaters.spawn(player.pos.x, player.pos.y - 16, `${amount}`, 'hurt');
+    if (!player.alive) this.killPlayer();
+    return amount;
+  }
+
+  /**
+   * "Explosiv": an der Stelle (x, y) wächst ein roter Kreis als Warnung. Ist er voll,
+   * knallt es – wer dann noch darin steht, kassiert den Treffer. Weglaufen lohnt sich.
+   */
+  private explode(x: number, y: number, attackPower: number): void {
+    const { delayMs, radius, attackFactor } = TRAIT_VALUES.explosiv;
+    const warning = this.scene.add.circle(x, y, radius, 0xff4a2a, 0.3).setStrokeStyle(1, 0xff4a2a, 0.9).setDepth(6).setScale(0.15);
+    this.scene.tweens.add({
+      targets: warning,
+      scale: 1,
+      duration: delayMs,
+      onComplete: () => {
+        warning.destroy();
+        const blast = this.scene.add.circle(x, y, radius, 0xffd9a0, 0.8).setDepth(9);
+        this.scene.tweens.add({ targets: blast, alpha: 0, scale: 1.3, duration: 250, onComplete: () => blast.destroy() });
+        const player = this.player;
+        if (player.alive && player.distanceTo({ x, y }) <= radius) this.hurtPlayer(attackPower * attackFactor);
+      },
+    });
+  }
 
   private killPlayer(): void {
     this.clearTarget();

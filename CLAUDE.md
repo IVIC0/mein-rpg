@@ -11,7 +11,8 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/warrior.ts` – Werte, Zuwachs pro Stufe und Skills des Kriegers
      (Auslöse-Bedingung `trigger` und Wirkung `effect` je Skill)
    - `src/data/enemies.ts` – Gegnertypen und ihr Zuwachs pro Stufe
-   - `src/data/progression.ts` – Levelkurve, EP pro Gegner, EP- und Gold-Verlust beim Tod
+   - `src/data/elites.ts` – Elite-Chance, Werte je Rang (normal, Elite, Boss) und Elite-Eigenschaften
+   - `src/data/progression.ts` – Levelkurve, EP pro Gegner (auch je Rang), EP- und Gold-Verlust beim Tod
    - `src/data/items.ts` – Seltenheiten, Basis-Items und Affixe (Wertespannen, erlaubte Plätze)
    - `src/data/loot.ts` – Drop-Tabellen je Gegnerrang (Drop-Chance, Seltenheits-Anteile), Gold pro Gegner, Inventargröße
    - `src/data/stats.ts` – Werte auf Items und was ein Attributpunkt bringt
