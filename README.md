@@ -21,8 +21,10 @@ Jeder Push auf `main` veröffentlicht das Spiel automatisch auf GitHub Pages.
 | Linksklick auf den Boden | hinlaufen |
 | Linke Maustaste halten | dem Mauszeiger nachlaufen |
 | Linksklick auf einen Gegner | als Ziel wählen, hinlaufen, automatisch angreifen |
-| `1`–`4` | Skills (auch per Klick auf den Skill-Balken); werden auf Stufe 1, 3, 5 und 8 freigeschaltet |
 | `Esc` | Zielauswahl aufheben |
+
+Skills lösen von selbst aus (z. B. jeder 5. Schlag = Wuchtschlag); der Skill-Balken zeigt
+nur an. Sie werden auf Stufe 1, 3, 5 und 8 freigeschaltet.
 
 ## Aufbau
 
@@ -61,6 +63,7 @@ Mit `node tools/build-map.mjs --preview karte.png` gibt es zusätzlich ein
 ## Leveln ändern und testen
 
 - Levelkurve, EP pro Gegner, EP-Verlust beim Tod: `src/data/progression.ts`.
-- Zuwachs des Kriegers pro Stufe und Skill-Stufen (`unlockLevel`): `src/data/warrior.ts`.
+- Zuwachs des Kriegers pro Stufe, Skill-Stufen (`unlockLevel`), Auslöse-Bedingungen
+  (`trigger`) und Wirkungen (`effect`) der Skills: `src/data/warrior.ts`.
 - Zum Testen `?stufe=5` an die Adresse hängen (z. B. `http://localhost:5173/?stufe=5`),
   dann startet die Figur auf Stufe 5.

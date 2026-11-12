@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BODY_RADIUS, COMBAT_TIMEOUT_MS, PLAYER_SPEED, SWING, SWING_HOLD_MS, SWING_RADIUS, SWING_TRAIL_WIDTH, SWING_WEAPON_FRAME } from '../config';
 import { MAX_LEVEL, xpToNext } from '../data/progression';
-import { WARRIOR, warriorStat, type SkillDef, type SkillId } from '../data/warrior';
+import { SKILLS, WARRIOR, warriorStat, type SkillDef, type SkillId } from '../data/warrior';
 import type { Grid, Point } from '../world/Grid';
 import { moveToward } from '../world/movement';
 import { Actor, SPRITE_OFFSET_Y } from './Actor';
@@ -35,6 +35,8 @@ export class Player extends Actor {
   /** Restliche Abklingzeit je Skill in Millisekunden. */
   readonly cooldowns = new Map<SkillId, number>();
   buffs: Buff[] = [];
+  /** Schläge seit dem letzten Auslösen, je Skill mit der Bedingung "jeder n-te Schlag". */
+  private readonly hitCounts = new Map<SkillId, number>();
 
   private sinceCombatMs = COMBAT_TIMEOUT_MS;
   /** Die Waffe ist nur während eines Schwungs zu sehen, die Spur ist der helle Bogen dahinter. */
@@ -153,6 +155,27 @@ export class Player extends Actor {
     this.enterCombat();
   }
 
+  /** So viele Schläge hat die Figur gemacht, seit dieser Skill zuletzt ausgelöst hat. */
+  hitsSince(id: SkillId): number {
+    return this.hitCounts.get(id) ?? 0;
+  }
+
+  /**
+   * Zählt einen Schlag für alle Skills mit der Bedingung "jeder n-te Schlag".
+   * `fired` = der Skill, zu dem dieser Schlag wurde: sein Zähler beginnt wieder bei 0.
+   * Kann ein Skill gerade nicht auslösen (z. B. zu wenig Mana), bleibt sein Zähler bei n - 1 stehen.
+   */
+  countHit(fired?: SkillId): void {
+    for (const skill of SKILLS) {
+      if (skill.trigger.type !== 'everyNthHit') continue;
+      this.hitCounts.set(skill.id, skill.id === fired ? 0 : Math.min(skill.trigger.n - 1, this.hitsSince(skill.id) + 1));
+    }
+  }
+
+  hasBuff(id: SkillId): boolean {
+    return this.buffs.some((buff) => buff.skillId === id);
+  }
+
   addBuff(skill: SkillDef): void {
     if (skill.effect.type !== 'buff') return;
     const { durationMs, attackBonus, damageTakenFactor, tint } = skill.effect;
@@ -205,6 +228,7 @@ export class Player extends Actor {
     this.mana = this.maxMana;
     this.attackCooldown = 0;
     this.cooldowns.clear();
+    this.hitCounts.clear();
     this.sinceCombatMs = COMBAT_TIMEOUT_MS;
     this.sprite.setAngle(0);
   }

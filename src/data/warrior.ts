@@ -1,4 +1,4 @@
-// Werte und Skills des Kriegers.
+// Werte und Skills des Kriegers. Skills lösen automatisch aus (siehe SkillTrigger).
 
 export const WARRIOR = {
   name: 'Krieger',
@@ -24,6 +24,20 @@ export const WARRIOR = {
 
 export type SkillId = 'wuchtschlag' | 'rundumschlag' | 'kriegsschrei' | 'schildwall';
 
+/**
+ * Wann ein Skill von selbst auslöst – Skills werden nie per Taste benutzt.
+ * Zusätzlich muss der Skill freigeschaltet und abgeklungen sein und das Mana reichen.
+ */
+export type SkillTrigger =
+  /** Jeder n-te Schlag der Figur wird zu diesem Skill (n: 5 = vier normale Schläge, dann der Skill). */
+  | { type: 'everyNthHit'; n: number }
+  /** Löst aus, wenn mindestens `count` angreifende Gegner im Umkreis `radius` (Welt-Pixel) stehen. */
+  | { type: 'enemiesInRange'; count: number; radius: number }
+  /** Löst aus, wenn das Leben im Kampf unter diesen Anteil fällt (0.3 = unter 30 %). */
+  | { type: 'lowHealth'; hpFraction: number }
+  /** Löst aus, sobald die Figur im Kampf ist: zu Kampfbeginn und danach immer, wenn der Skill wieder bereit ist. */
+  | { type: 'inCombat' };
+
 export type SkillEffect =
   /** Ein Schlag auf das gewählte Ziel. multiplier 2.2 = 220 % des normalen Schadens. */
   | { type: 'strike'; multiplier: number }
@@ -38,61 +52,66 @@ export type SkillEffect =
 export interface SkillDef {
   id: SkillId;
   name: string;
-  /** Taste, wie sie im Skill-Balken steht. */
-  key: string;
   /** Bild-Nummer des Symbols in assets/sprites/characters.png. */
   iconFrame: number;
   manaCost: number;
+  /** Abklingzeit in Millisekunden; 0 = keine, dann bestimmt allein die Bedingung den Takt. */
   cooldownMs: number;
-  /** Ab dieser Stufe kann die Figur den Skill benutzen. */
+  /** Ab dieser Stufe hat die Figur den Skill. */
   unlockLevel: number;
-  description: string;
+  trigger: SkillTrigger;
   effect: SkillEffect;
 }
 
+/** Reichweite des Rundumschlags in Welt-Pixeln – gilt für die Bedingung und für die Wirkung. */
+const CLEAVE_RADIUS = 28;
+
+/**
+ * Die Skills des Kriegers in der Reihenfolge des Skill-Balkens. Treffen bei einem
+ * Schlag mehrere Angriffs-Skills zu, gewinnt der, der weiter oben steht.
+ *
+ * Das sind Grundwerte: Loot und Talente sollen Bedingungen (z. B. jeder 4. statt
+ * jeder 5. Schlag) und Wirkungen später verbessern können.
+ */
 export const SKILLS: SkillDef[] = [
   {
     id: 'wuchtschlag',
     name: 'Wuchtschlag',
-    key: '1',
     iconFrame: 117,
     manaCost: 10,
-    cooldownMs: 6000,
+    cooldownMs: 0,
     unlockLevel: 1,
-    description: 'Schlägt das Ziel mit 220 % Schaden.',
+    trigger: { type: 'everyNthHit', n: 5 },
     effect: { type: 'strike', multiplier: 2.2 },
   },
   {
     id: 'rundumschlag',
     name: 'Rundumschlag',
-    key: '2',
     iconFrame: 118,
     manaCost: 15,
     cooldownMs: 10000,
     unlockLevel: 3,
-    description: 'Trifft alle Gegner in Nahkampfreichweite mit 130 % Schaden.',
-    effect: { type: 'cleave', multiplier: 1.3, radius: 28 },
+    trigger: { type: 'enemiesInRange', count: 3, radius: CLEAVE_RADIUS },
+    effect: { type: 'cleave', multiplier: 1.3, radius: CLEAVE_RADIUS },
   },
   {
     id: 'kriegsschrei',
     name: 'Kriegsschrei',
-    key: '3',
     iconFrame: 107,
     manaCost: 15,
     cooldownMs: 30000,
     unlockLevel: 5,
-    description: '10 Sekunden lang 30 % mehr Angriffskraft.',
+    trigger: { type: 'inCombat' },
     effect: { type: 'buff', durationMs: 10000, attackBonus: 0.3, damageTakenFactor: 1, tint: 0xffb09a },
   },
   {
     id: 'schildwall',
     name: 'Schildwall',
-    key: '4',
     iconFrame: 102,
     manaCost: 20,
     cooldownMs: 60000,
     unlockLevel: 8,
-    description: '8 Sekunden lang 60 % weniger erlittener Schaden.',
+    trigger: { type: 'lowHealth', hpFraction: 0.3 },
     effect: { type: 'buff', durationMs: 8000, attackBonus: 0, damageTakenFactor: 0.4, tint: 0x9cc6ff },
   },
 ];

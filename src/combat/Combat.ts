@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { MELEE_APPROACH, MELEE_RANGE, PLAYER_RESPAWN_MS } from '../config';
 import { DEATH_XP_LOSS, xpForKill } from '../data/progression';
-import { SKILLS, WARRIOR, type SkillId } from '../data/warrior';
+import { SKILLS, WARRIOR, type SkillDef } from '../data/warrior';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 import type { FloatingText } from '../ui/FloatingText';
@@ -20,7 +20,8 @@ const ENEMY_SPACING = 12;
 const ATTACKER_RADIUS = 80;
 
 /**
- * Die Kampfregeln: Ziel wählen, hinlaufen, Auto-Angriff, Skills, Schaden in
+ * Die Kampfregeln: Ziel wählen, hinlaufen, Auto-Angriff, Skills, die von selbst
+ * auslösen (Bedingungen in src/data/warrior.ts), Schaden in
  * beide Richtungen, EP und Stufenaufstieg, Tod und Respawn der Spielfigur.
  */
 export class Combat {
@@ -82,48 +83,13 @@ export class Combat {
     this.engaging = false;
   }
 
-  useSkill(id: SkillId): void {
-    const player = this.player;
-    const skill = SKILLS.find((s) => s.id === id);
-    if (!skill || !player.alive) return;
-    if (player.level < skill.unlockLevel) return this.hud.flash(`${skill.name} gibt es ab Stufe ${skill.unlockLevel}`);
-    if ((player.cooldowns.get(id) ?? 0) > 0) return this.hud.flash('Noch nicht bereit');
-    if (player.mana < skill.manaCost) return this.hud.flash('Zu wenig Mana');
-
-    const effect = skill.effect;
-    switch (effect.type) {
-      case 'strike': {
-        const target = this.target;
-        if (!target || !target.targetable) return this.hud.flash('Kein Ziel');
-        if (player.distanceTo(target.pos) > MELEE_RANGE) return this.hud.flash('Ziel zu weit entfernt');
-        player.swingAt(target.pos, 'strike');
-        this.hitEnemy(target, effect.multiplier);
-        break;
-      }
-      case 'cleave': {
-        const inReach = this.enemies.filter((enemy) => enemy.targetable && player.distanceTo(enemy.pos) <= effect.radius);
-        if (inReach.length === 0) return this.hud.flash('Kein Gegner in Reichweite');
-        // Der Schwung beginnt beim Ziel, sonst beim ersten Gegner in Reichweite.
-        player.swingAt((this.target && inReach.includes(this.target) ? this.target : inReach[0]).pos, 'cleave');
-        this.showShockwave(effect.radius, 0xfff2b0, 220);
-        for (const enemy of inReach) this.hitEnemy(enemy, effect.multiplier);
-        break;
-      }
-      case 'buff':
-        player.addBuff(skill);
-        this.floaters.spawn(player.pos.x, player.pos.y - 14, `${skill.name}!`, 'info');
-        break;
-    }
-    player.mana -= skill.manaCost;
-    player.cooldowns.set(id, skill.cooldownMs);
-  }
-
   /** Einmal pro Frame, vor der Bewegung der Spielfigur. */
   update(deltaMs: number): void {
     const player = this.player;
     if (player.alive) {
       player.tick(deltaMs);
       this.followTarget(deltaMs);
+      this.fireBuffSkills();
       this.autoAttack();
     } else {
       this.respawnIn -= deltaMs;
@@ -171,8 +137,69 @@ export class Combat {
     if (!target || !target.targetable || player.attackCooldown > 0) return;
     if (player.distanceTo(target.pos) > MELEE_RANGE) return;
     player.attackCooldown = WARRIOR.attackIntervalMs;
-    player.swingAt(target.pos, 'auto');
-    this.hitEnemy(target, 1);
+    // Der Kampf beginnt mit dem Ausholen: so gilt z. B. der Kriegsschrei schon für den ersten Schlag.
+    player.enterCombat();
+    this.fireBuffSkills();
+
+    // Trifft die Bedingung eines Angriffs-Skills zu, wird dieser Schlag zu dem Skill.
+    const skill = SKILLS.find((candidate) => candidate.effect.type !== 'buff' && this.canFire(candidate));
+    player.countHit(skill?.id);
+    if (!skill) {
+      player.swingAt(target.pos, 'auto');
+      this.hitEnemy(target, 1);
+      return;
+    }
+
+    this.fire(skill);
+    const effect = skill.effect;
+    if (effect.type === 'strike') {
+      player.swingAt(target.pos, 'strike');
+      this.hitEnemy(target, effect.multiplier);
+    } else if (effect.type === 'cleave') {
+      const inReach = this.enemies.filter((enemy) => enemy.targetable && player.distanceTo(enemy.pos) <= effect.radius);
+      player.swingAt(target.pos, 'cleave');
+      this.showShockwave(effect.radius, 0xfff2b0, 220);
+      for (const enemy of inReach) this.hitEnemy(enemy, effect.multiplier);
+    }
+  }
+
+  /** Verstärkungen (Kriegsschrei, Schildwall) lösen aus, sobald ihre Bedingung zutrifft. */
+  private fireBuffSkills(): void {
+    for (const skill of SKILLS) {
+      if (skill.effect.type !== 'buff' || this.player.hasBuff(skill.id) || !this.canFire(skill)) continue;
+      this.fire(skill);
+      this.player.addBuff(skill);
+    }
+  }
+
+  /** Kann der Skill jetzt auslösen? Freigeschaltet, abgeklungen, genug Mana und Bedingung erfüllt. */
+  private canFire(skill: SkillDef): boolean {
+    const player = this.player;
+    if (player.level < skill.unlockLevel) return false;
+    if ((player.cooldowns.get(skill.id) ?? 0) > 0) return false;
+    if (player.mana < skill.manaCost) return false;
+
+    const trigger = skill.trigger;
+    switch (trigger.type) {
+      case 'everyNthHit':
+        // n - 1 Schläge sind gezählt: der nächste ist der n-te.
+        return player.hitsSince(skill.id) >= trigger.n - 1;
+      case 'enemiesInRange':
+        return this.enemies.filter((enemy) => enemy.state === 'chase' && player.distanceTo(enemy.pos) <= trigger.radius).length >= trigger.count;
+      case 'lowHealth':
+        return player.inCombat && player.hp < player.maxHp * trigger.hpFraction;
+      case 'inCombat':
+        return player.inCombat;
+    }
+  }
+
+  /** Bezahlt den Skill, startet seine Abklingzeit und zeigt an, dass er ausgelöst hat. */
+  private fire(skill: SkillDef): void {
+    const player = this.player;
+    player.mana -= skill.manaCost;
+    player.cooldowns.set(skill.id, skill.cooldownMs);
+    this.hud.flashSkill(skill.id);
+    this.floaters.spawn(player.pos.x, player.pos.y - 24, `${skill.name}!`, 'info');
   }
 
   private hitEnemy(enemy: Enemy, multiplier: number): void {
