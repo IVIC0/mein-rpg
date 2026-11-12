@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_TITLE } from '../config';
+import { SPRITES, type SpriteDef } from '../data/sprites';
+import { ZONES } from '../data/zones';
 
 /** Lädt alle Grafiken und Karten und startet danach die Spielwelt. */
 export class BootScene extends Phaser.Scene {
@@ -16,8 +18,14 @@ export class BootScene extends Phaser.Scene {
     this.load.on('loaderror', (file: Phaser.Loader.File) => label.setText(`Fehler beim Laden: ${file.key}`));
 
     // Die Tilesets haben 1 px Rand um jede Kachel (margin 1, spacing 2), siehe tools/build-tilesets.mjs.
-    this.load.image('tiles-gruenwald', 'assets/tilesets/gruenwald.png');
-    this.load.tilemapTiledJSON('map-gruenwald', 'assets/maps/gruenwald.json');
+    // Jede Zone aus src/data/zones.ts bringt ihre Karte und ihr Tileset mit.
+    for (const [id, zone] of Object.entries(ZONES)) {
+      this.load.tilemapTiledJSON(`map-${id}`, `assets/maps/${id}.json`);
+      if (!this.textures.exists(`tiles-${zone.tileset}`)) this.load.image(`tiles-${zone.tileset}`, `assets/tilesets/${zone.tileset}.png`);
+    }
+    // Figuren: 'characters' ist ein Raster aus 16 × 16 Pixeln, 'creatures' ein Bild mit Liste
+    // der Einzelbilder (verschieden große Figuren). Wer welches Bild hat: src/data/sprites.ts.
+    this.load.atlas('creatures', 'assets/sprites/creatures.png', 'assets/sprites/creatures.json');
     this.load.spritesheet('characters', 'assets/sprites/characters.png', {
       frameWidth: 16,
       frameHeight: 16,
@@ -27,6 +35,13 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Prüfen, ob es jedes Einzelbild aus src/data/sprites.ts wirklich gibt – sonst stünde
+    // im Spiel stillschweigend ein falsches Bild.
+    for (const [name, def] of Object.entries(SPRITES) as [string, SpriteDef][]) {
+      for (const frame of [...def.idle, ...(def.walk ?? [])]) {
+        if (!this.textures.get(def.sheet).has(String(frame))) throw new Error(`Bild "${name}": Einzelbild "${frame}" fehlt in ${def.sheet}.png.`);
+      }
+    }
     // Kleine Hilfsgrafiken, die im Asset-Pack fehlen, direkt als Pixelmuster.
     pixelTexture(this, 'shadow', { '#': '#000000' }, ['..######..', '.########.', '.########.', '..######..']);
     pixelTexture(this, 'click-marker', { '#': '#fff2b0' }, [

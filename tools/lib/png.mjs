@@ -101,3 +101,57 @@ export function drawTile(img, tile, dx, dy) {
     }
   }
 }
+
+/** Schneidet ein beliebiges Rechteck aus einem Bild: { width, height, data } (RGBA). */
+export function crop(img, sx, sy, width, height) {
+  const data = new Uint8Array(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const s = ((sy + y) * img.width + sx + x) * 4;
+      const d = (y * width + x) * 4;
+      for (let k = 0; k < 4; k++) data[d + k] = img.data[s + k];
+    }
+  }
+  return { width, height, data };
+}
+
+/** Kopiert ein ausgeschnittenes Bild (siehe crop) an die Stelle (dx, dy) eines Bildes. */
+export function paste(img, part, dx, dy) {
+  for (let y = 0; y < part.height; y++) {
+    for (let x = 0; x < part.width; x++) {
+      const s = (y * part.width + x) * 4;
+      const d = ((dy + y) * img.width + dx + x) * 4;
+      for (let k = 0; k < 4; k++) img.data[d + k] = part.data[s + k];
+    }
+  }
+}
+
+/**
+ * Dreht den Farbton aller Bildpunkte um `degrees` Grad (z. B. grün → braun) und gibt ein
+ * neues Bild zurück. Sehr dunkle und graue Punkte (Umriss, Zähne) bleiben, wie sie sind.
+ */
+export function shiftHue(part, degrees) {
+  const data = new Uint8Array(part.data);
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i] / 255;
+    const g = data[i + 1] / 255;
+    const b = data[i + 2] / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const delta = max - min;
+    if (delta < 0.08) continue; // grau: kein Farbton, den man drehen könnte
+    let hue;
+    if (max === r) hue = ((g - b) / delta + 6) % 6;
+    else if (max === g) hue = (b - r) / delta + 2;
+    else hue = (r - g) / delta + 4;
+    hue = (hue * 60 + degrees + 360) % 360;
+    // Zurück nach Rot/Grün/Blau – Helligkeit (max) und Sättigung bleiben gleich.
+    const c = delta;
+    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+    const [r1, g1, b1] = hue < 60 ? [c, x, 0] : hue < 120 ? [x, c, 0] : hue < 180 ? [0, c, x] : hue < 240 ? [0, x, c] : hue < 300 ? [x, 0, c] : [c, 0, x];
+    data[i] = Math.round((r1 + min) * 255);
+    data[i + 1] = Math.round((g1 + min) * 255);
+    data[i + 2] = Math.round((b1 + min) * 255);
+  }
+  return { width: part.width, height: part.height, data };
+}

@@ -52,6 +52,26 @@ export const TRAITS: TraitDef[] = [
   { id: 'regenerierend', name: 'Regenerierend' },
 ];
 
+/**
+ * Feste Elite-Plätze: Hier steht immer dieselbe benannte Elite mit festen Eigenschaften.
+ * Wo, legt der Bauplan der Zone fest (POI der Art 'elite', `name` = Schlüssel hier).
+ */
+export interface NamedEliteDef {
+  /** So heißt die Elite im Spiel. */
+  name: string;
+  /** Gegnertyp aus src/data/enemies.ts – von ihm kommen Bild und Grundwerte. */
+  enemy: string;
+  level: number;
+  traits: TraitId[];
+}
+
+export const NAMED_ELITES: Record<string, NamedEliteDef> = {
+  brutmutter: { name: 'Brutmutter', enemy: 'spinne', level: 6, traits: ['regenerierend', 'vampirisch'] },
+};
+
+/** Eine benannte Elite erscheint so lange nach ihrem Tod wieder (10 Minuten). */
+export const NAMED_ELITE_RESPAWN_MS = 600000;
+
 /** Was die Eigenschaften bewirken. */
 export const TRAIT_VALUES = {
   /** Schnell: läuft schneller (bleibt aber langsamer als die Figur) und schlägt öfter zu. */

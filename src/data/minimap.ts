@@ -16,6 +16,13 @@ export const MINIMAP = {
   /** Der Händler. */
   merchantColor: '#4fc3ff',
   merchantRadius: 3,
+  /** Truhen: gefüllt gold-braun, leer grau. */
+  chestColor: '#e89a2e',
+  chestEmptyColor: '#77705f',
+  chestRadius: 2.5,
+  /** Übergänge in eine andere Zone (z. B. Höhleneingang). */
+  portalColor: '#7df9ff',
+  portalRadius: 3,
   /** Gegner je Rang: Farbe und Größe des Punkts. */
   enemies: {
     normal: { color: '#ff4a3d', radius: 2 },

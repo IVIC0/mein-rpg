@@ -90,7 +90,11 @@ export function itemStats(item: Item | null): Stats {
 
 /** Würfelt die Seltenheit eines Drops nach der Tabelle des Gegnerrangs (DROP_TABLES in src/data/loot.ts). */
 export function rollRarity(rank: EnemyRank): RarityId {
-  const weights = DROP_TABLES[rank].rarity;
+  return rollRarityFrom(DROP_TABLES[rank].rarity);
+}
+
+/** Würfelt eine Seltenheit nach einer Tabelle "Seltenheit → Anteil" (z. B. für Truhen, src/data/pois.ts). */
+export function rollRarityFrom(weights: Record<RarityId, number>): RarityId {
   const total = RARITIES.reduce((sum, rarity) => sum + weights[rarity.id], 0);
   let roll = Math.random() * total;
   for (const rarity of RARITIES) {

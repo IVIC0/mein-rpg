@@ -34,6 +34,18 @@ export class Combat {
   /** Wird bei wichtigen Ereignissen aufgerufen (Stufenaufstieg, Tod, Aufwachen, Boss besiegt) – daran hängt das Speichern. */
   onSaveEvent: () => void = () => {};
 
+  /**
+   * Wo die Figur nach dem Tod aufwacht (setzt WorldScene). Liegt der Punkt in einer anderen
+   * Zone, wechselt die Spielwelt dabei die Zone.
+   */
+  respawnPoint: () => Point = () => ({ x: 0, y: 0 });
+
+  /** Kollisionsraster und Gegner der aktuellen Zone – setZone tauscht sie beim Zonenwechsel aus. */
+  private grid!: Grid;
+  private enemies: Enemy[] = [];
+  /** Kurzlebige Effekte (Warnkreis, Explosion, Druckwelle). Beim Zonenwechsel verschwinden sie sofort. */
+  private readonly effects = new Set<Phaser.GameObjects.Arc>();
+
   /** Läuft die Figur ihrem Ziel von selbst hinterher? (Nach Klick auf einen Gegner.) */
   private engaging = false;
   private repathIn = 0;
@@ -42,16 +54,26 @@ export class Combat {
 
   constructor(
     private readonly scene: Phaser.Scene,
-    private readonly grid: Grid,
     private readonly player: Player,
-    private readonly enemies: Enemy[],
     private readonly hud: Hud,
     private readonly floaters: FloatingText,
-    private readonly respawnPoint: Point,
     private readonly inventory: Inventory,
     private readonly loot: GroundLoot,
   ) {
     this.ring = scene.add.image(0, 0, 'target-ring').setDepth(6).setVisible(false);
+  }
+
+  /** Die Figur hat eine Zone betreten: ab jetzt gelten deren Raster und deren Gegner. */
+  setZone(grid: Grid, enemies: Enemy[]): void {
+    this.clearTarget();
+    this.ring.setVisible(false);
+    for (const effect of this.effects) {
+      this.scene.tweens.killTweensOf(effect);
+      effect.destroy();
+    }
+    this.effects.clear();
+    this.grid = grid;
+    this.enemies = enemies;
   }
 
   /** Der Gegner unter dem Punkt `at` (Welt-Koordinaten), sonst null. */
@@ -225,7 +247,7 @@ export class Combat {
       this.grantXp(enemy);
       this.loot.dropFrom(enemy);
       if (enemy.hasTrait('explosiv')) this.explode(enemy.pos.x, enemy.pos.y, enemy.baseAttackPower);
-      if (enemy.rank === 'boss') this.onSaveEvent(); // sein Respawn-Timer gehört in den Spielstand
+      if (enemy.timed) this.onSaveEvent(); // Boss oder benannte Elite: der Respawn-Timer gehört in den Spielstand
     }
 
     // Ziel besiegt: gleich zum nächsten Angreifer wechseln, falls noch einer da ist.
@@ -309,14 +331,16 @@ export class Combat {
   private explode(x: number, y: number, attackPower: number): void {
     const { delayMs, radius, attackFactor } = TRAIT_VALUES.explosiv;
     const warning = this.scene.add.circle(x, y, radius, 0xff4a2a, 0.3).setStrokeStyle(1, 0xff4a2a, 0.9).setDepth(6).setScale(0.15);
+    this.effects.add(warning);
     this.scene.tweens.add({
       targets: warning,
       scale: 1,
       duration: delayMs,
       onComplete: () => {
-        warning.destroy();
+        this.removeEffect(warning);
         const blast = this.scene.add.circle(x, y, radius, 0xffd9a0, 0.8).setDepth(9);
-        this.scene.tweens.add({ targets: blast, alpha: 0, scale: 1.3, duration: 250, onComplete: () => blast.destroy() });
+        this.effects.add(blast);
+        this.scene.tweens.add({ targets: blast, alpha: 0, scale: 1.3, duration: 250, onComplete: () => this.removeEffect(blast) });
         const player = this.player;
         if (player.alive && player.distanceTo({ x, y }) <= radius) this.hurtPlayer(attackPower * attackFactor);
       },
@@ -332,7 +356,8 @@ export class Combat {
   }
 
   private respawnPlayer(): void {
-    this.player.revive(this.respawnPoint);
+    // respawnPoint() wechselt bei Bedarf die Zone (z. B. aus der Höhle zurück ins Dorf).
+    this.player.revive(this.respawnPoint());
     this.hud.setDead(false, 0, 0);
     this.onSaveEvent();
   }
@@ -369,6 +394,12 @@ export class Combat {
       .setStrokeStyle(1.5, color, 0.9)
       .setDepth(9)
       .setScale(0.3);
-    this.scene.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: durationMs, onComplete: () => ring.destroy() });
+    this.effects.add(ring);
+    this.scene.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: durationMs, onComplete: () => this.removeEffect(ring) });
+  }
+
+  private removeEffect(effect: Phaser.GameObjects.Arc): void {
+    this.effects.delete(effect);
+    effect.destroy();
   }
 }

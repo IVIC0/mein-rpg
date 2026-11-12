@@ -17,7 +17,7 @@ void start();
 
 /**
  * Entscheidet, womit gespielt wird, und startet dann das Spiel:
- * 1. Test-Parameter in der Adresse (?stufe, ?beute, ?elite) → Testlauf ohne Slot, wird nie gespeichert.
+ * 1. Test-Parameter in der Adresse (?stufe, ?beute, ?elite, ?zone) → Testlauf ohne Slot, wird nie gespeichert.
  * 2. Sonst der zuletzt gespielte Slot.
  * 3. Gibt es noch gar keinen Spielstand → Namen erfragen und Slot 1 anlegen.
  * 4. Sonst (z. B. zuletzt gespielter Slot gelöscht oder nicht ladbar) → Auswahl zeigen.

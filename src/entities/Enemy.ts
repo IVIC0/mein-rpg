@@ -22,6 +22,16 @@ const REPATH_MS = 300;
 /** Im Leerlauf entfernt sich ein Gegner höchstens so weit (Welt-Pixel) von seinem Platz. */
 const WANDER_RADIUS = 36;
 
+/**
+ * Für feste Elite-Plätze (NAMED_ELITES in src/data/elites.ts): Der Gegner ist immer eine
+ * Elite mit genau diesen Eigenschaften, hat einen eigenen Namen und einen eigenen Respawn.
+ */
+export interface FixedElite {
+  name: string;
+  traits: TraitId[];
+  respawnMs: number;
+}
+
 export class Enemy extends Actor {
   state: EnemyState = 'idle';
   /** Der Platz, an dem der Gegner steht und wieder erscheint. */
@@ -64,11 +74,29 @@ export class Enemy extends Actor {
     readonly level: number,
     x: number,
     y: number,
+    /** Nur bei festen Elite-Plätzen gesetzt, sonst wird der Rang gewürfelt. */
+    private readonly fixed: FixedElite | null = null,
   ) {
-    super(scene, x, y, def.frame, 1);
+    super(scene, x, y, def.sprite, 1);
     this.home = { x, y };
     this.rollRank();
     // Name, Stufe und Lebensbalken über dem Kopf zeichnet src/ui/Nameplates.ts.
+  }
+
+  /** Der Name für Schild und Zielrahmen – benannte Elites heißen anders als ihr Gegnertyp. */
+  get displayName(): string {
+    return this.fixed?.name ?? this.def.name;
+  }
+
+  /** So lange bleibt der Gegner nach seinem Tod weg (Millisekunden). */
+  get respawnMs(): number {
+    if (this.fixed) return this.fixed.respawnMs;
+    return this.rank === 'boss' ? BOSS_RESPAWN_MS : ENEMY_RESPAWN_MS;
+  }
+
+  /** Bosse und benannte Elites: Ihr Respawn-Timer steht im Spielstand und läuft weiter, wenn das Spiel zu ist. */
+  get timed(): boolean {
+    return this.fixed !== null || this.def.rank === 'boss';
   }
 
   hasTrait(id: TraitId): boolean {
@@ -95,8 +123,13 @@ export class Enemy extends Actor {
    */
   private rollRank(): void {
     const def = this.def;
-    this.rank = def.rank ?? (Math.random() < Enemy.eliteChance ? 'elite' : 'normal');
-    this.traits = this.rank === 'elite' ? rollTraits() : [];
+    if (this.fixed) {
+      this.rank = 'elite';
+      this.traits = [...this.fixed.traits];
+    } else {
+      this.rank = def.rank ?? (Math.random() < Enemy.eliteChance ? 'elite' : 'normal');
+      this.traits = this.rank === 'elite' ? rollTraits() : [];
+    }
 
     const rank = RANKS[this.rank];
     const stats = enemyStats(def, this.level);
@@ -133,7 +166,7 @@ export class Enemy extends Actor {
   }
 
   /**
-   * Für geladene Spielstände: Der Gegner (Boss) war schon besiegt und erscheint
+   * Für geladene Spielstände: Der Gegner (Boss, benannte Elite) war schon besiegt und erscheint
    * erst nach `remainingMs` wieder.
    */
   startDead(remainingMs: number): void {
@@ -266,7 +299,7 @@ export class Enemy extends Actor {
 
   private die(): void {
     this.state = 'dead';
-    this.respawnIn = this.rank === 'boss' ? BOSS_RESPAWN_MS : ENEMY_RESPAWN_MS;
+    this.respawnIn = this.respawnMs;
     this.stop();
     this.scene.tweens.add({ targets: this, alpha: 0, duration: 350, onComplete: () => this.setVisible(false) });
   }
@@ -282,6 +315,16 @@ export class Enemy extends Actor {
     this.scene.tweens.killTweensOf(this);
     this.setVisible(true).setAlpha(0);
     this.scene.tweens.add({ targets: this, alpha: 1, duration: 500 });
+  }
+
+  /** Räumt den Gegner samt laufender Animationen weg (beim Verlassen der Zone). */
+  destroy(fromScene?: boolean): void {
+    // Beim Schließen der ganzen Szene ist `scene` schon weg – dann gibt es nichts mehr anzuhalten.
+    if (this.scene) {
+      this.scene.tweens.killTweensOf(this);
+      if (this.aura) this.scene.tweens.killTweensOf(this.aura);
+    }
+    super.destroy(fromScene);
   }
 
 }

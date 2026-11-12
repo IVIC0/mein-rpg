@@ -35,7 +35,8 @@ interface Plate {
  * Wie die Schadenszahlen sind es HTML-Elemente über dem Spielbild, damit die Schrift scharf bleibt.
  */
 export class Nameplates {
-  private readonly plates: Plate[];
+  /** Die Schilder der Gegner der aktuellen Zone (setEnemies tauscht sie beim Zonenwechsel aus). */
+  private plates: Plate[] = [];
   // Das Schild der eigenen Figur.
   private readonly own: HTMLElement;
   private readonly ownName: HTMLElement;
@@ -43,11 +44,14 @@ export class Nameplates {
   private readonly ownFill: HTMLElement;
   private ownVisible = true;
   private ownPercent = -1;
-  /** Schilder für friedliche Figuren (Händler): nur ein Name an einem festen Platz. */
-  private readonly labels: { x: number; y: number; root: HTMLElement }[] = [];
+  /** Schilder für friedliche Figuren und Orte (Händler, Höhleneingang): nur ein Name an einem festen Platz. */
+  private labels: { x: number; y: number; root: HTMLElement }[] = [];
 
   /** `playerName` = Name der eigenen Figur aus dem Spielstand. */
-  constructor(root: HTMLElement, enemies: Enemy[], playerName: string) {
+  constructor(
+    private readonly root: HTMLElement,
+    playerName: string,
+  ) {
     this.own = document.createElement('div');
     this.own.className = 'nameplate nameplate-player';
     this.own.innerHTML = `
@@ -58,7 +62,14 @@ export class Nameplates {
     this.setPlayerName(playerName);
     this.ownLevel = this.own.querySelector('.nameplate-level') as HTMLElement;
     this.ownFill = this.own.querySelector('.nameplate-fill') as HTMLElement;
+  }
 
+  /** Neue Zone: die alten Schilder (Gegner und Orte) weg, eines für jeden Gegner der neuen Zone. */
+  setEnemies(enemies: Enemy[]): void {
+    for (const plate of this.plates) plate.root.remove();
+    for (const label of this.labels) label.root.remove();
+    this.labels = [];
+    const root = this.root;
     this.plates = enemies.map((enemy) => {
       const element = document.createElement('div');
       element.className = 'nameplate';
@@ -82,12 +93,12 @@ export class Nameplates {
     });
   }
 
-  /** Ein Namensschild für eine friedliche Figur, die am Punkt (x, y) steht (z. B. der Händler). */
+  /** Ein Namensschild für eine friedliche Figur oder einen Ort am Punkt (x, y), z. B. den Händler. */
   addLabel(x: number, y: number, name: string): void {
     const root = document.createElement('div');
     root.className = 'nameplate nameplate-npc';
     root.textContent = name;
-    this.own.parentElement?.appendChild(root);
+    this.root.appendChild(root);
     this.labels.push({ x, y, root });
   }
 
@@ -129,7 +140,7 @@ export class Nameplates {
       // Nach jedem Respawn kann aus dem Gegner eine Elite geworden sein (oder umgekehrt).
       if (plate.spawnCount !== enemy.spawnCount) {
         plate.spawnCount = enemy.spawnCount;
-        plate.name.textContent = RANK_ICON[enemy.rank] + enemy.def.name;
+        plate.name.textContent = RANK_ICON[enemy.rank] + enemy.displayName;
         plate.traits.textContent = enemy.traits.map(traitName).join(' · ');
         for (const rank of Object.keys(RANKS)) plate.root.classList.toggle(`rank-${rank}`, rank === enemy.rank);
       }
