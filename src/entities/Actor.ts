@@ -1,16 +1,21 @@
 import Phaser from 'phaser';
 import { BODY_RADIUS, ENEMY_LUNGE, HIT_FLASH_MS, KNOCKBACK_DISTANCE, KNOCKBACK_MS, LUNGE_MS } from '../config';
+import { SPRITE_FRAME_MS, spriteDef, type SpriteDef, type SpriteName } from '../data/sprites';
 import type { Grid, Point } from '../world/Grid';
 
-/** Das Sprite sitzt etwas über dem Standpunkt, damit die Füße auf der Kachel stehen. */
+/** Das Sprite sitzt etwas über dem Standpunkt, damit die Füße auf der Kachel stehen (gilt für 16 Pixel hohe Bilder). */
 export const SPRITE_OFFSET_Y = -3;
+
+/** So weit unter dem Standpunkt liegt die Unterkante jedes Bildes (Welt-Pixel) – dort stehen die Füße. */
+const FEET_Y = 5;
 
 /** Figuren liegen über der Karte; wer weiter unten steht, wird weiter vorn gezeichnet. */
 const BASE_DEPTH = 10;
 
 /**
  * Gemeinsame Basis für Spielfigur und Gegner: Position, Leben, Weg ablaufen
- * und die kleinen Animationen (Hüpfen, Ausfallschritt, Aufblitzen und Rückstoß bei Treffern).
+ * und die kleinen Animationen (Hüpfen oder Lauf-Bilder, Ausfallschritt, Aufblitzen und Rückstoß bei Treffern).
+ * Welches Bild die Figur hat, steht unter ihrem Namen in src/data/sprites.ts.
  *
  * `pos` ist der genaue Punkt, an dem die Figur steht. Gezeichnet wird sie auf
  * ganze Bildschirm-Pixel gerundet (x/y des Containers), sonst flimmert Pixel-Art.
@@ -30,6 +35,11 @@ export abstract class Actor extends Phaser.GameObjects.Container {
   bodyScale = 1;
   /** Größer als 0 = die Figur wird vor allen anderen gezeichnet (z. B. während des Waffenschwungs). */
   protected depthBias = 0;
+  /** Das Bild der Figur aus src/data/sprites.ts: Einzelbilder für Stehen und (wenn vorhanden) Laufen. */
+  private readonly look: SpriteDef;
+  /** Läuft die Animation gerade mit den Lauf-Bildern? Und wie lange schon (Millisekunden)? */
+  private animWalking = false;
+  private animTime = 0;
   private waypoints: Point[] = [];
   private walkTime = 0;
   /** Versatz des Sprites beim Zuschlagen. */
@@ -43,7 +53,7 @@ export abstract class Actor extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    frame: number,
+    spriteName: SpriteName,
     maxHp: number,
   ) {
     super(scene, x, y);
@@ -51,7 +61,8 @@ export abstract class Actor extends Phaser.GameObjects.Container {
     this.maxHp = maxHp;
     this.hp = maxHp;
     this.shadow = scene.add.image(0, 5, 'shadow').setAlpha(0.25);
-    this.sprite = scene.add.sprite(0, SPRITE_OFFSET_Y, 'characters', frame);
+    this.look = spriteDef(spriteName);
+    this.sprite = scene.add.sprite(0, SPRITE_OFFSET_Y, this.look.sheet, this.look.idle[0]);
     this.add([this.shadow, this.sprite]);
     scene.add.existing(this);
     this.draw(false, 0);
@@ -165,9 +176,10 @@ export abstract class Actor extends Phaser.GameObjects.Container {
 
   /** Bringt die Darstellung auf den Stand von `pos`. Einmal pro Frame aufrufen. */
   protected draw(walking: boolean, deltaMs: number): void {
-    // Kleines Hüpfen beim Laufen – das Asset-Pack hat keine Lauf-Animation.
+    this.animate(walking, deltaMs);
+    // Kleines Hüpfen beim Laufen – für alle Bilder, die keine eigenen Lauf-Bilder haben.
     let hop = 0;
-    if (walking) {
+    if (walking && !this.look.walk) {
       this.walkTime += deltaMs;
       hop = Math.abs(Math.sin(this.walkTime * 0.014)) * 1.5;
     } else {
@@ -177,11 +189,26 @@ export abstract class Actor extends Phaser.GameObjects.Container {
       this.flashMs -= deltaMs;
       if (this.flashMs <= 0) this.applyTint();
     }
-    // Das Bild ist 16 Pixel hoch; bei größeren Figuren rückt es nach oben, damit die Füße unten bleiben.
-    const baseY = SPRITE_OFFSET_Y - 8 * (this.bodyScale - 1);
+    // Die Unterkante des Bildes bleibt bei den Füßen – egal wie hoch das Bild ist und wie groß die Figur.
+    const baseY = FEET_Y - (this.sprite.height / 2) * this.bodyScale;
     this.sprite.setPosition(snap(this.lunge.x + this.recoil.x), baseY - snap(hop) + snap(this.lunge.y + this.recoil.y));
     this.setPosition(snap(this.pos.x), snap(this.pos.y));
     this.setDepth(BASE_DEPTH + this.depthBias + this.pos.y / 10000);
+  }
+
+  /** Wechselt die Einzelbilder: beim Laufen die Lauf-Bilder (falls vorhanden), sonst die fürs Stehen. */
+  private animate(walking: boolean, deltaMs: number): void {
+    const useWalk = walking && this.look.walk !== undefined;
+    if (useWalk !== this.animWalking) {
+      this.animWalking = useWalk;
+      this.animTime = 0;
+    } else {
+      this.animTime += deltaMs;
+    }
+    const frames = useWalk && this.look.walk ? this.look.walk : this.look.idle;
+    const frameMs = useWalk ? SPRITE_FRAME_MS.walk : SPRITE_FRAME_MS.idle;
+    const frame = frames[Math.floor(this.animTime / frameMs) % frames.length];
+    if (this.sprite.frame.name !== frame) this.sprite.setFrame(frame);
   }
 
   private applyTint(): void {

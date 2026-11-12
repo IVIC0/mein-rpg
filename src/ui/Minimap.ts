@@ -8,20 +8,27 @@ import { byId } from './dom';
 /** Die Minimap wird doppelt so fein gezeichnet, wie sie groß ist – so bleibt sie auch vergrößert scharf. */
 const RESOLUTION = 2;
 
+/** Ein fester Punkt auf der Minimap (Händler, Truhe, Übergang): Platz in Welt-Pixeln, Farbe und Größe. */
+export interface MinimapMark {
+  pos: Point;
+  color: string;
+  radius: number;
+}
+
 /**
- * Die Minimap oben rechts: Gelände, eigene Figur (Mitte), Gegner im Ausschnitt und der Händler.
+ * Die Minimap oben rechts: Gelände, eigene Figur (Mitte), Gegner im Ausschnitt, Händler, Truhen und Übergänge.
  * Sie ist ein HUD-Element wie die anderen (ausblenden, Größe, Deckkraft, verschieben).
  * Größe, Ausschnitt und Farben stehen in src/data/minimap.ts.
  *
- * Das Gelände wird einmal beim Start als kleines Bild gebaut (1 Pixel pro Kachel).
+ * Das Gelände wird beim Betreten einer Zone als kleines Bild gebaut (1 Pixel pro Kachel).
  * Jeden Frame wird daraus der Ausschnitt um die Figur gezeichnet, darüber die Punkte.
  */
 export class Minimap {
   private readonly canvas = byId('minimap-canvas') as HTMLCanvasElement;
   private readonly context: CanvasRenderingContext2D;
-  private readonly terrain: HTMLCanvasElement;
+  private terrain: HTMLCanvasElement = document.createElement('canvas');
 
-  constructor(map: Phaser.Tilemaps.Tilemap, tileset: Phaser.Tilemaps.Tileset) {
+  constructor() {
     this.canvas.width = MINIMAP.size * RESOLUTION;
     this.canvas.height = MINIMAP.size * RESOLUTION;
     this.canvas.style.width = `${MINIMAP.size}px`;
@@ -29,11 +36,15 @@ export class Minimap {
     const context = this.canvas.getContext('2d');
     if (!context) throw new Error('Die Minimap lässt sich nicht zeichnen.');
     this.context = context;
+  }
+
+  /** Neue Zone: das Gelände aus ihrer Karte neu aufbauen. */
+  setMap(map: Phaser.Tilemaps.Tilemap, tileset: Phaser.Tilemaps.Tileset): void {
     this.terrain = buildTerrain(map, tileset);
   }
 
-  /** Zeichnet die Minimap neu. `player` und `merchant` sind Plätze in Welt-Pixeln. */
-  render(player: Point, enemies: readonly Enemy[], merchant: Point): void {
+  /** Zeichnet die Minimap neu. `player` ist der Platz der Figur in Welt-Pixeln, `marks` die festen Punkte der Zone. */
+  render(player: Point, enemies: readonly Enemy[], marks: readonly MinimapMark[]): void {
     const context = this.context;
     const view = MINIMAP.tilesVisible;
     const pixelsPerTile = this.canvas.width / view;
@@ -60,7 +71,7 @@ export class Minimap {
       context.stroke();
     };
 
-    dot(merchant, MINIMAP.merchantColor, MINIMAP.merchantRadius);
+    for (const mark of marks) dot(mark.pos, mark.color, mark.radius);
     for (const enemy of enemies) {
       if (enemy.state === 'dead') continue;
       const look = MINIMAP.enemies[enemy.rank];

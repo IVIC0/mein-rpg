@@ -1,14 +1,15 @@
-// Gegnertypen. Wo welche Gegner mit welcher Stufe stehen, legt die Karte fest
-// (tools/build-map.mjs, Liste ENEMY_GROUPS) – der Schlüssel hier ist der Name dort.
+// Gegnertypen. Wo welche Gegner mit welcher Stufe stehen, legt der Bauplan der Zone fest
+// (tools/zones/<zone>.mjs, Liste `enemyGroups`) – der Schlüssel hier ist der Name dort.
 //
 // Leben, Angriff und Rüstung gelten für Stufe 1 und wachsen mit der Stufe (ENEMY_SCALING).
 
 import type { EnemyRank } from './loot';
+import type { SpriteName } from './sprites';
 
 export interface EnemyDef {
   name: string;
-  /** Bild-Nummer in assets/sprites/characters.png. */
-  frame: number;
+  /** Name des Bildes in src/data/sprites.ts. */
+  sprite: SpriteName;
   maxHp: number;
   attackPower: number;
   armor: number;
@@ -27,7 +28,7 @@ export interface EnemyDef {
 export const ENEMIES: Record<string, EnemyDef> = {
   ratte: {
     name: 'Riesenratte',
-    frame: 123,
+    sprite: 'ratte',
     maxHp: 30,
     attackPower: 5,
     armor: 0,
@@ -38,7 +39,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   spinne: {
     name: 'Waldspinne',
-    frame: 122,
+    sprite: 'spinne',
     maxHp: 45,
     attackPower: 7,
     armor: 3,
@@ -49,7 +50,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   wegelagerer: {
     name: 'Wegelagerer',
-    frame: 112,
+    sprite: 'wegelagerer',
     maxHp: 64,
     attackPower: 9,
     armor: 11,
@@ -58,11 +59,73 @@ export const ENEMIES: Record<string, EnemyDef> = {
     aggroRadius: 72,
     leashRadius: 192,
   },
+  // ---- Neu seit Meilenstein 11 (alle Werte sind Startwerte fürs Balancing) ----
+  // Wolf: schnell, beißt oft, sieht die Figur von Weitem. Das Bild ist der dunkle Hund aus
+  // "Ninja Adventure" (einen Wolf hat kein Pack); mit sprite: 'hyaene' wäre es die Hyäne.
+  wolf: {
+    name: 'Wolf',
+    sprite: 'wolf',
+    maxHp: 38,
+    attackPower: 6.5,
+    armor: 1,
+    attackIntervalMs: 1400,
+    speed: 62,
+    aggroRadius: 80,
+    leashRadius: 208,
+  },
+  // Wildschwein: zäh und langsam, schlägt selten, aber hart.
+  wildschwein: {
+    name: 'Wildschwein',
+    sprite: 'wildschwein',
+    maxHp: 60,
+    attackPower: 8.5,
+    armor: 6,
+    attackIntervalMs: 2200,
+    speed: 56,
+    aggroRadius: 56,
+    leashRadius: 176,
+  },
+  // Fledermaus: nur in der Höhle. Wenig Leben, schlägt schnell, kommt in Gruppen.
+  fledermaus: {
+    name: 'Fledermaus',
+    sprite: 'fledermaus',
+    maxHp: 26,
+    attackPower: 5.5,
+    armor: 0,
+    attackIntervalMs: 1200,
+    speed: 62,
+    aggroRadius: 72,
+    leashRadius: 160,
+  },
+  goblin: {
+    name: 'Goblin',
+    sprite: 'goblin',
+    maxHp: 50,
+    attackPower: 8,
+    armor: 6,
+    attackIntervalMs: 1700,
+    speed: 60,
+    aggroRadius: 72,
+    leashRadius: 192,
+  },
+  // Goblin-Schleuderer: wenig Leben, harter Treffer. Er wirft erst ab Meilenstein 13
+  // (Fernkampf) – bis dahin kämpft er im Nahkampf wie alle anderen.
+  schleuderer: {
+    name: 'Goblin-Schleuderer',
+    sprite: 'goblin-schleuderer',
+    maxHp: 40,
+    attackPower: 9.5,
+    armor: 3,
+    attackIntervalMs: 1900,
+    speed: 56,
+    aggroRadius: 88,
+    leashRadius: 192,
+  },
   // Boss der Ruine. Die Grundwerte entsprechen dem Wegelagerer; was ihn zum Boss macht
   // (6× Leben, mehr Angriff und Rüstung, Größe), steht in RANKS in src/data/elites.ts.
   raeuberhauptmann: {
     name: 'Räuberhauptmann',
-    frame: 111,
+    sprite: 'raeuberhauptmann',
     maxHp: 64,
     attackPower: 9,
     armor: 11,

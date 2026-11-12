@@ -42,36 +42,45 @@ Menü „Spielstände" (Diskette oben rechts), HUD-Einstellungen hinter dem Zahn
 | Ordner | Inhalt |
 |---|---|
 | `src/scenes/` | Szenen: `BootScene` lädt alles, `WorldScene` ist die Spielwelt |
-| `src/entities/` | Spielfigur und Gegner; `Actor` ist die gemeinsame Basis |
+| `src/entities/` | Spielfigur, Gegner, Händler, Truhe, Übergang; `Actor` ist die gemeinsame Basis der Figuren |
 | `src/combat/` | Kampfregeln (`Combat`: Angriffe, EP, Stufenaufstieg, Tod) und Schadensformel |
 | `src/items/` | Loot: Item-Generator, Inventar mit Ausrüstung, Items am Boden, Händler |
 | `src/save/` | Spielstand (Aufbau, Format-Umbau) und Slots im Browser |
-| `src/data/` | Werte zum Einstellen: Krieger mit Skills, Gegnertypen, Levelkurve und EP, Items, Affixe, Drops, Händler-Preise, Speichern |
+| `src/data/` | Werte zum Einstellen: Krieger mit Skills, Gegnertypen, Zonen, Bilder der Figuren, Truhen, Levelkurve und EP, Items, Affixe, Drops, Händler-Preise, Speichern |
 | `src/ui/` | Anzeigen über dem Spielbild (HTML/CSS): Leben, EP, Ziel, Skill-Balken, Schadenszahlen, Inventar-, Händler- und Spielstand-Fenster, Einstellungen |
 | `src/world/` | Kollisionsraster, Wegfindung (Klick) und direkte Bewegung (Maustaste halten) |
 | `src/config.ts` | Stellschrauben wie Laufgeschwindigkeit, Zoom, Reichweiten, Respawn-Zeiten und Treffer-Feedback |
 | `public/assets/` | Grafiken und Karten, die das Spiel lädt (erzeugt, nicht von Hand ändern) |
 | `assets-src/` | Original-Grafikpakete mit Lizenzdateien |
-| `tools/` | Werkzeuge, die Tilesets und Karten bauen |
+| `tools/` | Werkzeuge, die Tilesets, Figuren-Bilder und Karten bauen; `tools/zones/` enthält je Zone einen Bauplan |
 
 ## Karte ändern
 
-Die Zone Grünwald wird von `tools/build-map.mjs` erzeugt. Dorf, Wege und
-Lichtungen stehen oben in der Datei als Koordinatenlisten. Nach einer Änderung:
+Jede Zone hat einen Bauplan in `tools/zones/` (z. B. `gruenwald.mjs`): Größe, Lichtungen,
+Wege, Bauten, besondere Orte (Händler, Truhen, Übergänge, feste Elite-Plätze) und
+Gegnergruppen als Koordinatenlisten. `tools/build-map.mjs` baut daraus die Karten.
+Nach einer Änderung:
 
 ```bash
 npm run assets
 ```
 
-Mit `node tools/build-map.mjs --preview karte.png` gibt es zusätzlich ein
-Übersichtsbild der ganzen Karte.
+Mit `node tools/build-map.mjs --preview ordner/` gibt es zusätzlich je Zone ein
+Übersichtsbild der ganzen Karte (Gegner rot, besondere Orte gelb).
+
+Eine neue Zone: Bauplan in `tools/zones/` anlegen, in `src/data/zones.ts` eintragen,
+`npm run assets`. Zum Testen `?zone=<name>` an die Adresse hängen.
 
 ## Gegner ändern
 
 - Werte eines Gegnertyps (Leben, Angriff, Tempo …) und ihr Zuwachs pro Stufe:
-  `src/data/enemies.ts`.
-- Welche Gegner mit welcher Stufe auf welcher Lichtung stehen: Liste `ENEMY_GROUPS`
-  oben in `tools/build-map.mjs`, danach `npm run assets`.
+  `src/data/enemies.ts`. Sein Bild steht dort als Name (`sprite`); die Bilder selbst
+  verzeichnet `src/data/sprites.ts`.
+- Welche Gegner mit welcher Stufe auf welcher Lichtung stehen: Liste `enemyGroups`
+  im Bauplan der Zone (`tools/zones/<zone>.mjs`), danach `npm run assets`.
+- Feste Elite-Plätze (z. B. die Brutmutter): `NAMED_ELITES` in `src/data/elites.ts`.
+- Eine neue Figur aus den Packs in `assets-src/`: in `tools/lib/creatures.mjs` eintragen,
+  `npm run assets`, dann in `src/data/sprites.ts` aufnehmen.
 
 ## Leveln ändern und testen
 
@@ -92,4 +101,9 @@ Mit `node tools/build-map.mjs --preview karte.png` gibt es zusätzlich ein
 ## Händler ändern
 
 - Preise, Sortiment (Größe, Seltenheiten, Lieferzeit) und Heiltrank: `src/data/shop.ts`.
-- Wo der Händler steht: `MERCHANT` oben in `tools/build-map.mjs`, danach `npm run assets`.
+- Wo der Händler steht: Eintrag `haendler` in der Liste `pois` in `tools/zones/gruenwald.mjs`, danach `npm run assets`.
+
+## Truhen ändern
+
+- Inhalt (Gold, Anzahl Items, Seltenheiten) und Zeit bis zum Auffüllen: `CHEST` in `src/data/pois.ts`.
+- Wo Truhen stehen und welches Itemlevel sie haben: Liste `pois` im Bauplan der Zone.

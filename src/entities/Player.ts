@@ -8,9 +8,6 @@ import type { Grid, Point } from '../world/Grid';
 import { moveToward } from '../world/movement';
 import { Actor, SPRITE_OFFSET_Y } from './Actor';
 
-/** Bild-Nummer des Ritters in assets/sprites/characters.png. */
-const KNIGHT_FRAME = 96;
-
 /** Eine laufende Verstärkung durch einen Skill. */
 export interface Buff {
   skillId: SkillId;
@@ -54,7 +51,7 @@ export class Player extends Actor {
   private readonly swing = { progress: 0 };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, KNIGHT_FRAME, WARRIOR.maxHp);
+    super(scene, x, y, 'ritter', WARRIOR.maxHp);
     this.swingTrail = scene.add.graphics().setVisible(false);
     // Drehpunkt knapp unter dem Griff: so kreist die Klinge um die Figur.
     this.weapon = scene.add.sprite(0, SPRITE_OFFSET_Y, 'characters', SWING_WEAPON_FRAME).setOrigin(0.5, 1.15).setVisible(false);

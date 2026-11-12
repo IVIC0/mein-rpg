@@ -1,17 +1,23 @@
 import Phaser from 'phaser';
 import { Combat } from '../combat/Combat';
-import { BODY_RADIUS, BOSS_RESPAWN_MS, HOLD_DELAY_MS, TILE, zoomForViewport } from '../config';
+import { BODY_RADIUS, HOLD_DELAY_MS, TILE, zoomForViewport } from '../config';
 import { DEFAULT_DIFFICULTY, type Difficulty } from '../data/difficulty';
+import { NAMED_ELITES, NAMED_ELITE_RESPAWN_MS } from '../data/elites';
 import { ENEMIES } from '../data/enemies';
 import { RARITIES } from '../data/items';
+import { MINIMAP } from '../data/minimap';
+import { CHEST, PORTAL } from '../data/pois';
 import { AUTOSAVE_INTERVAL_MS, SAVE_DELAY_MS } from '../data/save';
 import { MERCHANT } from '../data/shop';
 import { SKILLS, WARRIOR } from '../data/warrior';
+import { START_ZONE, ZONES, ZONE_FADE_MS } from '../data/zones';
 import { Actor } from '../entities/Actor';
+import { Chest } from '../entities/Chest';
 import { Enemy } from '../entities/Enemy';
 import { Merchant } from '../entities/Merchant';
 import { Player } from '../entities/Player';
-import { generateItem } from '../items/generator';
+import { Portal } from '../entities/Portal';
+import { generateItem, rollRarityFrom } from '../items/generator';
 import { GroundLoot } from '../items/GroundLoot';
 import { Inventory } from '../items/Inventory';
 import { Shop } from '../items/Shop';
@@ -22,13 +28,14 @@ import { Hud } from '../ui/Hud';
 import { HudLayout } from '../ui/HudLayout';
 import { InventoryWindow } from '../ui/InventoryWindow';
 import { ItemTooltip } from '../ui/ItemTooltip';
-import { Minimap } from '../ui/Minimap';
+import { Minimap, type MinimapMark } from '../ui/Minimap';
 import { Nameplates } from '../ui/Nameplates';
 import { SaveMenu } from '../ui/SaveMenu';
 import { SettingsMenu } from '../ui/SettingsMenu';
 import { ShopWindow } from '../ui/ShopWindow';
 import { byId } from '../ui/dom';
 import { Grid, type Point } from '../world/Grid';
+import type { Interactable } from '../world/Interactable';
 import { findWaypoints } from '../world/pathfinding';
 
 /** Längere Aussetzer (z. B. Tab im Hintergrund) zählen höchstens so viel (Millisekunden). */
@@ -38,6 +45,10 @@ const MAX_FRAME_MS = 100;
  * Die Spielwelt: Karte, Spielfigur, Gegner, Kamera und Steuerung.
  * Die Kampfregeln selbst stehen in src/combat/Combat.ts.
  *
+ * Die Welt besteht aus Zonen (src/data/zones.ts). Zu sehen ist immer genau eine:
+ * `enterZone` baut sie aus ihrer Karte auf (Gelände, Gegner, besondere Orte), `leaveZone`
+ * räumt sie wieder weg. Was ein besonderer Ort (POI) im Spiel tut, steht in `buildPoi`.
+ *
  * Steuerung mit der linken Maustaste:
  * - Klick auf einen Gegner: als Ziel wählen, hinlaufen, automatisch angreifen.
  * - Klick auf begehbaren Boden: Figur läuft mit Wegfindung dorthin.
@@ -45,16 +56,18 @@ const MAX_FRAME_MS = 100;
  * - Gedrückt halten: Figur läuft direkt dem Mauszeiger nach und rutscht an
  *   Hindernissen entlang. Loslassen = stehen bleiben.
  *
- * Klick auf den Händler im Dorf: hinlaufen und handeln. Q trinkt einen Heiltrank.
+ * Klick auf den Händler im Dorf: hinlaufen und handeln. Klick auf eine Truhe: hinlaufen und öffnen.
+ * Q oder ein Klick auf das Trank-Feld der Skill-Leiste trinkt einen Heiltrank.
+ * Betritt die Figur einen Übergang (z. B. den Höhleneingang), wechselt die Zone.
  *
- * Oben rechts zeigt die Minimap Gelände, Gegner und Händler (src/ui/Minimap.ts).
+ * Oben rechts zeigt die Minimap Gelände, Gegner, Händler, Truhen und Übergänge (src/ui/Minimap.ts).
  *
  * Skills lösen von selbst aus (siehe Combat). I oder C öffnet Charakter & Inventar.
  * Esc schließt das Fenster (wenn es nicht angepinnt ist) bzw. hebt die Zielauswahl auf.
  *
  * Speichern: Beim Start wird der Spielstand aus `session.save` übernommen (applySave).
  * Gespeichert wird von selbst – regelmäßig, kurz nach wichtigen Ereignissen und beim
- * Verlassen der Seite (siehe startAutosave). Im Testlauf (?stufe, ?beute, ?elite) nie.
+ * Verlassen der Seite (siehe startAutosave). Im Testlauf (?stufe, ?beute, ?elite, ?zone) nie.
  */
 export class WorldScene extends Phaser.Scene {
   private grid!: Grid;
@@ -69,17 +82,42 @@ export class WorldScene extends Phaser.Scene {
   private inventory!: Inventory;
   private hud!: Hud;
   private loot!: GroundLoot;
-  private merchant!: Merchant;
   private shop!: Shop;
   private shopWindow!: ShopWindow;
   private minimap!: Minimap;
+
+  // ---- Die aktuelle Zone (alles hier baut enterZone neu auf) ----
+  private zoneId = START_ZONE;
+  private map: Phaser.Tilemaps.Tilemap | null = null;
   private enemies: Enemy[] = [];
+  /** Der Händler – nur in Zonen, in denen einer steht. */
+  private merchant: Merchant | null = null;
+  private chests: Chest[] = [];
+  private portals: Portal[] = [];
+  /** Alles Anklickbare der Zone: Händler, Truhen, Übergänge. */
+  private interactables: Interactable[] = [];
+  /** Die Schilder der Orte dieser Zone (sammelt buildPoi, zeigt enterZone an). */
+  private labels: { x: number; y: number; text: string }[] = [];
+  /** Benannte Punkte der Karte (Ebene "Marker"): Startpunkt und Ankunftspunkte. */
+  private readonly markers = new Map<string, Point>();
+  /** Bosse und benannte Elites der Zone mit ihrem Schlüssel im Spielstand ("Zone:Typ@Platz"). */
+  private readonly timedEnemies = new Map<string, Enemy>();
+  /**
+   * Erst wenn die Figur einmal außerhalb aller Übergänge stand, löst einer aus –
+   * sonst spränge sie nach der Ankunft sofort wieder zurück.
+   */
+  private portalArmed = false;
+
+  // ---- Zeiten für alle Zonen, so wie sie im Spielstand stehen ----
+  /** Besiegte Bosse und benannte Elites: Schlüssel → Zeitpunkt, zu dem sie wieder erscheinen. */
+  private respawnAt: Record<string, number> = {};
+  /** Geöffnete Truhen: Schlüssel → Zeitpunkt, ab dem sie wieder gefüllt sind. */
+  private chestRefillAt: Record<string, number> = {};
+
   /** Schwierigkeit dieses Spielstands. Die Regler in den Einstellungen ändern dieses Objekt direkt. */
   private readonly difficulty: Difficulty = { ...DEFAULT_DIFFICULTY };
-  /** Ist die Figur gerade auf dem Weg zum Händler? Dann öffnet sich der Handel, sobald sie ankommt. */
-  private walkingToMerchant = false;
-  /** Die Bosse der Karte mit ihrem Schlüssel im Spielstand (Typ und Platz). */
-  private readonly bosses = new Map<string, Enemy>();
+  /** Ist die Figur gerade auf dem Weg zu etwas Anklickbarem (Händler, Truhe)? Dann wird es benutzt, sobald sie ankommt. */
+  private walkingTo: Interactable | null = null;
   /** Gespielte Zeit dieses Spielstands in Millisekunden. */
   private playedMs = 0;
   /** Läuft schon ein Timer für das Speichern "gleich"? (siehe requestSave) */
@@ -101,31 +139,6 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(): void {
-    const map = this.make.tilemap({ key: 'map-gruenwald' });
-    const tileset = map.addTilesetImage('gruenwald', 'tiles-gruenwald', TILE, TILE, 1, 2);
-    if (!tileset) throw new Error('Tileset "gruenwald" fehlt in der Karte.');
-
-    map.createLayer('Boden', tileset);
-    map.createLayer('Deko', tileset);
-    const objects = map.createLayer('Objekte', tileset);
-    if (!objects) throw new Error('Ebene "Objekte" fehlt in der Karte.');
-
-    // Alles auf der Ebene "Objekte" ist ein Hindernis.
-    const blocked = new Uint8Array(map.width * map.height);
-    objects.forEachTile((tile) => {
-      if (tile.index !== -1) blocked[tile.y * map.width + tile.x] = 1;
-    });
-    // Der Händler steht fest an seinem Platz – seine Kachel ist ebenfalls ein Hindernis.
-    const merchantAt = map.findObject('Marker', (object) => object.name === 'haendler');
-    if (!merchantAt || merchantAt.x === undefined || merchantAt.y === undefined) throw new Error('Marker "haendler" fehlt in der Karte.');
-    blocked[Grid.toTile(merchantAt.y) * map.width + Grid.toTile(merchantAt.x)] = 1;
-    this.grid = new Grid(map.width, map.height, blocked);
-    this.merchant = new Merchant(this, merchantAt.x, merchantAt.y);
-
-    const spawn = map.findObject('Marker', (object) => object.name === 'spawn');
-    if (!spawn || spawn.x === undefined || spawn.y === undefined) throw new Error('Marker "spawn" fehlt in der Karte.');
-    this.player = new Player(this, spawn.x, spawn.y);
-
     // Der Spielstand, mit dem gespielt wird (legt main.ts fest), und die Test-Parameter der Adresse.
     const save = session.save;
     if (!save) throw new Error('Kein Spielstand geladen.');
@@ -137,22 +150,14 @@ export class WorldScene extends Phaser.Scene {
     Object.assign(this.difficulty, save.difficulty);
     Enemy.difficulty = this.difficulty;
 
-    // Jeder Punkt auf der Ebene "Gegner" ist ein Gegner; der Name des Punkts ist sein Typ.
-    const enemies = (map.getObjectLayer('Gegner')?.objects ?? []).map((object) => {
-      const def = ENEMIES[object.name];
-      if (!def || object.x === undefined || object.y === undefined) throw new Error(`Unbekannter Gegner "${object.name}" in der Karte.`);
-      const enemy = new Enemy(this, def, enemyLevel(object), object.x, object.y);
-      if (enemy.rank === 'boss') this.bosses.set(`${object.name}@${object.x},${object.y}`, enemy);
-      return enemy;
-    });
-    this.enemies = enemies;
-    this.minimap = new Minimap(map, tileset);
-
+    // Die Figur und alle Anzeigen gibt es einmal; sie bleiben beim Zonenwechsel bestehen.
+    this.player = new Player(this, 0, 0);
+    this.minimap = new Minimap();
     this.floaters = new FloatingText(byId('floaters'));
-    this.nameplates = new Nameplates(byId('nameplates'), enemies, save.name);
-    this.nameplates.addLabel(this.merchant.pos.x, this.merchant.pos.y, MERCHANT.name);
+    this.nameplates = new Nameplates(byId('nameplates'), save.name);
     const hud = new Hud(SKILLS);
     this.hud = hud;
+    hud.onPotionClick = () => this.drinkPotion();
 
     // Inventar und Ausrüstung: nach jeder Änderung bekommt die Figur ihre neuen Werte.
     const inventory = new Inventory();
@@ -187,16 +192,32 @@ export class WorldScene extends Phaser.Scene {
     this.loot = loot;
     loot.onChange = () => this.requestSave();
 
+    this.combat = new Combat(this, this.player, hud, this.floaters, inventory, loot);
+    this.combat.onSaveEvent = () => this.requestSave();
+    this.combat.respawnPoint = () => this.respawnPoint();
+
     this.applySave(save);
     this.showName(save.name);
 
     // Zum Testen (Testlauf, wird nie gespeichert): ?stufe=5 startet auf Stufe 5,
-    // ?beute=10 legt 10 gewürfelte Items ins Inventar, von jeder Seltenheit reihum.
+    // ?beute=10 legt 10 gewürfelte Items ins Inventar, von jeder Seltenheit reihum,
+    // ?zone=spinnenhoehle startet in dieser Zone.
     if (test.level > 1) this.player.setLevel(test.level);
     for (let i = 0; i < test.loot; i++) inventory.add(generateItem(this.player.level, RARITIES[i % RARITIES.length].id));
 
-    this.combat = new Combat(this, this.grid, this.player, enemies, hud, this.floaters, { x: spawn.x, y: spawn.y }, inventory, loot);
-    this.combat.onSaveEvent = () => this.requestSave();
+    this.clickMarker = this.add.image(0, 0, 'click-marker').setOrigin(0).setDepth(5).setVisible(false);
+    this.blockedMarker = this.add.image(0, 0, 'blocked-marker').setOrigin(0).setDepth(20).setVisible(false);
+
+    // Die Kamera wird in update() selbst nachgeführt (siehe followPlayer). Phasers
+    // eingebautes Runden ist aus, weil es auf ganze Welt-Pixel rundet – bei
+    // 3-fachem Zoom würde das Bild dann in 3-Pixel-Sprüngen ruckeln.
+    this.cameras.main.setRoundPixels(false);
+    this.applyZoom();
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.applyZoom, this);
+
+    // Die Zone aus dem Spielstand aufbauen; die Figur steht wieder dort, wo sie war.
+    if (test.zone && ZONES[test.zone]) this.enterZone(test.zone, null);
+    else this.enterZone(save.zone, save.position);
 
     // Menü "Spielstände": Slots wechseln, anlegen, löschen, exportieren, importieren.
     this.saveMenu = new SaveMenu({
@@ -207,19 +228,6 @@ export class WorldScene extends Phaser.Scene {
     byId('saves-button').addEventListener('click', () => this.settings.close());
     byId('settings-button').addEventListener('click', () => this.saveMenu.close());
     this.startAutosave();
-
-    this.clickMarker = this.add.image(0, 0, 'click-marker').setOrigin(0).setDepth(5).setVisible(false);
-    this.blockedMarker = this.add.image(0, 0, 'blocked-marker').setOrigin(0).setDepth(20).setVisible(false);
-
-    // Die Kamera wird in update() selbst nachgeführt (siehe followPlayer). Phasers
-    // eingebautes Runden ist aus, weil es auf ganze Welt-Pixel rundet – bei
-    // 3-fachem Zoom würde das Bild dann in 3-Pixel-Sprüngen ruckeln.
-    const camera = this.cameras.main;
-    camera.setRoundPixels(false);
-    camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    this.applyZoom();
-    this.followPlayer();
-    this.scale.on(Phaser.Scale.Events.RESIZE, this.applyZoom, this);
 
     this.input.mouse?.disableContextMenu();
     this.input.on(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
@@ -260,7 +268,7 @@ export class WorldScene extends Phaser.Scene {
     // Erst die Kampfregeln (Gegner, Angriffe, Ziel verfolgen), dann die Bewegung der Figur.
     this.combat.update(delta);
     this.inventoryWindow.update();
-    this.updateMerchant();
+    this.updateInteractables();
 
     if (!this.player.alive) {
       this.cancelPress();
@@ -273,44 +281,264 @@ export class WorldScene extends Phaser.Scene {
     } else {
       this.player.step(delta);
     }
+    // Steht die Figur auf einem Übergang, wechselt hier die Zone.
+    this.checkPortals();
     this.followPlayer();
-    if (this.settings.values.hud.minimap.visible) this.minimap.render(this.player.pos, this.enemies, this.merchant.pos);
+    if (this.settings.values.hud.minimap.visible) this.minimap.render(this.player.pos, this.enemies, this.minimapMarks());
 
-    // Über einem Gegner oder dem Händler wird der Mauszeiger zur Hand.
-    const clickable = this.combat.enemyAt(cursor) !== null || this.merchant.contains(cursor);
+    // Über einem Gegner, dem Händler, einer Truhe oder einem Eingang wird der Mauszeiger zur Hand.
+    const clickable = this.combat.enemyAt(cursor) !== null || this.interactables.some((thing) => thing.contains(cursor));
     this.input.setDefaultCursor(this.player.alive && clickable ? 'pointer' : 'default');
   }
 
-  // ---------------------------------------------------------------- Händler und Heiltrank
+  // ---------------------------------------------------------------- Zonen
 
-  /** Klick auf den Händler: Steht die Figur nah genug, öffnet sich der Handel – sonst läuft sie erst hin. */
-  private visitMerchant(): void {
-    this.combat.disengage();
-    if (this.player.distanceTo(this.merchant.pos) <= MERCHANT.openRange) {
-      this.player.stop();
-      this.shopWindow.open();
+  /**
+   * Baut die Zone `zoneId` auf und stellt die Figur hinein. `arrive` = Name eines Markers
+   * der Karte oder ein Punkt in Welt-Pixeln; null (oder ein verbauter Punkt) = Startpunkt der Zone.
+   */
+  private enterZone(zoneId: string, arrive: string | Point | null): void {
+    const zone = ZONES[zoneId];
+    if (!zone) throw new Error(`Die Zone "${zoneId}" gibt es nicht (src/data/zones.ts).`);
+    this.leaveZone();
+    this.zoneId = zoneId;
+
+    const map = this.make.tilemap({ key: `map-${zoneId}` });
+    this.map = map;
+    const tileset = map.addTilesetImage(zone.tileset, `tiles-${zone.tileset}`, TILE, TILE, 1, 2);
+    if (!tileset) throw new Error(`Tileset "${zone.tileset}" fehlt in der Karte "${zoneId}".`);
+    const ground = map.createLayer('Boden', tileset);
+    map.createLayer('Deko', tileset);
+    const objects = map.createLayer('Objekte', tileset);
+    if (!ground || !objects) throw new Error(`Ebene "Boden" oder "Objekte" fehlt in der Karte "${zoneId}".`);
+
+    // Hindernisse: alles auf der Ebene "Objekte" – und jede Kachel ohne Boden (in Höhlen der Fels).
+    const blocked = new Uint8Array(map.width * map.height);
+    objects.forEachTile((tile) => {
+      if (tile.index !== -1) blocked[tile.y * map.width + tile.x] = 1;
+    });
+    ground.forEachTile((tile) => {
+      if (tile.index === -1) blocked[tile.y * map.width + tile.x] = 1;
+    });
+    // Händler und Truhen stehen fest an ihrem Platz – ihre Kachel ist ebenfalls ein Hindernis.
+    const pois = map.getObjectLayer('POI')?.objects ?? [];
+    for (const poi of pois) {
+      if (poi.type === 'haendler' || poi.type === 'truhe') blocked[Grid.toTile(poi.y ?? 0) * map.width + Grid.toTile(poi.x ?? 0)] = 1;
+    }
+    this.grid = new Grid(map.width, map.height, blocked);
+
+    for (const marker of map.getObjectLayer('Marker')?.objects ?? []) {
+      if (marker.x !== undefined && marker.y !== undefined) this.markers.set(marker.name, { x: marker.x, y: marker.y });
+    }
+    const spawn = this.markers.get('spawn');
+    if (!spawn) throw new Error(`Marker "spawn" fehlt in der Karte "${zoneId}".`);
+
+    // Jeder Punkt auf der Ebene "Gegner" ist ein Gegner; der Name des Punkts ist sein Typ.
+    for (const object of map.getObjectLayer('Gegner')?.objects ?? []) {
+      const def = ENEMIES[object.name];
+      if (!def || object.x === undefined || object.y === undefined) throw new Error(`Unbekannter Gegner "${object.name}" in der Karte "${zoneId}".`);
+      this.addEnemy(new Enemy(this, def, numberProperty(object, 'level', 1), object.x, object.y), object.name);
+    }
+    // Die besonderen Orte bauen (auch benannte Elites), dann die Schilder: eines je Gegner, eines je Ort.
+    for (const poi of pois) this.buildPoi(poi);
+    this.nameplates.setEnemies(this.enemies);
+    for (const label of this.labels) this.nameplates.addLabel(label.x, label.y, label.text);
+
+    // Ein besiegter Boss (oder eine benannte Elite) bleibt weg, bis seine Zeit um ist. Die Uhr lief weiter, während das Spiel zu war.
+    for (const [key, enemy] of this.timedEnemies) {
+      const remaining = (this.respawnAt[key] ?? 0) - Date.now();
+      if (remaining > 0) enemy.startDead(Math.min(remaining, enemy.respawnMs));
+    }
+
+    this.combat.setZone(this.grid, this.enemies);
+    this.minimap.setMap(map, tileset);
+    this.loot.setZone(zoneId);
+
+    // Die Figur an ihren Platz stellen – außer die Stelle ist inzwischen verbaut (Karte geändert).
+    let at = typeof arrive === 'string' ? this.markers.get(arrive) : arrive;
+    if (!at || !this.grid.isBoxFree(at.x, at.y, BODY_RADIUS)) at = spawn;
+    this.player.stop();
+    this.player.pos.set(at.x, at.y);
+    this.portalArmed = false;
+
+    const camera = this.cameras.main;
+    camera.setBackgroundColor(zone.background);
+    camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    this.followPlayer();
+    camera.fadeIn(ZONE_FADE_MS);
+    this.hud.showZone(zone.name, zone.levels);
+  }
+
+  /** Nimmt einen Gegner in die Zone auf. `type` = sein Name in der Karte (für den Schlüssel im Spielstand). */
+  private addEnemy(enemy: Enemy, type: string): void {
+    this.enemies.push(enemy);
+    if (enemy.timed) this.timedEnemies.set(`${this.zoneId}:${type}@${enemy.home.x},${enemy.home.y}`, enemy);
+  }
+
+  /**
+   * Besondere Orte: Was ein Punkt der Ebene "POI" im Spiel wird, hängt an seiner Art (`type`).
+   * Eine neue Art bekommt hier einen Eintrag – ihre Werte gehören nach src/data/.
+   */
+  private buildPoi(poi: Phaser.Types.Tilemaps.TiledObject): void {
+    const x = poi.x ?? 0;
+    const y = poi.y ?? 0;
+    const builders: Record<string, () => void> = {
+      haendler: () => {
+        this.merchant = new Merchant(this, x, y, () => this.shopWindow.open());
+        this.interactables.push(this.merchant);
+        this.labels.push({ x, y, text: MERCHANT.name });
+      },
+      truhe: () => {
+        const chest = new Chest(this, `${this.zoneId}:${poi.name}`, x, y, numberProperty(poi, 'level', 1), (opened) => this.openChest(opened));
+        chest.refillAt = this.chestRefillAt[chest.key] ?? 0;
+        chest.update();
+        this.chests.push(chest);
+        this.interactables.push(chest);
+      },
+      portal: () => {
+        const portal = new Portal(this, x, y, textProperty(poi, 'to'), textProperty(poi, 'arrive'));
+        if (!ZONES[portal.to]) throw new Error(`Übergang "${poi.name}" führt in die unbekannte Zone "${portal.to}".`);
+        this.portals.push(portal);
+        this.interactables.push(portal);
+        // Das Schild sitzt über dem Eingang, also eine Kachel über der Stelle, die man betritt.
+        this.labels.push({ x, y: y - TILE, text: textProperty(poi, 'label') || ZONES[portal.to].name });
+      },
+      elite: () => {
+        // Fester Elite-Platz: Der Name des Punkts ist der Schlüssel in NAMED_ELITES.
+        const named = NAMED_ELITES[poi.name];
+        const def = named ? ENEMIES[named.enemy] : undefined;
+        if (!named || !def) throw new Error(`Benannte Elite "${poi.name}" fehlt in src/data/elites.ts.`);
+        const fixed = { name: named.name, traits: named.traits, respawnMs: NAMED_ELITE_RESPAWN_MS };
+        this.addEnemy(new Enemy(this, def, named.level, x, y, fixed), poi.name);
+      },
+    };
+    const build = builders[poi.type];
+    if (!build) throw new Error(`Besonderer Ort "${poi.name}": Die Art "${poi.type}" kennt das Spiel nicht.`);
+    build();
+  }
+
+  /** Räumt die aktuelle Zone weg. Vorher werden die Zeiten von Bossen und Truhen gemerkt. */
+  private leaveZone(): void {
+    if (!this.map) return;
+    this.rememberTimes();
+    this.cancelPress();
+    this.walkingTo = null;
+    this.shopWindow.close();
+    for (const enemy of this.enemies) enemy.destroy();
+    for (const thing of this.interactables) thing.destroy();
+    this.enemies = [];
+    this.interactables = [];
+    this.chests = [];
+    this.portals = [];
+    this.labels = [];
+    this.merchant = null;
+    this.markers.clear();
+    this.timedEnemies.clear();
+    this.map.destroy();
+    this.map = null;
+  }
+
+  /** Steht die Figur auf einem Übergang, geht es in dessen Zone. */
+  private checkPortals(): void {
+    if (!this.player.alive) return;
+    const portal = this.portals.find((candidate) => this.player.distanceTo(candidate.pos) <= PORTAL.radius);
+    if (!portal) {
+      this.portalArmed = true;
       return;
     }
-    // Ziel ist die Stelle direkt vor ihm (eine Kachel tiefer), auf seiner eigenen Kachel steht er selbst.
-    const route = findWaypoints(this.grid, this.player.pos, { x: this.merchant.pos.x, y: this.merchant.pos.y + TILE });
+    if (!this.portalArmed) return;
+    this.enterZone(portal.to, portal.arrive);
+    this.requestSave();
+  }
+
+  /** Wo die Figur nach dem Tod aufwacht. Liegt der Punkt in einer anderen Zone, wird dorthin gewechselt. */
+  private respawnPoint(): Point {
+    const target = ZONES[this.zoneId].respawn;
+    if (target.zone !== this.zoneId) this.enterZone(target.zone, target.marker);
+    const at = this.markers.get(target.marker) ?? this.markers.get('spawn');
+    if (!at) throw new Error(`Aufwach-Punkt "${target.marker}" fehlt in der Zone "${target.zone}".`);
+    return at;
+  }
+
+  /** Die festen Punkte der Zone für die Minimap: Händler, Truhen, Übergänge. */
+  private minimapMarks(): MinimapMark[] {
+    const marks: MinimapMark[] = [];
+    if (this.merchant) marks.push({ pos: this.merchant.pos, color: MINIMAP.merchantColor, radius: MINIMAP.merchantRadius });
+    for (const chest of this.chests) marks.push({ pos: chest.pos, color: chest.full ? MINIMAP.chestColor : MINIMAP.chestEmptyColor, radius: MINIMAP.chestRadius });
+    for (const portal of this.portals) marks.push({ pos: portal.pos, color: MINIMAP.portalColor, radius: MINIMAP.portalRadius });
+    return marks;
+  }
+
+  /** Schreibt die laufenden Zeiten der aktuellen Zone (Bosse, benannte Elites, Truhen) in die Listen für den Spielstand. */
+  private rememberTimes(): void {
+    for (const [key, enemy] of this.timedEnemies) {
+      if (enemy.respawnRemainingMs > 0) this.respawnAt[key] = Date.now() + enemy.respawnRemainingMs;
+      else delete this.respawnAt[key];
+    }
+    for (const chest of this.chests) {
+      if (chest.full) delete this.chestRefillAt[chest.key];
+      else this.chestRefillAt[chest.key] = chest.refillAt;
+    }
+  }
+
+  // ---------------------------------------------------------------- Händler, Truhen und Heiltrank
+
+  /**
+   * Klick auf etwas Anklickbares (Händler, Truhe, Eingang): Steht die Figur nah genug,
+   * wird es gleich benutzt – sonst läuft sie erst hin.
+   */
+  private visit(thing: Interactable): void {
+    this.combat.disengage();
+    if (this.player.distanceTo(thing.pos) <= thing.range) {
+      this.player.stop();
+      thing.use();
+      return;
+    }
+    const route = findWaypoints(this.grid, this.player.pos, thing.standAt);
     if (!route || route.length === 0) return;
     this.player.walkAlong(route);
-    this.walkingToMerchant = true;
+    this.walkingTo = thing;
   }
 
-  /** Einmal pro Frame: Handel öffnen, wenn die Figur beim Händler ankommt, und schließen, wenn sie weggeht. */
-  private updateMerchant(): void {
-    const distance = this.player.distanceTo(this.merchant.pos);
-    if (this.walkingToMerchant && this.player.alive && distance <= MERCHANT.openRange) {
-      this.walkingToMerchant = false;
+  /**
+   * Einmal pro Frame: benutzen, worauf die Figur zuläuft, sobald sie ankommt. Dazu den Handel
+   * schließen, wenn sie vom Händler weggeht, und die Truhen offen oder geschlossen zeigen.
+   */
+  private updateInteractables(): void {
+    const thing = this.walkingTo;
+    if (thing && this.player.alive && this.player.distanceTo(thing.pos) <= thing.range) {
+      this.walkingTo = null;
       this.player.stop();
-      this.shopWindow.open();
+      thing.use();
     }
-    if (this.shopWindow.isOpen && (distance > MERCHANT.closeRange || !this.player.alive)) this.shopWindow.close();
+    const tooFar = !this.merchant || this.player.distanceTo(this.merchant.pos) > MERCHANT.closeRange;
+    if (this.shopWindow.isOpen && (tooFar || !this.player.alive)) this.shopWindow.close();
     this.shopWindow.update();
+    for (const chest of this.chests) chest.update();
   }
 
-  /** Taste Q: einen Heiltrank trinken (Werte in src/data/shop.ts). */
+  /** Öffnet eine Truhe: Gold in den Beutel, die Items fallen davor auf den Boden. Danach ist sie eine Weile leer (CHEST in src/data/pois.ts). */
+  private openChest(chest: Chest): void {
+    if (!chest.full) {
+      const minutes = Math.max(1, Math.ceil((chest.refillAt - Date.now()) / 60000));
+      this.hud.flash(`Die Truhe ist leer (füllt sich in ${minutes} min)`);
+      return;
+    }
+    chest.refillAt = Date.now() + CHEST.refillMs;
+    chest.update();
+
+    const spread = 1 + Phaser.Math.FloatBetween(-CHEST.gold.spread, CHEST.gold.spread);
+    const gold = Math.round((CHEST.gold.base + CHEST.gold.perLevel * chest.level) * spread);
+    this.inventory.addGold(gold);
+    this.floaters.spawn(chest.pos.x, chest.pos.y - 8, `+${gold} Gold`, 'gold');
+    const count = Phaser.Math.Between(CHEST.items.min, CHEST.items.max);
+    for (let i = 0; i < count; i++) {
+      this.loot.dropItem(generateItem(chest.level, rollRarityFrom(CHEST.rarity)), chest.standAt.x, chest.standAt.y);
+    }
+    this.requestSave();
+  }
+
+  /** Taste Q oder Klick auf das Trank-Feld der Skill-Leiste: einen Heiltrank trinken (Werte in src/data/shop.ts). */
   private drinkPotion(): void {
     const player = this.player;
     if (!player.alive) return;
@@ -329,40 +557,37 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- Speichern und Laden
 
-  /** Übernimmt einen Spielstand (die Schwierigkeit schon in create, vor den Gegnern): Inventar, Ausrüstung, Gold, Tränke, Stufe, EP, Leben, Position, Items am Boden, Händler, Boss-Timer. */
+  /**
+   * Übernimmt einen Spielstand: Inventar, Ausrüstung, Gold, Tränke, Stufe, EP, Leben, Händler,
+   * Items am Boden und die Zeiten von Bossen und Truhen. Die Schwierigkeit übernimmt create
+   * schon vorher, Zone und Position danach (enterZone).
+   */
   private applySave(save: SaveGame): void {
     this.playedMs = save.playedMs;
     this.player.potions = save.potions;
     this.shop.load(save.shop);
     this.loot.load(save.groundItems);
+    this.respawnAt = { ...save.respawnAt };
+    this.chestRefillAt = { ...save.chests };
     // Erst die Ausrüstung (setzt über onChange die Werte der Figur), dann Stufe und Leben.
     this.inventory.load(save.bag, save.equipped, save.gold);
     this.player.restore(save.character.level, save.character.xp, save.character.hp);
-
-    // Die Figur steht wieder dort, wo sie war – außer die Stelle ist inzwischen verbaut (Karte geändert).
-    const at = save.position;
-    if (at && this.grid.isBoxFree(at.x, at.y, BODY_RADIUS)) this.player.pos.set(at.x, at.y);
-
-    // Ein besiegter Boss bleibt weg, bis seine Zeit um ist. Die Uhr lief weiter, während das Spiel zu war.
-    for (const [key, boss] of this.bosses) {
-      const remaining = (save.bossRespawnAt[key] ?? 0) - Date.now();
-      if (remaining > 0) boss.startDead(Math.min(remaining, BOSS_RESPAWN_MS));
-    }
   }
 
   /** Der aktuelle Stand des Spiels als Spielstand. */
   private snapshot(base: SaveGame): SaveGame {
     const player = this.player;
-    const bossRespawnAt: Record<string, number> = {};
-    for (const [key, boss] of this.bosses) {
-      if (boss.respawnRemainingMs > 0) bossRespawnAt[key] = Date.now() + boss.respawnRemainingMs;
-    }
+    this.rememberTimes();
+    // Zeiten, die schon abgelaufen sind (auch in anderen Zonen), braucht der Spielstand nicht mehr.
+    const stillRunning = (times: Record<string, number>) => Object.fromEntries(Object.entries(times).filter(([, at]) => at > Date.now()));
     return {
       ...base,
       savedAt: Date.now(),
       playedMs: Math.round(this.playedMs),
-      // Liegt die Figur am Boden, wacht sie nach dem Laden mit vollem Leben im Dorf auf.
+      // Liegt die Figur am Boden, wacht sie nach dem Laden mit vollem Leben im Dorf auf
+      // (am Startpunkt der Zone, in der man aus dieser Zone heraus aufwacht).
       character: { level: player.level, xp: player.xp, hp: player.alive ? player.hp : null },
+      zone: player.alive ? this.zoneId : ZONES[this.zoneId].respawn.zone,
       position: player.alive ? { x: Math.round(player.pos.x), y: Math.round(player.pos.y) } : null,
       gold: this.inventory.gold,
       bag: [...this.inventory.bag],
@@ -371,7 +596,8 @@ export class WorldScene extends Phaser.Scene {
       groundItems: this.loot.toData(),
       shop: this.shop.toData(),
       difficulty: { ...this.difficulty },
-      bossRespawnAt,
+      respawnAt: stillRunning(this.respawnAt),
+      chests: stillRunning(this.chestRefillAt),
     };
   }
 
@@ -426,16 +652,17 @@ export class WorldScene extends Phaser.Scene {
     if (!pointer.leftButtonDown() || !this.player.alive) return;
     const world = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
 
-    this.walkingToMerchant = false;
+    this.walkingTo = null;
     const enemy = this.combat.enemyAt(world);
     if (enemy) {
       this.cancelPress();
       this.combat.engage(enemy);
       return;
     }
-    if (this.merchant.contains(world)) {
+    const thing = this.interactables.find((candidate) => candidate.contains(world));
+    if (thing) {
       this.cancelPress();
-      this.visitMerchant();
+      this.visit(thing);
       return;
     }
 
@@ -505,10 +732,21 @@ export class WorldScene extends Phaser.Scene {
   }
 }
 
-/** Liest die Stufe eines Gegners aus der Karte (Eigenschaft "level" des Punkts); ohne Angabe Stufe 1. */
-function enemyLevel(object: Phaser.Types.Tilemaps.TiledObject): number {
+/** Liest eine Eigenschaft eines Punkts der Karte (z. B. "level" eines Gegners, "to" eines Übergangs). */
+function property(object: Phaser.Types.Tilemaps.TiledObject, name: string): unknown {
   const properties: unknown = object.properties;
-  if (!Array.isArray(properties)) return 1;
-  const level = (properties as { name: string; value: unknown }[]).find((property) => property.name === 'level')?.value;
-  return typeof level === 'number' ? level : 1;
+  if (!Array.isArray(properties)) return undefined;
+  return (properties as { name: string; value: unknown }[]).find((entry) => entry.name === name)?.value;
+}
+
+/** Eine Zahl aus den Eigenschaften eines Punkts; fehlt sie, gilt `fallback`. */
+function numberProperty(object: Phaser.Types.Tilemaps.TiledObject, name: string, fallback: number): number {
+  const value = property(object, name);
+  return typeof value === 'number' ? value : fallback;
+}
+
+/** Ein Text aus den Eigenschaften eines Punkts; fehlt er, kommt ein leerer Text zurück. */
+function textProperty(object: Phaser.Types.Tilemaps.TiledObject, name: string): string {
+  const value = property(object, name);
+  return typeof value === 'string' ? value : '';
 }

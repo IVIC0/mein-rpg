@@ -80,7 +80,7 @@ export function setLastSlot(id: string | null): void {
 // ---------------------------------------------------------------- Test-Parameter in der Adresse
 
 /**
- * Die Test-Parameter aus der Adresse: ?stufe=5, ?beute=12, ?elite=1.
+ * Die Test-Parameter aus der Adresse: ?stufe=5, ?beute=12, ?elite=1, ?zone=spinnenhoehle.
  * Ist einer davon gesetzt, läuft ein "Testlauf": eine frische Figur, die in keinem
  * Slot liegt und nie gespeichert wird. Echte Spielstände bleiben so unberührt.
  */
@@ -89,9 +89,11 @@ export interface TestParams {
   level: number;
   loot: number;
   elite: boolean;
+  /** In dieser Zone startet der Testlauf (Schlüssel aus src/data/zones.ts); leer = Startzone. */
+  zone: string;
 }
 
-const TEST_PARAM_NAMES = ['stufe', 'beute', 'elite'];
+const TEST_PARAM_NAMES = ['stufe', 'beute', 'elite', 'zone'];
 
 export function readTestParams(): TestParams {
   const params = new URLSearchParams(window.location.search);
@@ -100,6 +102,7 @@ export function readTestParams(): TestParams {
     level: Number(params.get('stufe')) || 0,
     loot: Number(params.get('beute')) || 0,
     elite: params.get('elite') === '1',
+    zone: params.get('zone') ?? '',
   };
 }
 

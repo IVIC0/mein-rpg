@@ -10,8 +10,12 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/config.ts` – allgemeine Stellschrauben (Tempo, Reichweiten, Rüstungsformel, Respawn-Zeiten, Treffer-Feedback)
    - `src/data/warrior.ts` – Werte, Zuwachs pro Stufe und Skills des Kriegers
      (Auslöse-Bedingung `trigger` und Wirkung `effect` je Skill)
-   - `src/data/enemies.ts` – Gegnertypen und ihr Zuwachs pro Stufe
-   - `src/data/elites.ts` – Elite-Chance, Werte je Rang (normal, Elite, Boss) und Elite-Eigenschaften
+   - `src/data/enemies.ts` – Gegnertypen (mit `sprite` = Name ihres Bildes) und ihr Zuwachs pro Stufe
+   - `src/data/elites.ts` – Elite-Chance, Werte je Rang (normal, Elite, Boss), Elite-Eigenschaften,
+     feste Elite-Plätze (`NAMED_ELITES`) und ihr Respawn
+   - `src/data/zones.ts` – Zonen: Name, Stufenbereich, Tileset, Hintergrundfarbe, Aufwach-Punkt nach dem Tod
+   - `src/data/sprites.ts` – Bilder-Verzeichnis: Name → Bild-Datei und Einzelbilder (Stehen, Laufen)
+   - `src/data/pois.ts` – Truhen (Inhalt, Auffüllzeit) und Übergänge zwischen Zonen
    - `src/data/progression.ts` – Levelkurve, EP pro Gegner (auch je Rang), EP- und Gold-Verlust beim Tod
    - `src/data/items.ts` – Seltenheiten, Basis-Items und Affixe (Wertespannen, erlaubte Plätze)
    - `src/data/loot.ts` – Drop-Tabellen je Gegnerrang (Drop-Chance, Seltenheits-Anteile), Gold pro Gegner, Inventargröße
@@ -21,8 +25,9 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/minimap.ts` – Minimap: Größe, Ausschnitt, Farben der Punkte
    - `src/data/save.ts` – Speichern: Format-Nummer, Anzahl Slots, Auto-Save-Abstände, Namenslänge
    - `src/data/testSaves.ts` – Vorlagen für Test-Spielstände
-   - `tools/build-map.mjs` (Liste `ENEMY_GROUPS`) – welche Gegner mit welcher Stufe wo stehen;
-     nach Änderungen `npm run assets`
+   - `tools/zones/<zone>.mjs` – Bauplan je Zone: Lichtungen, Wege, Bauten, besondere Orte (`pois`:
+     Händler, Truhen mit Itemlevel, Übergänge, feste Elite-Plätze) und welche Gegner mit welcher
+     Stufe wo stehen (`enemyGroups`); nach Änderungen `npm run assets`
 
    Neue Werte kommen in die passende Datei oder in eine neue Datei unter `src/data/`.
 2. **Nach jedem Feature muss `npm run build` fehlerfrei durchlaufen.**
@@ -39,12 +44,20 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 |---|---|
 | `npm run dev` | Spiel lokal starten |
 | `npm run build` | TypeScript prüfen und nach `dist/` bauen |
-| `npm run assets` | Tilesets und Karte neu erzeugen (nach Änderungen in `tools/`) |
+| `npm run assets` | Tilesets, Figuren-Bilder und alle Karten neu erzeugen (nach Änderungen in `tools/`); prüft dabei die Baupläne |
 
 ## Konventionen
 
 - Kampf: Skills lösen automatisch aus, es gibt keine Skill-Tasten. Der Skill-Balken ist reine Anzeige.
   Der Krieger hat kein Mana – Skills hängen nur an Bedingung und Abklingzeit.
+- Zonen: Zu sehen ist immer genau eine. `enterZone` / `leaveZone` in `src/scenes/WorldScene.ts` bauen sie
+  aus ihrer Karte auf und räumen sie weg; Figur, HUD, Inventar und Kampf bleiben bestehen. Was ein
+  besonderer Ort (POI) im Spiel tut, steht dort in `buildPoi` (Art → Verhalten). Eine neue Zone braucht
+  einen Bauplan (`tools/zones/`), einen Eintrag in `src/data/zones.ts` und `npm run assets` – Code nur,
+  wenn sie etwas Neues *kann* (neue Gelände-Art in `tools/lib/terrain-*.mjs`, neue POI-Art).
+- Bilder: Figuren nennen ihr Bild beim Namen (`src/data/sprites.ts`). Neue Figuren aus den Packs kommen
+  über `tools/lib/creatures.mjs` nach `public/assets/sprites/creatures.png`. Item-, Skill- und
+  Trank-Symbole bleiben Bild-Nummern in `characters.png` (sie werden auch im HTML-HUD gezeigt).
 - Loot: Items sind einfache Daten (`Item` in `src/items/generator.ts`), damit sie sich später speichern lassen.
 - Sprache: Texte im Spiel, Kommentare und Doku auf Deutsch.
 - UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster, Minimap) ist HTML/CSS über dem Canvas:
@@ -67,7 +80,8 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
   `package.json`, `base` in `vite.config.ts`, die Schlüssel im Browser-Speicher (`mein-rpg.…`) und
   das Kennzeichen `app: 'mein-rpg'` im Spielstand bleiben, wie sie sind – sonst bricht die
   Pages-Adresse oder alte Spielstände gehen verloren.
-- Die Test-Parameter `?stufe`, `?beute`, `?elite` starten einen Testlauf, der nie gespeichert wird.
-- `public/assets/` wird erzeugt – nicht von Hand ändern.
+- Die Test-Parameter `?stufe`, `?beute`, `?elite`, `?zone` starten einen Testlauf, der nie gespeichert wird.
+- `public/assets/` wird erzeugt – nicht von Hand ändern. `assets-src/` enthält die unveränderten
+  Original-Packs (entpackt, dazu die hochgeladenen ZIPs) – dort ebenfalls nichts ändern.
 - Die Versionsnummer in `package.json` folgt den Meilensteinen (Meilenstein 4 = 0.4.0).
 - Der Nutzer ist Programmier-Anfänger: Code knapp kommentieren, verständlich halten.

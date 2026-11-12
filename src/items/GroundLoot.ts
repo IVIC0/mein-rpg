@@ -14,8 +14,10 @@ const DEPTH = 7;
 /** Ab dieser Seltenheit steht über dem Item zusätzlich ein Lichtstrahl. */
 const BEAM_FROM = RARITIES.findIndex((rarity) => rarity.id === 'rare');
 
-/** Ein Item am Boden, so wie es im Spielstand steht: wo es liegt und wie lange schon. */
+/** Ein Item am Boden, so wie es im Spielstand steht: in welcher Zone, wo es liegt und wie lange schon. */
 export interface GroundItem {
+  /** Schlüssel der Zone aus src/data/zones.ts. */
+  zone: string;
   item: Item;
   x: number;
   y: number;
@@ -39,9 +41,15 @@ interface Drop {
 /**
  * Die Beute: würfelt aus, was ein besiegter Gegner fallen lässt, zeigt Items am
  * Boden und hebt sie auf, sobald die Figur darüber läuft. Gold landet direkt im Beutel.
+ *
+ * Zu sehen sind nur die Items der Zone, in der die Figur gerade ist. Was in anderen Zonen
+ * liegt, wartet in `elsewhere` und kommt beim Betreten wieder zum Vorschein.
  */
 export class GroundLoot {
   private drops: Drop[] = [];
+  private zoneId = '';
+  /** Items in anderen Zonen. Ihre Liegezeit läuft erst weiter, wenn die Figur wieder dort ist. */
+  private elsewhere: GroundItem[] = [];
   /** Wird aufgerufen, wenn ein Item zu Boden fällt oder verschwindet – daran hängt das Speichern. */
   onChange: () => void = () => {};
 
@@ -52,17 +60,35 @@ export class GroundLoot {
     private readonly floaters: FloatingText,
   ) {}
 
-  /** Alle Items am Boden für den Spielstand. */
+  /** Alle Items am Boden für den Spielstand – die der aktuellen Zone und die der anderen. */
   toData(): GroundItem[] {
-    return this.drops.map((drop) => ({ item: drop.item, x: drop.x, y: drop.y, ageMs: Math.round(drop.ageMs) }));
+    const here = this.drops.map((drop) => ({ zone: this.zoneId, item: drop.item, x: drop.x, y: drop.y, ageMs: Math.round(drop.ageMs) }));
+    return [...here, ...this.elsewhere];
   }
 
-  /** Legt die Items aus einem Spielstand wieder an ihren Platz. Ihre Liegezeit läuft dort weiter, wo sie war. */
+  /** Übernimmt die Items aus einem Spielstand. Zu sehen sind sie erst nach setZone. */
   load(items: GroundItem[]): void {
-    for (const entry of items) {
-      if (entry.ageMs >= LOOT_DESPAWN_MS) continue;
-      this.show({ ...entry.item, id: nextItemId() }, entry.x, entry.y, entry.ageMs, false);
+    this.elsewhere = items.filter((entry) => entry.ageMs < LOOT_DESPAWN_MS);
+  }
+
+  /**
+   * Die Figur betritt die Zone `zoneId`: Die Items der alten Zone verschwinden vom Bild
+   * (sie bleiben gemerkt), die der neuen liegen wieder an ihrem Platz – mit der Liegezeit von vorher.
+   */
+  setZone(zoneId: string): void {
+    const all = this.toData();
+    for (const drop of this.drops) this.remove(drop);
+    this.drops = [];
+    this.zoneId = zoneId;
+    this.elsewhere = all.filter((entry) => entry.zone !== zoneId);
+    for (const entry of all) {
+      if (entry.zone === zoneId) this.show({ ...entry.item, id: nextItemId() }, entry.x, entry.y, entry.ageMs, false);
     }
+  }
+
+  /** Legt ein Item neben den Punkt (x, y) – z. B. den Inhalt einer Truhe. */
+  dropItem(item: Item, x: number, y: number): void {
+    this.place(item, x, y);
   }
 
   /** Ein Gegner wurde besiegt: Gold gutschreiben und vielleicht ein Item fallen lassen. */

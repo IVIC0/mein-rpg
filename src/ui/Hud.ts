@@ -13,6 +13,9 @@ const MESSAGE_MS = 1200;
 /** So lange ist die Meldung zum Stufenaufstieg zu sehen (Millisekunden); passt zur Animation in hud.css. */
 const LEVELUP_MS = 3500;
 
+/** So lange steht der Name einer Zone nach dem Betreten im Bild (Millisekunden); passt zur Animation in hud.css. */
+const ZONE_BANNER_MS = 3500;
+
 /** So lange steht ein aufgehobenes Item in der Beute-Liste (Millisekunden), und so viele Zeilen hat sie höchstens. */
 const LOOT_LOG_MS = 7000;
 const LOOT_LOG_LINES = 6;
@@ -50,6 +53,10 @@ export class Hud {
   private readonly levelUpTitle = byId('levelup-title');
   private readonly levelUpText = byId('levelup-text');
   private readonly lootLog = byId('loot-log');
+  private readonly zoneBanner = byId('zone-banner');
+  private zoneTimer = 0;
+  /** Wird aufgerufen, wenn man das Trank-Feld anklickt (setzt WorldScene) – dasselbe wie Taste Q. */
+  onPotionClick: () => void = () => {};
   private readonly slots: Slot[] = [];
   /** Das Feld für den Heiltrank am Ende der Skill-Leiste (Taste Q). */
   private readonly potion: { box: HTMLElement; cooldown: HTMLElement; timer: HTMLElement; count: HTMLElement };
@@ -103,11 +110,15 @@ export class Hud {
       <span class="skill-tooltip">
         <b>${POTION.name}</b>
         <i>${POTION.cooldownMs / 1000} s Abklingzeit</i>
-        <u>Taste Q</u>
+        <u>Taste Q oder Mausklick</u>
         Heilt ${Math.round(POTION.healFraction * 100)} % des maximalen Lebens.
         <em>Gibt es beim Händler im Dorf, höchstens ${POTION.maxCarried} im Gepäck.</em>
       </span>`;
     bar.appendChild(box);
+    // Klick auf das Feld trinkt den Trank. Im Bearbeitungsmodus wird die Leiste gezogen – dann nicht.
+    box.addEventListener('click', () => {
+      if (!this.editing) this.onPotionClick();
+    });
     this.potion = {
       box,
       cooldown: box.querySelector('.skill-cooldown') as HTMLElement,
@@ -148,7 +159,7 @@ export class Hud {
       setText(this.targetText, '');
     }
     if (target) {
-      setText(this.targetName, target.def.name);
+      setText(this.targetName, target.displayName);
       setText(this.targetLevel, `Stufe ${target.level}`);
       // Elite/Boss: eigene Rahmenfarbe und eine Zeile mit Rang und Eigenschaften.
       this.targetFrame.classList.toggle('rank-elite', target.rank === 'elite');
@@ -222,6 +233,16 @@ export class Hud {
     this.levelUp.classList.add('show');
     window.clearTimeout(this.levelUpTimer);
     this.levelUpTimer = window.setTimeout(() => this.levelUp.classList.remove('show'), LEVELUP_MS);
+  }
+
+  /** Zeigt beim Betreten einer Zone kurz ihren Namen und Stufenbereich oben in der Bildmitte. */
+  showZone(name: string, levels: [number, number]): void {
+    this.zoneBanner.innerHTML = `<b>${name}</b><span>Stufe ${levels[0]}–${levels[1]}</span>`;
+    this.zoneBanner.classList.remove('show');
+    void this.zoneBanner.offsetWidth; // Animation neu starten
+    this.zoneBanner.classList.add('show');
+    window.clearTimeout(this.zoneTimer);
+    this.zoneTimer = window.setTimeout(() => this.zoneBanner.classList.remove('show'), ZONE_BANNER_MS);
   }
 
   /** Schreibt ein aufgehobenes Item in die Beute-Liste unten links; die Zeile verschwindet von selbst. */

@@ -343,6 +343,13 @@
 
 .skill.potion {
   margin-left: 8px;
+  /* Das einzige Feld der Leiste, das man selbst auslöst: Klick = Taste Q. */
+  cursor: pointer;
+}
+
+/* Im Bearbeitungsmodus wird die Leiste gezogen, nicht geklickt. */
+.hud-edit .skill.potion {
+  cursor: inherit;
 }
 
 .skill.potion.empty .skill-icon {
@@ -418,6 +425,46 @@
 }
 
 /* Meldung zum Stufenaufstieg: im oberen Drittel, blendet sich von selbst wieder aus. */
+/* Name der Zone beim Betreten (setzt Hud.showZone): oben in der Bildmitte, blendet von selbst aus. */
+#zone-banner {
+  position: absolute;
+  left: 50%;
+  top: 9%;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px #000, 0 0 6px #000;
+  opacity: 0;
+}
+
+#zone-banner.show {
+  animation: zone-banner 3.5s ease-out forwards;
+}
+
+#zone-banner b {
+  display: block;
+  font-size: 26px;
+  color: #e8d9a0;
+}
+
+#zone-banner span {
+  font-size: 13px;
+  color: #cfd6c8;
+}
+
+@keyframes zone-banner {
+  0% {
+    opacity: 0;
+  }
+  10%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 #levelup {
   position: absolute;
   left: 50%;

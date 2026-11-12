@@ -2,11 +2,12 @@
 // Die Preise hängen an Itemlevel und Seltenheit (Seltenheiten: src/data/items.ts).
 
 import type { RarityId } from './items';
+import type { SpriteName } from './sprites';
 
-/** Der Händler selbst: Name, Bild in characters.png und wie nah man für den Handel stehen muss (Welt-Pixel). */
+/** Der Händler selbst: Name, Bild (src/data/sprites.ts) und wie nah man für den Handel stehen muss (Welt-Pixel). */
 export const MERCHANT = {
   name: 'Händler',
-  frame: 86,
+  sprite: 'haendler' as SpriteName,
   /** So nah muss die Figur sein, damit sich das Händler-Fenster öffnet. */
   openRange: 30,
   /** Entfernt sie sich weiter als so, schließt es sich wieder. */

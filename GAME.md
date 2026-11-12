@@ -56,7 +56,13 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   `T` Talente kommt mit dem Talentbaum. *(Vorschlag)*
 - **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
 - **Tränke:** `Q` trinkt einen Heiltrank. *(Umgesetzt, Abschnitt 7b)* Einen Manatrank gibt es nicht.
+  Seit Meilenstein 11 geht das auch per **Mausklick** auf das Trank-Feld der Skill-Leiste
+  *(Entschieden, umgesetzt)*. Es ist das einzige Feld der Leiste, das man anklickt (Mauszeiger wird
+  zur Hand); im Bearbeitungsmodus des HUD wird die Leiste gezogen, dann trinkt der Klick nicht.
 - **Händler:** Klick auf den Händler im Dorf = hinlaufen und handeln. *(Umgesetzt, Abschnitt 7b)*
+- **Truhen:** Klick auf eine Truhe = hinlaufen und öffnen. *(Umgesetzt, Abschnitt 9b)*
+- **Zonenwechsel:** Auf einen Übergang laufen (z. B. den Höhleneingang) oder ihn anklicken –
+  dann läuft die Figur hin und wechselt die Zone. *(Umgesetzt, Abschnitt 9b)*
 
 ## 2b. HUD und Einstellungen *(Schritt 6b, umgesetzt)*
 
@@ -109,7 +115,8 @@ Oben rechts unter der Knopf-Leiste. Alle Zahlen und Farben sind **Startwerte** v
   hell, Wege braun, Häuser und Ruine in ihren Farben. Das rechnet das Spiel beim Start selbst
   aus der Karte aus; eine neue Zone braucht dafür also nichts Eigenes.
 - **Punkte:** eigene Figur weiß, Händler hellblau, Gegner rot, Elite gold (größer), Boss lila
-  (am größten). Besiegte Gegner verschwinden, bis sie wieder erscheinen. Zu sehen sind alle
+  (am größten). Seit Meilenstein 11 dazu *(Startwerte)*: Truhen orange (leer: grau), Übergänge
+  in eine andere Zone türkis. Das Gelände wird beim Betreten einer Zone neu aufgebaut. Besiegte Gegner verschwinden, bis sie wieder erscheinen. Zu sehen sind alle
   Gegner im Ausschnitt – auch hinter Bäumen (kein Nebel des Krieges, Abschnitt 13).
 - **HUD-Element** wie die anderen: ausblenden, Größe, Deckkraft, im Bearbeitungsmodus
   verschieben (Abschnitt 2b). Ausgeblendet wird sie auch nicht mehr gezeichnet.
@@ -122,13 +129,18 @@ Oben rechts unter der Knopf-Leiste. Alle Zahlen und Farben sind **Startwerte** v
 - Freie Asset-Packs mit CC0-Lizenz; Quelle und Lizenz jedes Packs werden in
   `CREDITS.md` dokumentiert. *(Entschieden)*
 - **Packs:** Kenney „Tiny Town" (Landschaft, Gebäude) und „Tiny Dungeon" (Figuren,
-  Gegner, Items), beide CC0. *(Umgesetzt)*
+  Gegner, Items, Höhle), beide CC0. *(Umgesetzt)* Seit Meilenstein 11 dazu Figuren aus
+  „0x72 DungeonTileset II" (Goblins) und „Ninja Adventure" (Wildschwein, Wolf-Ersatz), ebenfalls
+  CC0 – der Stilmix ist vorerst in Ordnung *(Entschieden, 15.9)*. Alle Packs liegen entpackt in
+  `assets-src/`, die Liste steht in `CREDITS.md`.
 - 16×16-Tiles, ganzzahlig hochskaliert, damit Pixel scharf bleiben. Der Zoom richtet
   sich nach der Fenstergröße (×2 bis ×4), sichtbar sind rund 40 × 22 Kacheln. *(Umgesetzt)*
 - Das Spielfeld füllt immer das ganze Browserfenster; ein größeres Fenster zeigt
   mehr von der Welt. *(Umgesetzt)*
-- Einschränkungen der Packs: keine Lauf-Animationen (Figur hüpft stattdessen leicht)
-  und keine Wasser-Kacheln (Grünwald hat deshalb keinen Fluss oder See).
+- Einschränkungen der Packs: Kenneys Figuren haben keine Lauf-Animationen (sie hüpfen
+  stattdessen leicht), und „Tiny Town" hat keine Wasser-Kacheln (Grünwald hat deshalb keinen
+  Fluss oder See). Die neuen Figuren bringen Lauf-Bilder mit: Goblins vier fürs Stehen und vier
+  fürs Laufen, Wildschwein und Wolf zwei fürs Laufen – sie hüpfen nicht.
 
 ## 4. Kampfsystem
 
@@ -268,6 +280,7 @@ Intelligenz und Mana gibt es beim Krieger nicht – sie kommen eventuell mit dem
 - **Zum Testen:** `?stufe=5` an die Adresse hängen, dann startet die Figur auf Stufe 5.
   `?beute=12` legt 12 gewürfelte Items ins Inventar (jede Seltenheit reihum), `?elite=1`
   macht jeden normalen Gegner zur Elite; alles zusammen: `?stufe=5&beute=12&elite=1`.
+  `?zone=spinnenhoehle` startet den Testlauf direkt in dieser Zone *(seit Meilenstein 11)*.
   Mit einem dieser Parameter läuft ein **Testlauf**, der nie gespeichert wird und keinen Slot
   berührt (Abschnitt 11). Für Tests, die man weiterspielen will, gibt es die Test-Spielstände.
 
@@ -444,7 +457,8 @@ Lieferzeitpunkt stehen im Spielstand, also pro Slot.
 
 **Heiltrank:** heilt 40 % des maximalen Lebens, 30 Sekunden Abklingzeit, höchstens 5 im Gepäck
 (sie belegen keinen Inventar-Platz). Preis = 10 + 4 × Stufe der Figur (Stufe 1: 14, Stufe 5: 30,
-Stufe 10: 50 Gold). Der Händler hat immer welche. Der Trank steht als Feld mit Anzahl und
+Stufe 10: 50 Gold). Der Händler hat immer welche. Getrunken wird mit `Q` oder per Mausklick auf
+das Trank-Feld *(Klick seit Meilenstein 11)*. Der Trank steht als Feld mit Anzahl und
 Abklingzeit am Ende der Skill-Leiste; er ist das Einzige dort, das man selbst auslöst (`Q`).
 Die Abklingzeit wird nicht gespeichert.
 
@@ -530,6 +544,10 @@ Zonen-Skizze *(Vorschlag, erste Fassung – der ausgearbeitete Plan steht in Abs
 | Burgruine | 35–50 | Ritter-Geister, Dämonen |
 | Drachenberge | 50–60 | Drachlinge, Drache als Weltboss |
 
+**Seit Meilenstein 11 ist Grünwald ergänzt** (neue Lichtungen, Goblin-Lager, Spinnenhöhle, fünf
+neue Gegner, Truhen, Brutmutter) – der aktuelle Stand steht in Abschnitt 9b. Die Tabellen hier
+zeigen den Stand von V1; alles daraus gibt es weiterhin.
+
 Grünwald, Stand V1 *(Umgesetzt)*: 120 × 90 Kacheln, vom Dorf bis zur Ruine läuft man rund
 20 Sekunden. Dorf mit Startpunkt im Südwesten, sechs Lichtungen als Plätze für
 Gegnergruppen (Pilzhain, Westlichtung, Große Lichtung, Ostlichtung, Südlichtung,
@@ -555,11 +573,128 @@ Jeder Gegnertyp hat Grundwerte für Stufe 1; pro Stufe darüber kommen +20 % Leb
 | Ostlichtung | 3 Waldspinnen (6, 6, 7), 2 Wegelagerer (7) |
 | Ruine | 5 Wegelagerer (8, 8, 9, 9, 10), Boss Räuberhauptmann (10) – Werte in Abschnitt 8 |
 
-Die Stufen je Lichtung stehen in `tools/build-map.mjs` (Liste `ENEMY_GROUPS`), die
+Die Stufen je Lichtung stehen im Bauplan der Zone (`tools/zones/gruenwald.mjs`, Liste
+`enemyGroups` – bis Meilenstein 10: `ENEMY_GROUPS` in `tools/build-map.mjs`), die
 Grundwerte und der Zuwachs in `src/data/enemies.ts`.
 
 Alle Gegner sind etwas langsamer als die Figur – weglaufen geht also immer (auch vor
 „schnellen" Elites: die schnellste, eine Riesenratte, kommt auf 71 gegenüber 72 Pixeln pro Sekunde).
+Das gilt auch für die neuen Gegner: Wolf und Fledermaus sind so schnell wie die Ratte (62), nicht schneller.
+
+## 9b. Zonen, besondere Orte und Grünwald-Ergänzung *(Meilenstein 11, umgesetzt)*
+
+Der Umbau aus Abschnitt 15.5 und die Ergänzung von Grünwald aus 15.2. Vorgegeben waren: Zonen
+datengetrieben, die POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Fledermaus,
+Goblin, Goblin-Schleuderer, Wildschwein, Wolf-Ersatz, Spinnenhöhle unter dem Pilzhain,
+Goblin-Lager zwischen Großer Lichtung und Ostlichtung, 3 Truhen, Brutmutter (Waldspinne Stufe 6,
+Regenerierend + Vampirisch) *(Entschieden)*. **Alles andere in diesem Abschnitt – Plätze, Stufen,
+Werte, Zeiten, Farben, Namen der neuen Lichtungen – habe ich mir ausgedacht: Startwerte.**
+
+**Zonen** (`src/data/zones.ts`): Zu sehen ist immer genau eine Zone. Beim Wechsel blendet das Bild
+kurz auf (0,35 s), oben steht drei Sekunden lang Name und Stufenbereich. Figur, Inventar, HUD und
+Abklingzeiten bleiben, wie sie sind.
+
+| Zone | Stufen | Größe | Gegner | Aufwachen nach dem Tod |
+|---|---|---|---|---|
+| Grünwald | 1–10 | 120 × 90 | 55 (mit Boss) | im Dorf |
+| Spinnenhöhle | 3–6 | 64 × 48 | 17 (mit Brutmutter) | im Dorf in Grünwald |
+
+- **Übergang:** Im Pilzhain steht oben links ein Steinrahmen mit Leiter (Schild „Spinnenhöhle"),
+  davor pulsiert ein heller Fleck. Wer ihn betritt (9 Pixel Umkreis) oder den Eingang anklickt,
+  landet in der Höhle; dort führt dieselbe Leiter zurück. Die Figur kommt zwei bis drei Kacheln
+  vor dem Übergang an, damit sie nicht sofort zurückspringt.
+- **Zone verlassen = Zone zurückgesetzt:** Gewöhnliche Gegner stehen beim Wiederbetreten alle
+  wieder da (auch frisch besiegte). Bosse, benannte Elites und Truhen behalten ihre Zeit, Items
+  am Boden bleiben liegen (ihre 3 Minuten laufen nur, solange die Figur in der Zone ist).
+- **Tod in der Höhle:** Aufwachen im Dorf, wie überall – der Weg zurück ist die Strafe.
+
+**Besondere Orte (POIs)** – stehen im Bauplan der Zone, Werte in `src/data/pois.ts` und
+`src/data/elites.ts`:
+
+| Art | Was passiert | Werte *(Startwerte)* |
+|---|---|---|
+| Truhe | Anklicken: Gold in den Beutel, 1–2 Items fallen davor auf den Boden. Danach steht sie offen und ist leer | füllt sich nach **30 Minuten** (echte Zeit, läuft auch bei geschlossenem Spiel). Gold = (10 + 5 × Stufe der Truhe) × 0,8–1,2. Seltenheiten: 55 % ungewöhnlich, 32 % selten, 10,5 % episch, 2,3 % legendär, 0,2 % mythisch – nie gewöhnlich, knapp unter einer Elite. Öffnen ab 26 Pixel Abstand |
+| Fester Elite-Platz | Hier steht immer dieselbe benannte Elite mit festen Eigenschaften; Beute und EP wie jede Elite | Respawn **10 Minuten** (steht im Spielstand, läuft weiter wie beim Boss) |
+| Übergang (Höhle) | Wechsel in eine andere Zone | Umkreis 9 Pixel |
+| Lager | Zaun mit Tor, darin eine dichte Gegnergruppe und eine Truhe. Gegner sehen nicht durch den Zaun – sie greifen erst an, wenn man durchs Tor kommt | – |
+| Händler | wie bisher (Abschnitt 7b), jetzt ebenfalls als POI im Bauplan | – |
+
+Die drei Truhen: **Wolfshang** (Itemlevel 4), **Goblin-Lager** (7), **Brutkammer** am Ende der
+Spinnenhöhle (6). Eine leere Truhe sagt beim Anklicken, in wie vielen Minuten sie wieder voll ist.
+
+**Neue Gegner** – Grundwerte für Stufe 1, Zuwachs wie bei allen (+20 % Leben, +15 % Angriff,
++2 Rüstung je Stufe), alle Werte in `src/data/enemies.ts` *(Startwerte)*:
+
+| Gegner | Bild | Leben | Angriff | Rüstung | Schlag alle | Tempo | Stufen | Beispiel auf höchster Stufe | Eigenart |
+|---|---|---|---|---|---|---|---|---|---|
+| Wolf | dunkler Hund aus „Ninja Adventure" | 38 | 6,5 | 1 | 1,4 s | 62 | 2–5 | Stufe 5: 68 Leben, 10,4 Angriff, 9 Rüstung | schnell, beißt oft, sieht die Figur von Weitem (5 Kacheln) |
+| Wildschwein | „Ninja Adventure" | 60 | 8,5 | 6 | 2,2 s | 56 | 4–7 | Stufe 7: 132 Leben, 16,2 Angriff, 18 Rüstung | zäh, schlägt selten, aber hart |
+| Fledermaus | „Tiny Dungeon" | 26 | 5,5 | 0 | 1,2 s | 62 | 3–6 | Stufe 6: 52 Leben, 9,6 Angriff, 10 Rüstung | nur in der Höhle, schwach, in Gruppen |
+| Goblin | „0x72" | 50 | 8 | 6 | 1,7 s | 60 | 5–9 | Stufe 9: 130 Leben, 17,6 Angriff, 22 Rüstung | – |
+| Goblin-Schleuderer | „0x72", violett umgefärbt | 40 | 9,5 | 3 | 1,9 s | 56 | 6–10 | Stufe 10: 112 Leben, 22,3 Angriff, 21 Rüstung | wenig Leben, harter Treffer; **wirft erst ab Meilenstein 13**, bis dahin Nahkampf |
+
+- **Wolf-Ersatz:** Kein Pack hat einen Wolf. Ich habe mich am Bild für den **dunklen Hund**
+  (`DogBlack`) entschieden – er sieht mit spitzen Ohren und buschigem Schwanz am ehesten nach
+  Wolf aus – und nenne ihn im Spiel „Wolf". Die Hyäne ist kleiner und wirkt eher wie ein Kojote;
+  sie liegt als zweites Bild bereit: In `src/data/enemies.ts` beim Wolf `sprite: 'hyaene'`
+  eintragen, mehr braucht es nicht.
+- **Brutmutter** (`NAMED_ELITES` in `src/data/elites.ts`): Waldspinne Stufe 6 als Elite mit
+  Regenerierend + Vampirisch – 270 Leben, 15,3 Angriff, 28 Rüstung. Sie sitzt in der Brutkammer
+  am Ende der Spinnenhöhle neben der Truhe (im Plan stand nur „fester Elite-Platz"; die Höhle
+  als Ort ist von mir).
+
+**Grünwald, Stand Meilenstein 11** – drei neue Lichtungen, ein Lager, ein Höhleneingang. Das
+Gelände aus V1 ist geblieben (derselbe Startwert); außerhalb der neuen Orte stehen nur einzelne
+Büsche und Pilze anders. Etwa ein Drittel der alten Gegner (auch der Boss) steht ein paar Kacheln
+neben dem alten Platz, weil die Plätze neu ausgewürfelt wurden.
+
+| Ort | Wo | Gegner (Stufe) |
+|---|---|---|
+| Westlichtung, Pilzhain, Große Lichtung, Ostlichtung, Ruine | wie in V1 | wie in V1 (Tabelle in Abschnitt 9) |
+| Südlichtung | wie in V1 | 4 Waldspinnen (5, 5, 5, 6), **neu:** 2 Wildschweine (6, 7) |
+| **Wolfshang** | im Norden, Abzweig vom Nordweg | 6 Wölfe (2, 3, 3, 4, 4, 5), Truhe |
+| **Eichenhain** | südöstlich der Großen Lichtung, Abzweig vom Weg ins Dorf | 5 Wildschweine (4, 4, 5, 5, 6) |
+| **Goblin-Lager** | nördlich des Wegs zur Ostlichtung, Zaun mit Tor nach Süden | 4 Goblins (5, 6, 6, 7), 2 Schleuderer (6, 7), Truhe in der Mitte |
+| **Wachposten** | auf dem Weg zur Ruine | 2 Goblins (8, 9), 2 Schleuderer (9, 10) |
+| **Höhleneingang** | im Pilzhain oben links | – |
+
+**Spinnenhöhle** – vier Kammern hintereinander, ohne Abkürzung:
+
+| Kammer | Gegner (Stufe) |
+|---|---|
+| Eingang | – (Leiter nach Grünwald) |
+| Fledermaushalle | 4 Fledermäuse (3, 3, 4, 4) |
+| Netzkammer | 3 Waldspinnen (4, 5, 5), 2 Fledermäuse (4, 5) |
+| Tropfgang | 3 Fledermäuse (5, 5, 6), 2 Waldspinnen (5, 6) |
+| Brutkammer | 2 Waldspinnen (6, 6), **Brutmutter** (6, Elite), Truhe |
+
+**Datengetrieben – so ist es jetzt gebaut** (Soll steht in 15.5):
+
+| Was | Wo |
+|---|---|
+| Zone (Name, Stufen, Tileset, Hintergrund, Aufwach-Punkt) | `src/data/zones.ts` |
+| Karten-Bauplan (Größe, Startwert, Gelände-Art, Lichtungen, Wege, Bauten, POIs, Gegnergruppen) | `tools/zones/<zone>.mjs`; `tools/build-map.mjs` baut alle |
+| Gelände-Arten | `wald` und `hoehle` (`tools/lib/terrain-*.mjs`) |
+| Bilder: Name → Datei und Einzelbilder (Stehen, Laufen) | `src/data/sprites.ts`; Gegner nennen ihr Bild mit `sprite` |
+| Figuren aus den neuen Packs | Liste in `tools/lib/creatures.mjs` → `creatures.png` |
+| POI-Art → Verhalten | `buildPoi` in `src/scenes/WorldScene.ts` |
+
+- `npm run assets` prüft die Baupläne und bricht mit klarer Meldung ab: unbekannter Gegner,
+  unbekannte Elite, POI oder Marker nicht erreichbar, POI-Name doppelt, Portal in eine Zone oder
+  zu einem Marker, die es nicht gibt, Zone ohne Eintrag in `zones.ts` (und umgekehrt).
+- Beim Start prüft das Spiel, ob es jedes Einzelbild aus `sprites.ts` wirklich gibt.
+- **Noch nicht gebaut** (kommt mit dem Meilenstein, der es braucht): `abilities` der Gegner und
+  `src/data/abilities.ts` (13), Quests und NPCs (12), Portalsteine, Außenposten und Übergänge am
+  Kartenrand (13), Legendär-Effekte und Sets (15, 18). Übergänge stehen nicht in `zones.ts`,
+  sondern als POI im Bauplan – dort liegt auch ihr Platz.
+
+**Bewusst so gebaut:**
+- Die Höhle ist eine eigene Zone (wie in 15.2 für „Höhle / Gruft" beschrieben), nicht ein Teil
+  der Grünwald-Karte. Sie ist der erste Zonenwechsel im Spiel.
+- Die 3 Truhen aus dem Plan zählen die in der Höhle mit (2 in Grünwald, 1 in der Brutkammer).
+- Die Schwierigkeit gibt bei Truhen keinen Zuschlag auf Gold – sie hängt weiter nur an Gegnern.
+- Mehr Gegner heißt mehr EP: Grünwald und Höhle haben zusammen 72 Gegner statt 32. Die
+  Levelkurve ist unverändert; ob Stufe 10 jetzt zu schnell kommt, muss das Spielen zeigen.
 
 ## 10. Endgame
 
@@ -577,12 +712,15 @@ Export/Import als Datei; Versionsnummer; Namenseingabe pro Slot. Alles, was unte
 **Startwert** markiert ist, habe ich mir dazu ausgedacht.
 
 **Was im Spielstand steht** (`SaveGame` in `src/save/saveGame.ts`):
-- Name der Figur, Stufe, EP, aktuelles Leben, Position, Gold, Inventar, Ausrüstung, Heiltränke.
-- Items, die am Boden liegen, mit Platz und Liegezeit *(Entschieden, seit Meilenstein 8)*. Die
+- Name der Figur, Stufe, EP, aktuelles Leben, **Zone** *(seit Meilenstein 11)* und Position darin,
+  Gold, Inventar, Ausrüstung, Heiltränke.
+- Items, die am Boden liegen, mit Zone, Platz und Liegezeit *(Entschieden, seit Meilenstein 8)*. Die
   3 Minuten bis zum Verschwinden zählen nur Spielzeit – bei geschlossenem Spiel läuft nichts ab.
 - Sortiment des Händlers, wann neue Ware kommt und die Rückkauf-Liste (Abschnitt 7b).
 - Schwierigkeit: Gegnerleben und Gegnerschaden in Prozent (Abschnitt 15.6). *(seit Meilenstein 10)*
-- Respawn-Zeitpunkt besiegter Bosse, Spielzeit, Zeitpunkt des letzten Speicherns, Format-Nummer.
+- Respawn-Zeitpunkt besiegter Bosse und benannter Elites, Zeitpunkt, ab dem eine geöffnete Truhe
+  wieder gefüllt ist *(beides je Zone, seit Meilenstein 11)*, Spielzeit, Zeitpunkt des letzten
+  Speicherns, Format-Nummer.
 - Nicht darin: die Werte der Figur (Leben, Angriffskraft, Rüstung …) – sie ergeben sich aus Stufe
   und Ausrüstung und werden beim Laden neu berechnet, damit Balancing-Änderungen sofort gelten.
 - Ebenfalls nicht: die **HUD-Einstellungen** aus Abschnitt 2b. Sie sind global *(Entschieden)*:
@@ -629,7 +767,7 @@ Seltenheiten; die Items werden beim Anlegen gewürfelt). *Startwerte:*
 | Stufe 5 – etwas Loot | 5 | 150 | 2 | Waffe und Stiefel grün, Brust und Helm weiß | 6 Items (3 weiß, 2 grün, 1 blau) |
 | Stufe 10 – voll ausgerüstet | 10 | 1500 | 5 | alle 9 Plätze: Waffe und Brust lila, Ring 2 grün, Rest blau | 8 Items, jede Seltenheit dabei |
 
-**Test-Parameter in der Adresse** (`?stufe`, `?beute`, `?elite`) *(Startwert)*: Ist einer davon
+**Test-Parameter in der Adresse** (`?stufe`, `?beute`, `?elite`, `?zone`) *(Startwert)*: Ist einer davon
 gesetzt, läuft ein **Testlauf** – eine frische „Testfigur", die in keinem Slot liegt. Es wird
 nichts geladen und nichts gespeichert, auch der „zuletzt gespielte Slot" bleibt, wie er ist.
 Der Händler hat im Testlauf jedes Mal frische Ware. Im Menü steht ein Hinweis mit „Testlauf beenden" (lädt ohne
@@ -641,7 +779,7 @@ derselbe Text wie im Browser). „Importieren …" legt eine Datei in den **erst
 Slot und lädt sie nicht von selbst. Sind alle Slots belegt, gibt es eine Meldung – ein Import
 überschreibt nie etwas. *(Startwert)*
 
-**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **3**. Ändert sich der Aufbau,
+**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **4**. Ändert sich der Aufbau,
 wird sie erhöht und in `MIGRATIONS` (`src/save/saveGame.ts`) eingetragen, wie ein alter Stand ins
 neue Format kommt.
 - Format 1 (Meilenstein 7) → 2 (Meilenstein 8): Die Einstellungen fallen aus dem Spielstand;
@@ -650,6 +788,13 @@ neue Format kommt.
 - Format 2 → 3 (Meilenstein 10): Neu sind die Schwierigkeit (Start: Normal, 100 / 100) und die
   Rückkauf-Liste des Händlers (Start: leer). Stände aus Format 1 und 2 laden weiter (im Browser
   geprüft mit einem Format-2-Stand).
+- Format 3 → 4 (Meilenstein 11): Es gibt mehrere Zonen. Alte Stände spielen in Grünwald weiter:
+  Die Figur steht dort an ihrem Platz (ist er inzwischen verbaut, am Startpunkt), Items am Boden
+  und der Boss-Timer bekommen die Zone dazu. Neu sind die Zeiten der Truhen (Start: alle gefüllt).
+  Im Browser geprüft mit einem Format-3-Stand. Der Boss steht nach dem Umbau der Karte ein paar
+  Kacheln woanders – ein gerade laufender Boss-Timer aus einem alten Stand verfällt deshalb
+  einmalig (der Boss ist dann sofort wieder da).
+- Im Menü „Spielstände" steht bei jedem Slot jetzt auch die Zone.
 - Alter Stand: wird beim Laden Schritt für Schritt umgebaut.
 - Stand aus einer **neueren** Spielversion, zu alter Stand ohne Umbau oder kaputte Daten: Der Slot
   wird als „Nicht ladbar: …" mit Grund angezeigt und **nicht angerührt** (man kann ihn noch
@@ -690,7 +835,8 @@ Endlos-Turm, Weltbosse, Sound. (Der Räuberhauptmann ist ein fester Zonen-Boss, 
 Der Talentbaum ist das Erste nach V1 – bei nur 10 Leveln und 9 Punkten trägt er noch
 nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 
-Meilenstein 10 (Minimap, Rückkauf, Schwierigkeit) ist umgesetzt ✅ – siehe Tabelle in 15.7.
+Meilenstein 10 (Minimap, Rückkauf, Schwierigkeit) und Meilenstein 11 (Zonen-Fundament,
+Grünwald-Ergänzung, Abschnitt 9b) sind umgesetzt ✅ – siehe Tabelle in 15.7.
 
 **Reihenfolge nach V1:** steht jetzt als Meilensteine 10–20 in Abschnitt 15.7 (ersetzt die
 frühere Kurzliste Talentbaum → Quests → Aufwerten → Zone 2 → …).
@@ -716,8 +862,9 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
 3. Gegner in Grünwald: „Tiny Dungeon" enthält keine Wölfe, Wildschweine oder Goblins.
    Erledigt *(Entschieden)*: Wolf und Wildschwein kommen nur, wenn ein Pack sie liefert; sonst
    bleibt es bei Ratten, Spinnen, Wegelagerern plus Fledermäusen und Goblins (Abschnitt 15.2).
-   Stand Meilenstein 10: Das Wildschwein ist in „Ninja Adventure" und kommt mit Meilenstein 11
-   dazu. Einen Wolf hat kein Pack; als Ersatz dient die Hyäne oder der Hund aus „Ninja Adventure".
+   Stand Meilenstein 11 *(Umgesetzt)*: Wildschwein, Goblin, Goblin-Schleuderer und Fledermaus sind
+   im Spiel. Einen Wolf hat kein Pack; als Ersatz dient der dunkle Hund aus „Ninja Adventure"
+   (im Spiel „Wolf"), die Hyäne liegt als zweites Bild bereit (Abschnitt 9b).
 4. Skill-Symbole sind vorerst Waffenbilder aus „Tiny Dungeon" (Hammer, Axt, Schwert,
    Schild). Eigene Symbole wären schöner.
 5. Mana: beim Krieger gestrichen *(Entschieden)*. Ob der Magier später Mana bekommt, ist offen.
@@ -766,6 +913,22 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
       lässt alle Gegner mit der aktuellen Schwierigkeit neu erscheinen.
     - „Alles auf Standard" in den Einstellungen lässt die Schwierigkeit unberührt.
     - Im Menü „Spielstände" steht die Schwierigkeit eines Slots noch nicht dabei.
+16. Meilenstein 11, von mir gesetzte Startwerte zum Prüfen im Spiel (Abschnitt 9b):
+    - Werte, Stufen und Plätze der fünf neuen Gegner; Namen und Lage von Wolfshang, Eichenhain,
+      Wachposten und Goblin-Lager; Aufbau der Spinnenhöhle.
+    - Wolf = dunkler Hund. Passt das Bild, oder lieber die Hyäne (ein Wort in `enemies.ts`)?
+    - Goblin-Schleuderer violett umgefärbt – erkennbar genug, andere Farbe gewünscht?
+    - Truhen (`src/data/pois.ts`): 30 Minuten, 1–2 Items, Gold, Seltenheiten. Die Brutmutter
+      erscheint nach 10 Minuten wieder.
+    - Zone verlassen setzt gewöhnliche Gegner zurück: Kurz aus der Höhle und wieder hinein füllt
+      sie komplett auf. Stört das (z. B. als Farm-Trick), bekommen Zonen ein Gedächtnis.
+    - Der Wachposten steht direkt auf dem Weg zur Ruine (Stufe 8–10) – der Weg zum Boss ist damit
+      schwerer als vorher.
+    - Mit 72 statt 32 Gegnern geht das Leveln bis 10 schneller; die Levelkurve ist unverändert.
+    - Stilmix: Goblins (0x72) sind kleiner und dunkler als Kenneys Figuren, die Tiere aus
+      „Ninja Adventure" haben kräftigere Umrisse.
+    - Die vier ZIPs liegen weiter neben den entpackten Ordnern in `assets-src/` (doppelt, rund
+      7 MB). Sie können weg, wenn du sie nicht mehr brauchst – gelöscht habe ich sie nicht.
 
 ---
 
@@ -972,10 +1135,12 @@ Weltboss) – man weiß also, wo man farmen muss.
 | Aschenplatte | Aschenfeste | 5 | 2: +15 % Leben · 4: Rundumschlag +50 % Schaden · 5: Treffer setzen Gegner in Brand |
 | Turmbezwinger | Turm (Turmmarken) | 5 | 2: +10 % Angriffstempo · 4: +25 % Schaden gegen Elite und Boss · 5: jeder 3. Wuchtschlag ist ein sicherer Krit |
 
-### 15.5 Datengetrieben bauen
+### 15.5 Datengetrieben bauen *(Fundament in Meilenstein 11 umgesetzt – Ist-Stand in Abschnitt 9b)*
 
-Heute ist Grünwald fest verdrahtet: `tools/build-map.mjs` baut genau diese eine Karte, die Szene
-lädt genau diese eine. Der Umbau passiert **einmal** (Meilenstein 11), danach gilt:
+Bis Meilenstein 10 war Grünwald fest verdrahtet: `tools/build-map.mjs` baute genau diese eine
+Karte, die Szene lud genau diese eine. Der Umbau ist **einmal** passiert (Meilenstein 11), seitdem gilt
+(Zeilen zu Fähigkeiten, Bossen mit Phasen, Quests, NPCs, Legendär-Effekten und Sets kommen mit
+ihren Meilensteinen):
 
 | Was | Wo es dann steht | Neuer Inhalt braucht Code? |
 |---|---|---|
@@ -994,8 +1159,9 @@ lädt genau diese eine. Der Umbau passiert **einmal** (Meilenstein 11), danach g
 - `npm run assets` prüft die Daten und bricht mit einer klaren Meldung ab (unbekannter Gegner,
   Quest ohne Ziel, POI nicht erreichbar) – das macht der Karten-Bauer für Gegnergruppen schon.
 - Spielstand: aktuelle Zone, entdeckte Portalsteine, Quest-Stand, Zeitpunkte für Truhen, feste
-  Elites und Bosse je Zone. Das wird Format 4 (`SAVE_VERSION`; Format 3 ist seit Meilenstein 10
-  vergeben), alte Stände laden weiter.
+  Elites und Bosse je Zone. Format 4 (seit Meilenstein 11) enthält davon Zone, Truhen, feste
+  Elites und Bosse; Portalsteine und Quest-Stand kommen mit den Meilensteinen 12 und 13 dazu.
+  Alte Stände laden weiter.
 - Ehrlich: Dieser Umbau ist der teuerste Einzelschritt im Plan, und die erste neue Zone danach
   ist noch teurer als die späteren, weil Fernkampf und Co. dort zum ersten Mal gebaut werden.
 
@@ -1032,12 +1198,12 @@ Von dir entschieden *(Entschieden)*: vier Knöpfe plus freie Regler, mehr EP und
 
 „Sitzung" = ein Arbeitsgang mit einem PR wie bisher. Die Schätzungen sind grob; dein Testen und
 das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter dem Meilenstein
-(Meilenstein 10 = 0.10.0).
+(Meilenstein 10 = 0.10.0, Meilenstein 11 = 0.11.0).
 
 | # | Meilenstein | Inhalt | Aufwand |
 |---|---|---|---|
 | 10 ✅ | Minimap, Rückkauf, Schwierigkeit | **Minimap** unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe (rot, Elite gold, Boss lila), Händler; HUD-Element mit Schalter, Größe, Deckkraft, verschiebbar. **Rückkauf:** eigener Reiter beim Händler mit den letzten 10 verkauften Items zum Verkaufspreis; die Liste steht im Spielstand, das älteste fällt raus. **Schwierigkeit** (15.6): zwei Regler plus vier Knöpfe, pro Spielstand, Bonus auf EP und Gold über 100 %. Spielstand Format 3 | 1–2 Sitzungen, klein bis mittel |
-| 11 | Zonen-Fundament | Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 4. Die hochgeladenen Packs einbinden (Figuren von 0x72 und Ninja Adventure neben Kenney, kein Umstellen der vorhandenen Figuren), `CREDITS.md` ergänzen. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus und Goblins ergänzt; Wolf und Wildschwein nur, wenn ein Pack sie hat – also Wildschwein und als Wolf-Ersatz Hyäne/Hund (15.8) | 2–3 Sitzungen, groß |
+| 11 ✅ | Zonen-Fundament | Umgesetzt (Abschnitt 9b). Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 4. Die hochgeladenen Packs einbinden (Figuren von 0x72 und Ninja Adventure neben Kenney, kein Umstellen der vorhandenen Figuren), `CREDITS.md` ergänzen. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus und Goblins ergänzt; Wolf und Wildschwein nur, wenn ein Pack sie hat – also Wildschwein und als Wolf-Ersatz Hyäne/Hund (15.8) | 2–3 Sitzungen, groß |
 | 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD (unter der Minimap), Kopfgeld-Brett, die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
 | 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, große Karte (`M`), Cap 20, neue Assets | 2–3 Sitzungen, groß |
 | 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
@@ -1055,8 +1221,14 @@ in Ordnung, 15.9 Frage 2), Cap über 40 mit Zone 5 und 6.
 
 ### 15.8 Assets: was fehlt, was ein CC0-Pack löst
 
-**Stand Meilenstein 10:** Du hast vier Packs als ZIP nach `assets-src/` gelegt. Sie sind noch
-nicht im Spiel (kommen ab Meilenstein 11), deshalb stehen sie auch noch nicht in `CREDITS.md`.
+**Stand Meilenstein 11:** Die vier Packs sind in `assets-src/` entpackt (`0x72/dungeon-tileset-ii/`,
+`ninja-adventure/`, `kenney/roguelike-rpg-pack/`, `kenney/1-bit-pack/`) und stehen in `CREDITS.md`.
+Im Spiel sind bisher: Goblin (0x72), Wildschwein und dunkler Hund als Wolf (Ninja Adventure).
+Das Roguelike/RPG Pack und das 1-Bit Pack liegen bereit, werden aber noch nicht benutzt.
+Am Bild geprüft: 0x72 liefert Truhen (auch mit Öffnen-Animation), Kisten, Leiter und Treppe im
+Boden; „Tiny Dungeon" liefert Fledermaus, Geist, Truhen, Höhlenboden und Mauern (alles im Spiel).
+
+*Tabelle vom Stand Meilenstein 10:*
 
 | Datei in `assets-src/` | Pack | Am Inhalt geprüft (Dateiliste) |
 |---|---|---|
@@ -1121,4 +1293,6 @@ Was kein Pack löst:
 | 13 | Kopfgeld-Brett? | Ja | 15.2, Meilenstein 12 |
 | 14 | Wolf und Wildschwein? | Nur wenn ein Pack sie liefert. Wildschwein ist in Ninja Adventure, Wolf nicht – Ersatz Hyäne oder Hund | 15.2, 15.8, Meilenstein 11, Offener Punkt 3 |
 
-Derzeit ist keine Frage offen. Meilenstein 10 ist umgesetzt; nächster Schritt: Meilenstein 11.
+Derzeit ist keine Frage offen. Meilenstein 11 ist umgesetzt; nächster Schritt: Meilenstein 12
+(Quests). Was ich in Meilenstein 11 selbst festgelegt habe, steht als Startwert in Abschnitt 9b
+und im Offenen Punkt 16.

@@ -1,6 +1,7 @@
 import { GAME_TITLE } from '../config';
 import { AUTOSAVE_INTERVAL_MS } from '../data/save';
 import { TEST_SAVES } from '../data/testSaves';
+import { ZONES } from '../data/zones';
 import { cleanName, newSave, parseSave, testSave, type SaveGame } from '../save/saveGame';
 import { ALL_SLOTS, MAIN_SLOTS, TEST_SLOT, deleteSlot, exportSlot, lastSlot, rawSlot, readSlot, restartWith, session, slotLabel, writeSlot } from '../save/slots';
 import { askName, confirmDialog, showMessage } from './dialog';
@@ -118,7 +119,7 @@ export class SaveMenu {
     } else if (content.state === 'ok') {
       const save = content.save;
       row.append(
-        text('div', 'save-info', `${save.name} · Stufe ${save.character.level} · ${save.gold} Gold`),
+        text('div', 'save-info', `${save.name} · Stufe ${save.character.level} · ${ZONES[save.zone]?.name ?? save.zone} · ${save.gold} Gold`),
         text('div', 'save-date', `gespeichert ${formatDate(save.savedAt)} · Spielzeit ${formatDuration(save.playedMs)}`),
       );
       if (!active) buttons.append(this.action('Laden', () => this.load(id)));

@@ -9,6 +9,7 @@ import { INVENTORY_SIZE } from '../data/loot';
 import { MAX_LEVEL } from '../data/progression';
 import { NAME_MAX_LENGTH, SAVE_VERSION } from '../data/save';
 import { BUYBACK, POTION, SHOP_STOCK } from '../data/shop';
+import { START_ZONE, ZONES } from '../data/zones';
 import { STATS, type StatId } from '../data/stats';
 import type { TestSaveDef } from '../data/testSaves';
 import { WARRIOR } from '../data/warrior';
@@ -41,24 +42,28 @@ export interface SaveGame {
   playedMs: number;
   /** `hp` = aktuelles Leben; null = volles Leben. */
   character: { level: number; xp: number; hp: number | null };
-  /** Wo die Figur steht (Welt-Pixel); null = am Startpunkt im Dorf. */
+  /** In welcher Zone die Figur ist (Schlüssel aus src/data/zones.ts). */
+  zone: string;
+  /** Wo die Figur in dieser Zone steht (Welt-Pixel); null = am Startpunkt der Zone. */
   position: { x: number; y: number } | null;
   gold: number;
   bag: (Item | null)[];
   equipped: Record<EquipSlot, Item | null>;
   /** Heiltränke im Gepäck. */
   potions: number;
-  /** Items, die noch am Boden liegen. */
+  /** Items, die noch am Boden liegen – in allen Zonen (jedes merkt sich seine Zone). */
   groundItems: GroundItem[];
   /** Das Sortiment des Händlers, wann neue Ware kommt und die Rückkauf-Liste. */
   shop: ShopData;
   /** Schwierigkeit dieses Spielstands (Regler in den Einstellungen, Werte in src/data/difficulty.ts). */
   difficulty: Difficulty;
   /**
-   * Besiegte Bosse: Schlüssel = Boss (Typ und Platz), Wert = Zeitpunkt (Date.now()),
-   * zu dem er wieder erscheint. Die Uhr läuft also weiter, auch wenn das Spiel zu ist.
+   * Besiegte Bosse und benannte Elites: Schlüssel = "Zone:Typ@Platz", Wert = Zeitpunkt (Date.now()),
+   * zu dem der Gegner wieder erscheint. Die Uhr läuft also weiter, auch wenn das Spiel zu ist.
    */
-  bossRespawnAt: Record<string, number>;
+  respawnAt: Record<string, number>;
+  /** Geöffnete Truhen: Schlüssel = "Zone:Name der Truhe", Wert = Zeitpunkt, ab dem sie wieder gefüllt ist. */
+  chests: Record<string, number>;
 }
 
 /** Ergebnis beim Lesen eines Spielstands: entweder der Spielstand oder ein Grund, warum es nicht ging. */
@@ -84,6 +89,17 @@ const MIGRATIONS: Record<number, (old: Plain) => Plain> = {
   // Format 2 → 3 (Meilenstein 10): Neu sind die Schwierigkeit (Start: Normal, 100 / 100) und
   // die Rückkauf-Liste des Händlers (Start: leer). Beides füllt normalize() unten.
   2: (old) => ({ ...old, version: 3 }),
+  // Format 3 → 4 (Meilenstein 11): Es gibt mehrere Zonen. Alles Bisherige spielte in Grünwald:
+  // Die Figur steht dort, Items am Boden und der Boss-Timer bekommen die Zone dazu
+  // ("bossRespawnAt" heißt jetzt "respawnAt" und gilt auch für benannte Elites).
+  // Neu sind die Zeiten der Truhen (Start: alle gefüllt) – das füllt normalize() unten.
+  3: (old) => {
+    const { bossRespawnAt, ...rest } = old;
+    const respawnAt: Plain = {};
+    if (isPlain(bossRespawnAt)) for (const [key, value] of Object.entries(bossRespawnAt)) respawnAt[`gruenwald:${key}`] = value;
+    const groundItems = Array.isArray(old.groundItems) ? (old.groundItems as unknown[]).map((entry) => (isPlain(entry) ? { ...entry, zone: 'gruenwald' } : entry)) : [];
+    return { ...rest, version: 4, zone: 'gruenwald', groundItems, respawnAt };
+  },
 };
 
 /** Ein frischer Spielstand: Stufe 1, leeres Inventar, am Startpunkt. */
@@ -97,6 +113,7 @@ export function newSave(name: string): SaveGame {
     savedAt: now,
     playedMs: 0,
     character: { level: 1, xp: 0, hp: null },
+    zone: START_ZONE,
     position: null,
     gold: 0,
     bag: new Array<Item | null>(INVENTORY_SIZE).fill(null),
@@ -105,7 +122,8 @@ export function newSave(name: string): SaveGame {
     groundItems: [],
     shop: { stock: [], restockAt: 0, buyback: [] },
     difficulty: { ...DEFAULT_DIFFICULTY },
-    bossRespawnAt: {},
+    respawnAt: {},
+    chests: {},
   };
 }
 
@@ -167,7 +185,10 @@ export function parseSave(text: string): ParseResult {
 function normalize(data: Plain): SaveGame {
   const character = isPlain(data.character) ? data.character : {};
   const level = clampInt(character.level, 1, MAX_LEVEL, 1);
-  const position = isPlain(data.position) && isNumber(data.position.x) && isNumber(data.position.y) ? { x: data.position.x, y: data.position.y } : null;
+  // Gibt es die Zone nicht (mehr), steht die Figur am Startpunkt der Startzone.
+  const zone = typeof data.zone === 'string' && data.zone in ZONES ? data.zone : START_ZONE;
+  const storedPosition = zone === data.zone && isPlain(data.position) ? data.position : {};
+  const position = isNumber(storedPosition.x) && isNumber(storedPosition.y) ? { x: storedPosition.x, y: storedPosition.y } : null;
 
   const bag = new Array<Item | null>(INVENTORY_SIZE).fill(null);
   if (Array.isArray(data.bag)) {
@@ -189,7 +210,9 @@ function normalize(data: Plain): SaveGame {
     for (const entry of data.groundItems as unknown[]) {
       const item = isPlain(entry) ? cleanItem(entry.item) : null;
       if (!item || !isPlain(entry) || !isNumber(entry.x) || !isNumber(entry.y)) continue;
-      groundItems.push({ item, x: entry.x, y: entry.y, ageMs: isNumber(entry.ageMs) ? Math.max(0, entry.ageMs) : 0 });
+      // Items in einer Zone, die es nicht mehr gibt, fallen weg.
+      if (typeof entry.zone !== 'string' || !(entry.zone in ZONES)) continue;
+      groundItems.push({ zone: entry.zone, item, x: entry.x, y: entry.y, ageMs: isNumber(entry.ageMs) ? Math.max(0, entry.ageMs) : 0 });
     }
   }
 
@@ -212,10 +235,8 @@ function normalize(data: Plain): SaveGame {
     enemyDamage: cleanDifficultyValue(storedDifficulty.enemyDamage),
   };
 
-  const bossRespawnAt: Record<string, number> = {};
-  if (isPlain(data.bossRespawnAt)) {
-    for (const [key, value] of Object.entries(data.bossRespawnAt)) if (isNumber(value)) bossRespawnAt[key] = value;
-  }
+  const respawnAt = cleanTimes(data.respawnAt);
+  const chests = cleanTimes(data.chests);
 
   return {
     app: APP_ID,
@@ -229,6 +250,7 @@ function normalize(data: Plain): SaveGame {
       xp: level >= MAX_LEVEL ? 0 : clampInt(character.xp, 0, Number.MAX_SAFE_INTEGER, 0),
       hp: isNumber(character.hp) && character.hp > 0 ? character.hp : null,
     },
+    zone,
     position,
     gold: clampInt(data.gold, 0, Number.MAX_SAFE_INTEGER, 0),
     bag,
@@ -237,8 +259,18 @@ function normalize(data: Plain): SaveGame {
     groundItems,
     shop,
     difficulty,
-    bossRespawnAt,
+    respawnAt,
+    chests,
   };
+}
+
+/** Liest eine Liste "Schlüssel → Zeitpunkt"; alles, was keine Zahl ist, fällt weg. */
+function cleanTimes(raw: unknown): Record<string, number> {
+  const times: Record<string, number> = {};
+  if (isPlain(raw)) {
+    for (const [key, value] of Object.entries(raw)) if (isNumber(value)) times[key] = value;
+  }
+  return times;
 }
 
 /** Prüft ein gespeichertes Item. Passt es nicht mehr zum Spiel (z. B. unbekannter Wert), fällt es weg. */

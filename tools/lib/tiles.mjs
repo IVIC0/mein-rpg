@@ -1,6 +1,10 @@
-// Kachel-Nummern im Tileset "gruenwald" (0-basiert).
+// Kachel-Nummern der Tilesets (0-basiert).
+//
+// Tileset "gruenwald":
 // 0–131 sind die Originalkacheln aus Kenney "Tiny Town" (12 Spalten × 11 Zeilen).
 // Ab 132 kommen die Waldkacheln, die build-tilesets.mjs daraus zusammensetzt.
+//
+// Tileset "hoehle" (ganz unten in dieser Datei): Kenney "Tiny Dungeon" plus ein Ausgang.
 
 export const TOWN_TILE_COUNT = 132;
 export const SHEET_COLUMNS = 12;
@@ -45,6 +49,8 @@ export const PROPS = {
   bush: 5, sprout: 17, mushrooms: 29,
   sign: 83, wellTop: 92, well: 104,
   hay: 93, beehive: 94, target: 95, log: 106, pot: 107, cart: 57,
+  // Steinrahmen mit Leiter: der Eingang zu einer Höhle.
+  caveEntrance: 103,
 };
 
 export const FENCE = {
@@ -63,4 +69,19 @@ export const HOUSE = {
 export const RUIN = {
   topLeft: 99, top: 100, topRight: 101,
   wall: 126, slit: 125, archLeft: 113, archRight: 114,
+};
+
+// ---------------------------------------------------------------- Tileset "hoehle"
+
+// 0–131 sind die Originalkacheln aus Kenney "Tiny Dungeon" (12 Spalten × 11 Zeilen).
+// Ab 132 kommen Zusätze aus anderen Packs (build-tilesets.mjs, buildCaveTiles).
+export const DUNGEON_TILE_COUNT = 132;
+export const CAVE_TOTAL_TILE_COUNT = 144;
+
+export const CAVE = {
+  floor: 0, // brauner Höhlenboden
+  holes: 12, // Boden mit Löchern
+  rubble: 24, // Boden mit Geröll
+  wall: 40, // Mauer – steht überall, wo unterhalb einer Felskachel Boden liegt
+  exit: 132, // Steinrahmen mit Leiter aus "Tiny Town": der Weg nach draußen
 };
