@@ -50,11 +50,49 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     Der Kampf läuft bei offenem Fenster immer weiter.
   - Position, Größe und Pin merkt sich der Browser (`localStorage`, getrennt vom Spielstand).
 - **Knopf-Leiste** oben rechts *(Umgesetzt)*: kleine Knöpfe für Inventar und Einstellungen;
-  weitere (Talente, Karte) kommen dort dazu. In den Einstellungen: „Namen über allen Gegnern
-  zeigen" (an/aus) und „Fenster zurücksetzen".
+  weitere (Talente, Karte) kommen dort dazu. Was die Einstellungen können, steht in Abschnitt 2b.
   `T` Talente kommt mit dem Talentbaum. *(Vorschlag)*
 - **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
 - **Tränke:** `Q` Heiltrank. *(Vorschlag, kommt mit dem Händler)* Einen Manatrank gibt es nicht.
+
+## 2b. HUD und Einstellungen *(Schritt 6b, umgesetzt)*
+
+- **Schild über der eigenen Figur:** Name, Stufe und Lebensbalken wie bei den Gegnern, aber mit
+  grünem Namen und grünem Balken (Gegner: rot). Liegt die Figur am Boden, ist es weg. *(Entschieden;
+  Farbe Grün und der Name „Krieger" sind Startwerte – einen eigenen Figurennamen gibt es noch nicht.)*
+- **Einstellungen** (Zahnrad oben rechts): ein schmales Menü mit drei zugeklappten Bereichen,
+  dazu „HUD verschieben …", „Fenster zurücksetzen" und „Alles auf Standard".
+
+  | Bereich | Einzeln schaltbar | Regler |
+  |---|---|---|
+  | Über meiner Figur | Name, Stufe, Leben | Größe, Deckkraft |
+  | Über Gegnern | Name (mit Elite-Eigenschaften), Stufe, Leben; „bei allen Gegnern" (aus = nur Ziel, Angreifer, Verletzte) | Größe, Deckkraft |
+  | HUD-Elemente | Spielerrahmen, Zielrahmen, Skill-Leiste, Beute-Liste, Schwebende Zahlen (Schaden, Heilung, EP, Skill-Namen) | je Element Größe, Deckkraft |
+
+- **Bearbeitungsmodus** („HUD verschieben …"): Spielerrahmen, Zielrahmen, Skill-Leiste und
+  Beute-Liste bekommen einen gestrichelten Rahmen und lassen sich mit der Maus ziehen. Sie bleiben
+  immer ganz im Bild. Oben erscheint eine Leiste mit „Plätze zurücksetzen" und „Fertig"; `Esc`
+  beendet den Modus. Das Spiel läuft dabei weiter.
+- **Alles auf Standard** setzt alle Einstellungen, die Plätze der HUD-Elemente und das
+  Inventarfenster zurück.
+- **Technik:** Alle Einstellungen liegen in einem einzigen Objekt (`Settings` in
+  `src/ui/settings.ts`, nur einfache Werte) – so können sie mit Meilenstein 7 in den Spielstand.
+  Bis dahin merkt sie sich der Browser (`localStorage`). Der Platz eines Elements ist als
+  Verschiebung gegenüber dem Standard-Platz gespeichert, damit z. B. die Skill-Leiste auch bei
+  anderer Fenstergröße unten in der Mitte verankert bleibt.
+
+**Startwerte** (von mir gesetzt, in `src/ui/settings.ts`): alles sichtbar, Größe 100 %, Deckkraft
+100 %. Regler Größe 60–200 %, Deckkraft 20–100 % (nie 0 – dafür gibt es das Ausblenden), beide in
+5-%-Schritten.
+
+**Bewusst anders gebaut als gewünscht:**
+- *Minimap:* gibt es noch nicht (Abschnitt 13), also auch keinen Schalter. Kommt sie, wird sie ein
+  weiteres HUD-Element mit denselben Reglern.
+- *Knopf-Leiste oben rechts:* fest, nicht ausblendbar und nicht verschiebbar – sonst käme man
+  nicht mehr an die Einstellungen.
+- *Schilder und schwebende Zahlen:* hängen an den Figuren und lassen sich deshalb nicht
+  verschieben, nur ein-/ausblenden, skalieren und durchsichtiger machen.
+- *Meldungen* (Stufenaufstieg, „Inventar voll", Todes-Bildschirm) sind nicht einstellbar.
 
 ## 3. Perspektive & Grafik
 
@@ -195,8 +233,8 @@ Intelligenz und Mana gibt es beim Krieger nicht – sie kommen eventuell mit dem
   Auf Stufe 10 also 282 Leben, 39 Angriffskraft, 46 Rüstung (ohne Ausrüstung).
 - **Stufenaufstieg:** Das Leben ist sofort wieder voll, eine Meldung zeigt die neue
   Stufe, den Zuwachs und neu freigeschaltete Skills.
-- **Anzeige:** Stufe und EP-Balken im Rahmen oben links. Über jedem Gegner stehen Name, Stufe
-  und Lebensbalken (in den Einstellungen umstellbar auf: nur Ziel, Angreifer und Verletzte).
+- **Anzeige:** Stufe und EP-Balken im Rahmen oben links. Über jedem Gegner und über der eigenen
+  Figur stehen Name, Stufe und Lebensbalken (alles in den Einstellungen schaltbar, siehe Abschnitt 2b).
   Dort und im Zielrahmen ist die Stufe des Gegners rot, wenn er 2 oder mehr Stufen über der Figur liegt, und grau, wenn er nur noch
   verringerte EP bringt.
 - Leben, Angriffskraft und Rüstung steigen pro Stufe direkt. Die Attribute (Stärke,
@@ -472,7 +510,8 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 | 5 ✅ | Loot | Item-Generator (Affixe, 6 Seltenheiten, Itemlevel), Drops, Inventar, Ausrüstung, Tooltip mit Vergleich | ein Fund die Werte sichtbar verbessert |
 | 5b ✅ | Feinschliff Loot | Drop-Chance 10 % und Drop-Tabellen je Gegnerrang, Rüstung abgeflacht (max. 75 %), Inventarfenster verschiebbar/anpinnbar, Knopf-Leiste, Namensschilder über Gegnern | Loot seltener, aber wertiger ist und das Fenster beim Kämpfen nicht stört |
 | 6 ✅ | Elites | Zufällige Elite-Spawns mit 1–3 Eigenschaften und besserem Loot, dazu ein Boss in der Ruine | Elites erkennbar gefährlicher und lohnender sind |
-| 7 | Speichern | Auto-Save, Export/Import, Versionsnummer | Seite neu laden nichts verliert |
+| 6b ✅ | HUD und Einstellungen | Schild über der eigenen Figur, HUD-Elemente ein-/ausblenden, skalieren, Deckkraft, im Bearbeitungsmodus verschieben, alles zurücksetzen | sich das HUD nach eigenem Geschmack einrichten lässt |
+| 7 | Speichern | Auto-Save, Export/Import, Versionsnummer, Einstellungen aus 6b mit in den Spielstand | Seite neu laden nichts verliert |
 | 8 | Händler + Feinschliff | 1 Händler (verkaufen, Tränke kaufen), Balancing, `CREDITS.md` | Gold und volles Inventar einen Zweck haben |
 
 **Bewusst nicht in V1:** Talentbaum, Aufwerten, Quests, weitere Zonen und Klassen,
@@ -490,7 +529,7 @@ Von dir gewünscht, noch nicht umgesetzt. *(Entschieden)*
 
 | Feature | Wann | Inhalt |
 |---|---|---|
-| Minimap | direkt nach Meilenstein 3 (Kampf) | Kleine Übersichtskarte oben rechts im Bild, unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe |
+| Minimap | direkt nach Meilenstein 3 (Kampf) | Kleine Übersichtskarte oben rechts im Bild, unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe. Wird ein HUD-Element wie die anderen (ausblenden, Größe, Deckkraft, verschieben – Abschnitt 2b) |
 | Große Karte | sobald es mehrere Zonen gibt | Taste `M` öffnet und schließt die Karte der ganzen Zone |
 | Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
 | Mehr Skills als Plätze | nach V1, zusammen mit dem Talentbaum | Mit der Zeit 8–10 Skills pro Klasse freischalten, aber nur 4 aktive Plätze. Die Auswahl ist der Build. |
@@ -527,3 +566,6 @@ Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap f
     für den Boss-Kampf Lohn genug (oder besser 2–3 Items)?
 11. Namen von Elites: Die Eigenschaften stehen unter dem Namen statt davor („Schnelle
     Waldspinne") – dafür müsste jede Eigenschaft nach dem Geschlecht des Gegners gebeugt werden.
+12. HUD-Einstellungen (6b): Grenzen der Regler und die Farbe des eigenen Schilds sind Startwerte.
+    Offen: Soll die Figur einen eigenen Namen bekommen (statt „Krieger")? Sollen die Einstellungen
+    beim Export des Spielstands (Meilenstein 7) mitwandern oder pro Browser bleiben?

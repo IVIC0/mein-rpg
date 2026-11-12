@@ -1,8 +1,10 @@
 import type Phaser from 'phaser';
 import { RANKS, traitName } from '../data/elites';
 import { isTrivial } from '../data/progression';
+import { WARRIOR } from '../data/warrior';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
+import type { Settings } from './settings';
 
 /** So weit (Welt-Pixel) sitzt das Schild über dem Kopf des Gegners. */
 const GAP_Y = 2;
@@ -28,14 +30,30 @@ interface Plate {
 }
 
 /**
- * Namensschilder: Name, Stufe und Lebensbalken direkt über jedem Gegner.
+ * Namensschilder: Name, Stufe und Lebensbalken direkt über der eigenen Figur und jedem Gegner.
+ * Das eigene Schild ist grün (Name und Balken), damit man es nicht mit einem Gegner verwechselt.
  * Elite und Boss bekommen ein größeres Schild in eigener Farbe, Elites dazu ihre Eigenschaften.
  * Wie die Schadenszahlen sind es HTML-Elemente über dem Spielbild, damit die Schrift scharf bleibt.
  */
 export class Nameplates {
   private readonly plates: Plate[];
+  // Das Schild der eigenen Figur.
+  private readonly own: HTMLElement;
+  private readonly ownLevel: HTMLElement;
+  private readonly ownFill: HTMLElement;
+  private ownVisible = true;
+  private ownPercent = -1;
 
   constructor(root: HTMLElement, enemies: Enemy[]) {
+    this.own = document.createElement('div');
+    this.own.className = 'nameplate nameplate-player';
+    this.own.innerHTML = `
+      <span class="nameplate-name">${WARRIOR.name}</span><span class="nameplate-level"></span>
+      <div class="nameplate-bar"><div class="nameplate-fill"></div></div>`;
+    root.appendChild(this.own);
+    this.ownLevel = this.own.querySelector('.nameplate-level') as HTMLElement;
+    this.ownFill = this.own.querySelector('.nameplate-fill') as HTMLElement;
+
     this.plates = enemies.map((enemy) => {
       const element = document.createElement('div');
       element.className = 'nameplate';
@@ -61,9 +79,14 @@ export class Nameplates {
 
   /**
    * Setzt alle Schilder an ihre Bildschirm-Position. Einmal pro Frame nach dem Zeichnen aufrufen.
-   * `showAll` = false: nur das Ziel, Angreifer und verletzte Gegner bekommen ein Schild.
+   * Aus den Einstellungen kommen die Größe der Schilder und `showAll`
+   * (false = nur das Ziel, Angreifer und verletzte Gegner bekommen ein Schild).
+   * Welche Teile (Name, Stufe, Balken) zu sehen sind, regelt hud.css (Klassen setzt HudLayout).
    */
-  render(camera: Phaser.Cameras.Scene2D.Camera, player: Player, target: Enemy | null, showAll: boolean): void {
+  render(camera: Phaser.Cameras.Scene2D.Camera, player: Player, target: Enemy | null, settings: Settings): void {
+    this.renderOwn(camera, player, settings.playerPlate.scale);
+    const showAll = settings.enemyPlates.showAll;
+    const scale = settings.enemyPlates.scale;
     for (const plate of this.plates) {
       const enemy = plate.enemy;
       // Welt → Bildschirm: die Kamera zoomt um die Bildmitte.
@@ -87,7 +110,7 @@ export class Nameplates {
         for (const rank of Object.keys(RANKS)) plate.root.classList.toggle(`rank-${rank}`, rank === enemy.rank);
       }
 
-      plate.root.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
+      plate.root.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%) scale(${scale})`;
       plate.root.classList.toggle('selected', enemy === target);
       // Rot = deutlich stärker als die Figur, grau = bringt nur noch wenig EP.
       plate.level.classList.toggle('level-high', enemy.level >= player.level + 2);
@@ -97,6 +120,27 @@ export class Nameplates {
         plate.percent = percent;
         plate.fill.style.width = `${percent}%`;
       }
+    }
+  }
+
+  /** Das Schild über der eigenen Figur. Liegt sie am Boden, ist es ausgeblendet. */
+  private renderOwn(camera: Phaser.Cameras.Scene2D.Camera, player: Player, scale: number): void {
+    if (player.alive !== this.ownVisible) {
+      this.ownVisible = player.alive;
+      this.own.hidden = !player.alive;
+    }
+    if (!player.alive) return;
+
+    const x = (player.x - camera.scrollX - camera.width / 2) * camera.zoom + camera.width / 2;
+    const y = (player.y + 5 - 16 - GAP_Y - camera.scrollY - camera.height / 2) * camera.zoom + camera.height / 2;
+    this.own.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%) scale(${scale})`;
+
+    const level = `${player.level}`;
+    if (this.ownLevel.textContent !== level) this.ownLevel.textContent = level;
+    const percent = Math.round((player.hp / player.maxHp) * 100);
+    if (percent !== this.ownPercent) {
+      this.ownPercent = percent;
+      this.ownFill.style.width = `${percent}%`;
     }
   }
 }

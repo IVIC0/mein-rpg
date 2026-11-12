@@ -39,8 +39,11 @@ export class FloatingText {
     this.floaters.push({ element, x: x + (Math.random() - 0.5) * 8, y, bornAt: performance.now() });
   }
 
-  /** Setzt alle Zahlen an ihre Bildschirm-Position. Einmal pro Frame nach dem Zeichnen aufrufen. */
-  render(camera: Phaser.Cameras.Scene2D.Camera): void {
+  /**
+   * Setzt alle Zahlen an ihre Bildschirm-Position. Einmal pro Frame nach dem Zeichnen aufrufen.
+   * `scale` = Größe aus den Einstellungen (1 = 100 %).
+   */
+  render(camera: Phaser.Cameras.Scene2D.Camera, scale: number): void {
     if (this.floaters.length === 0) return;
     const now = performance.now();
     this.floaters = this.floaters.filter((floater) => {
@@ -52,7 +55,7 @@ export class FloatingText {
       // Welt → Bildschirm: die Kamera zoomt um die Bildmitte.
       const x = (floater.x - camera.scrollX - camera.width / 2) * camera.zoom + camera.width / 2;
       const y = (floater.y - age * RISE - camera.scrollY - camera.height / 2) * camera.zoom + camera.height / 2;
-      floater.element.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
+      floater.element.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%) scale(${scale})`;
       floater.element.style.opacity = `${Math.min(1, (1 - age) * 2.5)}`;
       return true;
     });
