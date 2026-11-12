@@ -207,6 +207,7 @@ Krieger-Skills für V1 *(Umgesetzt; Zahlen sind Startwerte fürs Balancing)*:
 ## 6. Progression
 
 - **Maximallevel 60**, bewusst langsam – mehrere Wochen. *(Entschieden)*
+  Der Inhaltsplan schlägt für die ersten vier Zonen ein Cap von 40 vor (Abschnitt 15.1, Frage 1 in 15.9).
 - **Talentbaum** als einziges Auswahlsystem beim Leveln. *(Entschieden)*
 - Grundwerte (Leben, Angriffskraft, Rüstung …) steigen pro Level automatisch – keine frei
   verteilbaren Attributpunkte. *(folgt aus deiner Auswahl)*
@@ -388,7 +389,8 @@ Verkaufen ab Episch, Sortiment und Gold im Spielstand. Der Heiltrank stand schon
 - **Sicherheits-Klick:** Bei Episch, Legendär und Mythisch pulsiert das Feld nach dem ersten
   Rechtsklick rot und der Tooltip fragt nach; erst ein zweiter Rechtsklick innerhalb von
   3 Sekunden verkauft. Maus weg oder Zeit um = abgebrochen.
-- Verkauft ist verkauft – einen Rückkauf gibt es nicht (siehe Offene Punkte).
+- Verkauft ist verkauft – einen Rückkauf gibt es noch nicht. Er kommt mit Meilenstein 10
+  (die letzten 10 verkauften Items zum Verkaufspreis, Abschnitt 15.7). *(Entschieden, geplant)*
 
 **Preise** – abgeleitet aus Itemlevel und Seltenheit:
 Wert = (10 + 6 × Itemlevel) × Faktor der Seltenheit. Kaufen kostet den Wert, Verkaufen bringt 20 %.
@@ -489,7 +491,7 @@ auf „nur Ziel, Angreifer und Verletzte" gestellt, erkennt man Elites von Weite
 - **Quests:** einfache Töte-/Sammle-/Boss-Quests von NPCs mit EP, Gold und Item als
   Belohnung, wenig Text, keine durchgehende Story. *(Entschieden)*
 
-Zonen-Skizze *(Vorschlag)*:
+Zonen-Skizze *(Vorschlag, erste Fassung – der ausgearbeitete Plan steht in Abschnitt 15.2)*:
 
 | Zone | Level | Gegner |
 |---|---|---|
@@ -647,15 +649,16 @@ Elites, Speichern. Ziel: 2–3 Stunden Spielzeit, die sich schon nach dem fertig
 | 7 ✅ | Speichern | Auto-Save, 3 Slots + Test-Slot mit Vorlagen, Namenseingabe, Export/Import, Versionsnummer, Einstellungen aus 6b mit in den Spielstand | Seite neu laden nichts verliert |
 | 8 ✅ | Händler | 1 Händler im Dorf (Ausrüstung kaufen, Items verkaufen, Heiltrank mit Taste `Q`), Items am Boden im Spielstand, Einstellungen global, Spielname „Rogoi Offline". `CREDITS.md` gibt es seit Meilenstein 2. Balancing bleibt laufende Arbeit (Offene Punkte) | Gold und volles Inventar einen Zweck haben |
 
+| 9 ✅ | Inhaltsplan | Nur Planung, kein Code: Levelcap und Kurve, Zonen, Endgame, Loot-Vielfalt, Daten-Aufbau, Schwierigkeit, Meilensteine 10–20, Assets (Abschnitt 15) | der Plan steht und deine Fragen in 15.9 beantwortet sind |
+
 **Bewusst nicht in V1:** Talentbaum, Aufwerten, Quests, weitere Zonen und Klassen,
 Endlos-Turm, Weltbosse, Sound. (Der Räuberhauptmann ist ein fester Zonen-Boss, kein Weltboss.)
 
 Der Talentbaum ist das Erste nach V1 – bei nur 10 Leveln und 9 Punkten trägt er noch
 nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 
-**Reihenfolge nach V1** *(Vorschlag)*: Talentbaum → Quests + Stadt ausbauen → Aufwerten
-(Schmied) → Zone 2 → zweite Klasse → Weltbosse → Endlos-Turm. (Die Charakter-Slots gibt es seit
-Meilenstein 7.)
+**Reihenfolge nach V1:** steht jetzt als Meilensteine 10–20 in Abschnitt 15.7 (ersetzt die
+frühere Kurzliste Talentbaum → Quests → Aufwerten → Zone 2 → …).
 
 ## 13. Geplante Features
 
@@ -663,17 +666,17 @@ Von dir gewünscht, noch nicht umgesetzt. *(Entschieden)*
 
 | Feature | Wann | Inhalt |
 |---|---|---|
-| Minimap | direkt nach Meilenstein 3 (Kampf) | Kleine Übersichtskarte oben rechts im Bild, unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe. Wird ein HUD-Element wie die anderen (ausblenden, Größe, Deckkraft, verschieben – Abschnitt 2b) |
-| Große Karte | sobald es mehrere Zonen gibt | Taste `M` öffnet und schließt die Karte der ganzen Zone |
+| Minimap | Meilenstein 10 (Abschnitt 15.7) | Kleine Übersichtskarte oben rechts im Bild, unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe. Wird ein HUD-Element wie die anderen (ausblenden, Größe, Deckkraft, verschieben – Abschnitt 2b) |
+| Große Karte | Meilenstein 13 (mit Zone 2) | Taste `M` öffnet und schließt die Karte der ganzen Zone |
 | Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
-| Mehr Skills als Plätze | nach V1, zusammen mit dem Talentbaum | Mit der Zeit 8–10 Skills pro Klasse freischalten, aber nur 4 aktive Plätze. Die Auswahl ist der Build. |
-| Legendäre Items mit einzigartigen Effekten | nach V1, baut auf dem Loot (Meilenstein 5) auf | Legendäre Items verändern Skills, z. B. „Rundumschlag hinterlässt Feuerspur". |
+| Mehr Skills als Plätze | Meilenstein 14, zusammen mit dem Talentbaum | Mit der Zeit 8–10 Skills pro Klasse freischalten, aber nur 4 aktive Plätze. Die Auswahl ist der Build. |
+| Legendäre Items mit einzigartigen Effekten | Meilenstein 15 (Liste in Abschnitt 15.4) | Legendäre Items verändern Skills, z. B. „Rundumschlag hinterlässt Feuerspur". |
 
 Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap frei.
 
 ## 14. Offene Punkte
 
-1. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe (Balancing, nach V1).
+1. Aufwerten: Erfolgschancen ab +6 und Kosten pro Stufe – Vorschlag steht in Abschnitt 15.3, Umsetzung in Meilenstein 17.
 2. Lauf-Animation: kommt später als Feinschliff, vorerst reicht das Hüpfen. *(Entschieden)*
 3. Gegner in Grünwald: „Tiny Dungeon" enthält keine Wölfe, Wildschweine oder Goblins.
    Deshalb sind es vorerst Riesenratten, Waldspinnen und Wegelagerer. So lassen, oder
@@ -692,8 +695,8 @@ Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap f
 8. Händler (Meilenstein 8), von mir gesetzte Startwerte zum Prüfen im Spiel (alle in
    `src/data/shop.ts`): Preisformel und Faktoren, 20 % Erlös, 8 Regalplätze, 60/32/8 %
    Seltenheiten, neue Ware alle 10 Minuten, Trank (40 %, 30 s, höchstens 5, Preis).
-   - Kein Rückkauf: Ein versehentlich verkauftes weißes, grünes oder blaues Item ist weg.
-     Soll der Händler die letzten verkauften Items zum selben Preis zurückgeben?
+   - Erledigt *(Entschieden)*: Rückkauf der letzten ca. 10 verkauften Items zum Verkaufspreis,
+     geplant für Meilenstein 10.
    - Sortiment auf der Stufe der Figur: Wer aufsteigt, sieht bis zur nächsten Lieferung noch
      die alte Ware.
    - Der Händler-Platz und sein Bild (Figur aus „Tiny Dungeon") sind Startwerte.
@@ -716,3 +719,323 @@ Oben rechts sitzt die Knopf-Leiste; der Platz darunter bleibt für die Minimap f
     - Dasselbe Spiel in zwei Browser-Tabs mit demselben Slot: Der Tab, der zuletzt speichert,
       gewinnt. Verschiedene Slots in zwei Tabs stören sich nicht.
     - Spielstände liegen nur in diesem Browser. Vor „Browserdaten löschen" exportieren.
+14. Inhaltsplan (Schritt 9): Die Fragen dazu stehen in Abschnitt 15.9.
+
+---
+
+## 15. Inhaltsplan nach V1 *(Schritt 9 – nur Planung, alles Vorschlag)*
+
+Ziel: Das Spiel soll über Wochen tragen, im MMO-Stil und ohne Seasons. Alles in diesem Abschnitt
+ist ein **Vorschlag** von mir; Zahlen sind Startwerte. Was du entscheiden musst, steht in 15.9.
+
+### 15.1 Levelcap und Levelkurve
+
+**Vorschlag: Levelcap 40** für diesen Plan (vier Zonen mit je 10 Stufen). Das weicht von deiner
+Entscheidung „Maximallevel 60" in Abschnitt 6 ab – deshalb Frage 1 in 15.9. Grund: 60 Stufen auf
+vier Zonen wären 15–17 Stufen pro Zone mit denselben fünf Gegnertypen, das zieht sich. Mit einer
+fünften und sechsten Zone (z. B. Drachenberge) lässt sich das Cap später auf 50 und 60 anheben,
+ohne etwas umzubauen – die Kurve ist nur eine Liste in `src/data/progression.ts`.
+
+| Stufen | Zone | Dauer | Minuten je Stufe (Anfang → Ende) | EP je Aufstieg (Anfang → Ende) |
+|---|---|---|---|---|
+| 1–10 | Grünwald | ca. 3 h (wie jetzt) | 3 → 40 | 120 → 6 600 (unverändert) |
+| 10–20 | Orkhügel | ca. 8 h | 40 → 56 | 7 200 → 17 600 |
+| 20–30 | Nebelmoor | ca. 14 h | 65 → 103 | 21 500 → 47 900 |
+| 30–40 | Aschenfeste | ca. 20 h | 108 → 132 | 51 800 → 81 200 |
+| | **Summe bis Stufe 40** | **ca. 45 h** | | |
+
+- Rechenweg: EP für einen Aufstieg = Minuten × 3 × EP eines Gegners auf eigener Stufe
+  (10 + 5 × Stufe, wie bisher). Die 3 Gegner pro Minute stammen aus V1 (rund 500 Gegner in
+  2–3 Stunden). Beispiel Stufe 20 → 21: 65 × 3 × 110 = 21 450.
+- Die Minuten zählen alles: Laufen, Händler, Sterben. Quests sollen pro Zone etwa ein Viertel der
+  EP liefern, Elites und Bosse kommen dazu – reine Gegnerzahlen liegen also darunter.
+- Bei 1–2 Stunden am Tag sind das 4–6 Wochen bis zum Cap, danach kommt das Endgame (15.3).
+- Die genaue Liste (eine Zahl je Stufe) wird beim Umsetzen der jeweiligen Zone gerechnet und
+  nach deinem Spieltest nachgestellt.
+- Unsicher: ob Gegner (+20 % Leben je Stufe) und Figur (+3 Angriffskraft je Stufe plus
+  Ausrüstung) über 40 Stufen gleich schnell wachsen. Das wird je Zone geprüft und in
+  `ENEMY_SCALING` bzw. den Grundwerten der neuen Gegner eingestellt.
+
+### 15.2 Zonen
+
+Jede neue Zone ist rund 160 × 120 Kacheln groß (Grünwald: 120 × 90) und hat 60–80 Gegner, einen
+**Außenposten** (Händler, Questgeber, Aufwach-Punkt nach dem Tod, Portalstein), einen Zwischenboss,
+einen Zonen-Boss und einen Weltboss-Platz. Übergänge laufen über den Kartenrand; zwischen
+entdeckten Portalsteinen kann man springen. Das Dorf in Grünwald bleibt der Hub (dort später
+Schmied und Turm-Eingang).
+
+**POI-Arten** (gelten für alle Zonen):
+
+| POI | Was passiert dort |
+|---|---|
+| Lager | Dichte Gegnergruppe hinter Palisaden, in der Mitte eine Truhe |
+| Höhle / Gruft | Eigene kleine Karte mit Eingang; enger, mehr Gegner, am Ende Truhe oder Zwischenboss |
+| Truhe | Einmal öffnen: Gold und 1–2 Items mit besserer Seltenheit. Füllt sich nach 30 Minuten neu |
+| Fester Elite-Platz | Hier steht immer eine benannte Elite mit festen Eigenschaften (Respawn 10 Minuten) |
+| Boss-Platz | Zwischenboss oder Zonen-Boss (Respawn 5 Minuten wie der Räuberhauptmann) |
+| Weltboss-Platz | Siehe 15.3 |
+| Außenposten | Händler, Questgeber, Portalstein |
+
+**Zone 1 – Grünwald (Stufe 1–10), wird ergänzt**
+
+| Neu | Inhalt |
+|---|---|
+| Gegner | Fledermaus (3–6, nur in der Höhle), Goblin (5–9), Goblin-Schleuderer (6–10, Fernkampf). Damit 6 Typen. Wolf und Wildschwein nur, wenn sich passende Bilder finden (15.8) |
+| POIs | Spinnenhöhle (unter dem Pilzhain), Goblin-Lager (zwischen Großer Lichtung und Ostlichtung), 3 Truhen, fester Elite-Platz „Brutmutter" (Waldspinne, Stufe 6, Regenerierend + Vampirisch) |
+| Boss | Räuberhauptmann (10), wie gehabt |
+| Quests (6) | „Rattenplage" (10 Ratten) · „Spinnenseide" (8 Seide sammeln) · „Die Brutmutter" (Elite) · „Goblin-Diebesgut" (5 Kisten im Lager) · „In die Höhle" (Höhlenende erreichen) · „Der Räuberhauptmann" (Boss) |
+
+**Zone 2 – Orkhügel (Stufe 10–20):** karge Hügel, Felsen, Palisaden-Lager.
+
+| | Inhalt |
+|---|---|
+| Gegner (6) | Ork-Krieger (Nahkampf, viel Leben) · Ork-Speerwerfer (Fernkampf) · Ork-Schamane (heilt andere Orks) · Warg (schnell, stürmt an) · Oger (langsam, harter Schlag mit Ansage – weglaufen hilft) · Goblin-Plünderer (in Gruppen, schwach) |
+| Zwischenboss | Oger „Steinfaust" (15) in der Erzmine |
+| Zonen-Boss | Kriegshäuptling Grommak (20) in der Ork-Festung, ruft bei 50 % Leben Verstärkung |
+| POIs | Außenposten Hügelwacht · 3 Ork-Lager · Erzmine (Höhle) · verfallener Wachturm · 5 Truhen · 2 feste Elite-Plätze (Warg-Rudelführer, Schamanen-Ältester) · Weltboss-Platz |
+| Quests (9) | 3 Töte-Quests, 2 Sammel-Quests (Ork-Banner, Erz), 1 Erkunden (Wachturm), 2 Elite-Quests, 1 Boss-Quest |
+
+**Zone 3 – Nebelmoor (Stufe 20–30):** Sumpf mit Stegen, alter Friedhof, Nebel.
+
+| | Inhalt |
+|---|---|
+| Gegner (6) | Skelett (Nahkampf) · Skelett-Schütze (Fernkampf) · Zombie (langsam, sehr viel Leben) · Moorschleim (teilt sich beim Tod in zwei kleine) · Geist (ignoriert die Hälfte der Rüstung) · Nekromant (beschwört Skelette, bis er fällt) |
+| Zwischenboss | „Der Ertrunkene" (25) in der versunkenen Kapelle, vergiftet |
+| Zonen-Boss | Lich Morvan (30) in der Gruft, beschwört und heilt sich an seinen Dienern |
+| POIs | Außenposten Pfahldorf · Friedhof (Lager) · Gruft und Kapelle (Höhlen) · Hexenhütte (Questgeberin) · 6 Truhen · 2 feste Elite-Plätze · Weltboss-Platz |
+| Quests (10) | wie Zone 2, dazu eine kurze Kette (3 Schritte) bis zum Lich |
+
+**Zone 4 – Aschenfeste (Stufe 30–40):** zerstörte Burg auf verbranntem Land, Lava-Risse.
+
+| | Inhalt |
+|---|---|
+| Gegner (6) | Geisterritter (starke Rüstung) · Kultist (Fernkampf, Feuer) · Imp (schnell, klein, in Rudeln) · Höllenhund (stürmt an, brennt nach) · Dämon (schwer, Flächenschlag mit Ansage) · Feuerelementar (hinterlässt brennenden Boden) |
+| Zwischenboss | Der Schwarze Ritter (35) im Burghof |
+| Zonen-Boss | Dämonenfürst Azgar (40) im Thronsaal, drei Phasen |
+| POIs | Außenposten Letzte Wacht · Burghof, Kaserne (Lager) · Verlies und Thronsaal (Höhlen) · Beschwörungskreise (feste Elite-Plätze, 3) · 6 Truhen · Weltboss-Platz |
+| Quests (10) | wie Zone 3, Kette bis zum Dämonenfürsten |
+
+Drachenberge (aus der alten Skizze in Abschnitt 9) wären Zone 5, falls das Cap später steigt.
+
+**Quests** – fünf Arten, alle als Daten: Töten (X Gegner eines Typs), Sammeln (Gegner lassen ein
+Quest-Ding fallen, oder Kisten im Lager), Boss, Elite jagen, Erkunden (einen POI erreichen).
+Belohnung: EP, Gold und bei Elite-/Boss-Quests ein Item mit fester Mindest-Seltenheit. Wenig Text
+(zwei Sätze je Quest), Questlog mit Taste `L`, Zähler unter der Minimap. Dazu je Außenposten ein
+**Kopfgeld-Brett**: eine wiederholbare Quest, die alle 30 Minuten wechselt.
+
+### 15.3 Endgame-Loop (ab Levelcap)
+
+Vier Dinge greifen ineinander: Weltbosse und Sets geben die besten Items, der Turm misst, wie
+stark man ist, und das Aufwerten frisst Gold und Material aus beidem.
+
+- **Zonen auf Maximalstufe:** Am Portalstein lässt sich jede Zone auf Stufe 40 schalten (alle
+  Gegner Stufe 40, Itemlevel 40). So bleiben alle vier Zonen im Endgame nutzbar, und das kostet
+  fast keinen Code, weil Gegner ohnehin nach Formel wachsen.
+- **Weltbosse:** einer je Zone, Respawn alle 45 Minuten in echter Zeit (wie der Boss, auch bei
+  geschlossenem Spiel). Stufe = Obergrenze der Zone (im Endgame 40), Leben ×20, zwei bis drei
+  eigene Fähigkeiten. Beute: 3 Items aus der Boss-Tabelle, dazu eine Chance auf ein Set-Teil der
+  Zone und Schmiedesteine. Die große Karte zeigt, welcher Weltboss gerade da ist.
+  Vorschlag: Sumpfhydra (Nebelmoor), Kriegsmammut (Orkhügel), Uralter Baumhirte (Grünwald),
+  Aschendrache (Aschenfeste).
+- **Endlos-Turm:** Eingang im Dorf. Jede Ebene ist ein kleiner Raum aus einer Vorlage: alle
+  Gegner besiegen (8–12 aus allen Zonen gemischt, dabei mindestens eine Elite), dann geht die
+  Treppe auf. Jede 5. Ebene ein Boss. Gegnerstufe = 40 + Ebene, also ohne Obergrenze schwerer.
+  Tod = der Lauf ist vorbei (kein EP-/Gold-Verlust). Wiedereinstieg auf der höchsten erreichten
+  5er-Ebene. Belohnung: Turmmarken je Ebene (für das Turm-Set beim Turmwächter), bessere
+  Seltenheits-Chancen je höher, persönlicher Rekord im Spielstand.
+- **Aufwerten beim Schmied** (Regeln aus Abschnitt 7: bis +10, ab +6 Risiko, bei Fehlschlag eine
+  Stufe zurück): Jede Stufe gibt +4 % auf alle Werte des Items (+10 = +40 %).
+
+  | Stufe | +1 bis +5 | +6 | +7 | +8 | +9 | +10 |
+  |---|---|---|---|---|---|---|
+  | Erfolgschance | 100 % | 80 % | 65 % | 50 % | 35 % | 25 % |
+
+  Kosten: Gold (steigt mit Itemlevel, Seltenheit und Stufe) und **Schmiedesteine**. Die fallen
+  bei Elites, Bossen, Weltbossen und aus Truhen; außerdem **zerlegt** der Schmied Items zu
+  Steinen (je seltener, desto mehr). So hat auch Ausschuss einen Zweck.
+- **Kodex:** ein Fenster, das festhält, was man schon geschafft hat – gefundene Legendär-Effekte
+  und Set-Teile, besiegte Bosse und Weltbosse, Turm-Rekord. Reines Sammelziel, kein Bonus.
+
+Bewusst nicht: Seasons, Paragon-Stufen, Dungeons (bleibt wie in Abschnitt 10 entschieden).
+
+### 15.4 Loot-Vielfalt
+
+**Mehr Affixe** – von 9 auf rund 24. Neu:
+
+| Affix | Wert | Auf |
+|---|---|---|
+| Robust… | Leben | alles außer Waffe |
+| Präzise… | Krit-Chance | Waffe, Handschuhe, Ring |
+| Stachelig… | Dornen: Anteil des erlittenen Schadens zurück an den Angreifer | Schild, Brust |
+| Flink… | Lauftempo | Stiefel |
+| Schützend… | Blockchance (ein geblockter Treffer macht halben Schaden) | Schild |
+| Wuchtig… | Schaden des Wuchtschlags | Waffe |
+| … des Wirbels | Schaden des Rundumschlags | Waffe, Handschuhe |
+| … des Rufers | Dauer des Kriegsschreis | Helm, Amulett |
+| … der Wacht | kürzere Abklingzeit des Schildwalls | Schild, Brust |
+| … der Eile | kürzere Abklingzeit aller Skills | Amulett, Ring |
+| … des Schlächters | Schaden gegen Elite und Boss | Waffe, Ring |
+| … des Henkers | Schaden gegen Gegner unter 30 % Leben | Waffe |
+| … des Reichtums | mehr Gold | Amulett, Ring, Handschuhe |
+| … des Lernens | mehr EP (nützt am Cap nichts – bewusst ein Level-Affix) | Helm, Amulett |
+| … des Finders | höhere Chance auf bessere Seltenheit | Amulett, Ring |
+
+**Waffen unterscheiden sich:** Dolch schlägt schneller und schwächer (dafür mehr Krit), Axt
+langsamer und stärker, Schwert bleibt die Mitte. Neu dazu: Streitkolben (ignoriert einen Teil der
+Rüstung) und Zweihandschwert (stärkste Waffe, sperrt den Schild-Platz). Erledigt Offenen Punkt 9.
+
+**Legendär-Effekte:** Jedes legendäre und mythische Item bekommt zusätzlich zu seinen Affixen
+einen Effekt aus einer Liste (mythisch: derselbe Effekt mit stärkerem Wert). Start mit 12:
+
+| Effekt | Wirkung |
+|---|---|
+| Feuerspur | Rundumschlag hinterlässt 4 Sekunden Feuer am Boden |
+| Schneller Schlag | Wuchtschlag löst bei jedem 4. statt jedem 5. Schlag aus |
+| Echo | Wuchtschlag trifft mit 40 % ein zweites Ziel |
+| Blutrausch | Jeder besiegte Gegner: 5 Sekunden +5 % Angriffstempo, bis zu 5-fach |
+| Zweiter Atem | Schildwall heilt beim Auslösen 20 % des Lebens |
+| Donnerruf | Kriegsschrei betäubt Gegner in Reichweite für 2 Sekunden |
+| Splitter | Kritische Treffer machen 30 % Schaden an Gegnern neben dem Ziel |
+| Unbeugsam | Ein tödlicher Treffer lässt 1 Leben übrig (alle 3 Minuten) |
+| Sturmschritt | Nach einem besiegten Gegner 3 Sekunden +30 % Lauftempo |
+| Vollstrecker | Normale Gegner unter 15 % Leben sterben beim nächsten Treffer |
+| Wirbelsturm | Rundumschlag löst schon ab 2 Gegnern aus |
+| Vergeltung | Am Ende des Schildwalls: Flächenschaden in Höhe des abgewehrten Schadens |
+
+**Sets:** Set-Teile sind epische Items mit festem Namen und grünem Zusatz „Set"; die sechs
+Seltenheiten bleiben. Sie fallen nur bei den benannten Gegnern ihrer Zone (feste Elites, Bosse,
+Weltboss) – man weiß also, wo man farmen muss.
+
+| Set | Woher | Teile | Bonus |
+|---|---|---|---|
+| Wegelagerer-Kluft | Grünwald | 3 | 2 Teile: +15 % Gold · 3 Teile: +10 % Lauftempo |
+| Zorn des Häuptlings | Orkhügel | 4 | 2: +10 % Angriffskraft · 4: Kriegsschrei hält doppelt so lang |
+| Grabwächter | Nebelmoor | 4 | 2: +3 % Lebensraub · 4: Schildwall löst schon unter 50 % Leben aus, Abklingzeit −20 s |
+| Aschenplatte | Aschenfeste | 5 | 2: +15 % Leben · 4: Rundumschlag +50 % Schaden · 5: Treffer setzen Gegner in Brand |
+| Turmbezwinger | Turm (Turmmarken) | 5 | 2: +10 % Angriffstempo · 4: +25 % Schaden gegen Elite und Boss · 5: jeder 3. Wuchtschlag ist ein sicherer Krit |
+
+### 15.5 Datengetrieben bauen
+
+Heute ist Grünwald fest verdrahtet: `tools/build-map.mjs` baut genau diese eine Karte, die Szene
+lädt genau diese eine. Der Umbau passiert **einmal** (Meilenstein 11), danach gilt:
+
+| Was | Wo es dann steht | Neuer Inhalt braucht Code? |
+|---|---|---|
+| Zone (Name, Stufenbereich, Tileset, Übergänge, Außenposten, Weltboss) | `src/data/zones.ts` | nein |
+| Karten-Bauplan (Größe, Startwert, Gelände-Art, Lichtungen, Wege, POIs, Gegnergruppen) | `tools/zones/<zone>.mjs`, ein allgemeiner Karten-Bauer liest alle | nein, solange die Gelände-Art schon existiert |
+| Gegner | `src/data/enemies.ts`, neu mit `sprite` (Name statt Bild-Nummer) und `abilities` (Liste) | nur für eine neue Fähigkeits-Art |
+| Fähigkeiten der Gegner (Fernkampf, Heilen, Beschwören, Gift, Anstürmen, Flächenschlag mit Ansage, Teilen beim Tod, Boden-Effekt) | je Art einmal Code, Werte in `src/data/abilities.ts` | einmal je Art, danach frei kombinierbar |
+| Bosse | Gegner mit `abilities` und `phases` (ab wie viel Leben was passiert) | nein |
+| POIs | Objekte in der Karte mit `type` und Eigenschaften; im Spiel ein Verzeichnis „Art → Verhalten" | nur für eine neue POI-Art |
+| Quests und NPCs | `src/data/quests.ts`, `src/data/npcs.ts` | nur für eine neue Quest-Art |
+| Bilder | `src/data/sprites.ts`: Name → Datei, Bild-Nummer, Animation | nein |
+| Affixe, Legendär-Effekte, Sets | `src/data/items.ts`, `src/data/legendary.ts`, `src/data/sets.ts` | nur für einen neuen Effekt |
+
+- Eine neue Zone ist dann: ein Bauplan, ein Eintrag in `zones.ts`, Gegner, Quests, NPCs, Bilder –
+  und `npm run assets`. Code nur, wenn die Zone etwas Neues *kann*.
+- `npm run assets` prüft die Daten und bricht mit einer klaren Meldung ab (unbekannter Gegner,
+  Quest ohne Ziel, POI nicht erreichbar) – das macht der Karten-Bauer für Gegnergruppen schon.
+- Spielstand: aktuelle Zone, entdeckte Portalsteine, Quest-Stand, Zeitpunkte für Truhen, feste
+  Elites und Bosse je Zone. Das wird Format 3 (`SAVE_VERSION`), alte Stände laden weiter.
+- Ehrlich: Dieser Umbau ist der teuerste Einzelschritt im Plan, und die erste neue Zone danach
+  ist noch teurer als die späteren, weil Fernkampf und Co. dort zum ersten Mal gebaut werden.
+
+### 15.6 Schwierigkeitsregler
+
+- Zwei Regler in den Einstellungen, neuer Bereich „Schwierigkeit": **Gegnerleben** und
+  **Gegnerschaden**, je 50–300 % in 10-%-Schritten, Standard 100 %. Dazu vier Knöpfe als
+  Abkürzung: Leicht (75 / 75), Normal (100 / 100), Schwer (150 / 130), Brutal (220 / 170).
+- Gilt für alle Gegner, Elites und Bosse, auf ihre fertigen Werte gerechnet. Eine Änderung wirkt
+  erst auf Gegner, die danach erscheinen – mitten im Kampf herunterdrehen bringt also nichts.
+- Belohnung *(Vorschlag)*: Liegen beide Regler über 100 %, gibt es mehr EP und Gold – je
+  10 Prozentpunkte des niedrigeren Reglers +2 %, höchstens +40 %. Drop-Chancen bleiben gleich.
+  Unter 100 % gibt es keinen Abzug.
+- Global wie alle Einstellungen (Abschnitt 2b), Grenzen und Stufen in `src/data/difficulty.ts`.
+  Im Turm zählt der Rekord nur mit mindestens 100 / 100.
+
+### 15.7 Reihenfolge und Aufwand
+
+„Sitzung" = ein Arbeitsgang mit einem PR wie bisher. Die Schätzungen sind grob; dein Testen und
+das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter dem Meilenstein
+(Meilenstein 10 = 0.10.0).
+
+| # | Meilenstein | Inhalt | Aufwand |
+|---|---|---|---|
+| 10 | Minimap, Rückkauf, Schwierigkeit | **Minimap** unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe (rot, Elite gold, Boss lila), Händler; HUD-Element mit Schalter, Größe, Deckkraft, verschiebbar. **Rückkauf:** eigener Reiter beim Händler mit den letzten 10 verkauften Items zum Verkaufspreis, im Spielstand. **Schwierigkeitsregler** (15.6) | 1 Sitzung, klein |
+| 11 | Zonen-Fundament | Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 3. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus und Goblins ergänzt | 2–3 Sitzungen, groß |
+| 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD, Kopfgeld-Brett, die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
+| 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, große Karte (`M`), Cap 20, neue Assets | 2–3 Sitzungen, groß |
+| 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
+| 15 | Loot-Vielfalt | Neue Affixe, Waffen-Unterschiede, zwei neue Waffen, 12 Legendär-Effekte | 1–2 Sitzungen, mittel |
+| 16 | Zone 3: Nebelmoor | Zone, Fähigkeiten Beschwören / Gift / Teilen, Cap 30 | 1–2 Sitzungen, mittel |
+| 17 | Schmied | Aufwerten bis +10, Zerlegen, Schmiedesteine | 1 Sitzung, mittel |
+| 18 | Sets und Weltbosse | 4 Zonen-Sets, je Zone ein Weltboss mit Timer und Anzeige auf der Karte | 1–2 Sitzungen, mittel |
+| 19 | Zone 4: Aschenfeste | Zone, Fähigkeit Boden-Effekt, Boss mit Phasen, Cap 40 | 1–2 Sitzungen, mittel |
+| 20 | Endgame | Endlos-Turm, Turm-Set, Zonen auf Maximalstufe, Kodex | 2–3 Sitzungen, groß |
+
+Zusammen rund 15–23 Sitzungen. Nach Meilenstein 13 gibt es etwa 11 Stunden Inhalt, nach 16 etwa
+25, nach 19 etwa 45 plus Endgame. Nicht im Plan und später: zweite Klasse, Sound, Nebel des
+Krieges, Lauf-Animation der eigenen Figur (hängt an der Asset-Frage 2 in 15.9).
+
+### 15.8 Assets: was fehlt, was ein CC0-Pack löst
+
+**Vorhanden und noch ungenutzt:** „Tiny Dungeon" hat weitere Figuren (unter anderem Fledermaus,
+Geist, Zyklop, Krabbe, Magier, Ritter, Zwerg – genaue Liste prüfe ich beim Einbau am Bild) und
+Dungeon-Kacheln (Mauern, Böden, Türen). Das reicht für die Grünwald-Ergänzung, für Höhlen und
+für die Turm-Räume. „Tiny Town" hat Burgmauern (schon in der Ruine verwendet).
+
+| Fehlt | Wofür | Lösung | Sicher? |
+|---|---|---|---|
+| Orks, Goblins, Oger, Skelette, Zombies, Nekromant, Imps, Dämonen | Zonen 1–4 | **0x72 „16x16 DungeonTileset II"** (CC0, itch.io). Figuren mit Steh- und Lauf-Animation, auch große (Oger, großer Dämon) | Lizenz geprüft; Inhalt aus der Erinnerung, beim Einbau prüfen |
+| Wolf, Wildschwein, Warg, Höllenhund, Geist-Varianten, Drache, Hydra | Tiere und Weltbosse | **„Ninja Adventure Asset Pack"** von Pixel-Boy (CC0, itch.io), sehr großes 16×16-Pack mit Monstern, Bossen, Kacheln, Effekten, Symbolen, Sound und Musik | Lizenz geprüft; ob genau diese Tiere drin sind, **nicht sicher** |
+| Kacheln Hügel / Steppe | Orkhügel | Tiny Town umgefärbt (das Werkzeug setzt schon Kacheln zusammen) plus Felsen aus einem Pack | machbar |
+| Kacheln Sumpf, Wasser, Stege | Nebelmoor | Wasser fehlt in Tiny Town. **Kenney „Roguelike/RPG Pack"** (CC0, 16×16, 1 700+ Kacheln) oder Ninja Adventure | Wasser im Kenney-Pack: aus der Erinnerung ja, nicht geprüft |
+| Kacheln Friedhof (Grabsteine, Zäune, Gruft) | Nebelmoor | Kenney „Roguelike/RPG Pack" oder Ninja Adventure, sonst selbst gezeichnet | nicht geprüft |
+| Kacheln verbrannte Erde, Lava | Aschenfeste | Tiny Town umgefärbt, Lava = umgefärbtes Wasser | machbar |
+| Höhlen-Kacheln | Höhlen, Gruft, Verlies | Tiny Dungeon (vorhanden), bei Bedarf Kenney „Roguelike Caves & Dungeons" (CC0) | ja |
+| Truhe, Portalstein, Kisten, Palisaden, Banner | POIs | Truhe aus Tiny Dungeon, Rest aus den Packs oder selbst gezeichnet wie die Item-Symbole | teils |
+| Symbole für Skills, Talente, Legendär-Effekte, Quests, Karten-Marker | UI | **Kenney „1-Bit Pack"** (CC0, 16×16, einfarbig – lässt sich beliebig einfärben). Löst auch Offenen Punkt 4 | Lizenz und Größe geprüft |
+| Geschosse, Feuer, Gift, Heil-Effekt | Gegner-Fähigkeiten | Kleine Formen direkt im Spiel gezeichnet (wie der Waffenschwung) oder Effekte aus Ninja Adventure | ja |
+| Neue Item-Symbole (Streitkolben, Zweihandschwert, Schmiedestein, Turmmarke) | Loot | Tiny Dungeon hat Hammer und große Waffen, Rest selbst gezeichnet | ja |
+| Weltbosse als große Figuren | Endgame | Große Figuren aus 0x72 bzw. Bosse aus Ninja Adventure; Notlösung: normale Figur ×3 wie beim Boss heute | Notlösung geht immer |
+| NPCs (Questgeber, Schmied, Turmwächter) | Außenposten | Tiny Dungeon hat genug Menschen-Figuren | ja |
+| Sound und Musik | später | Kenney-Audio-Packs oder Ninja Adventure (alles CC0) | nicht Teil dieses Plans |
+
+Was kein Pack löst:
+- **Einheitlicher Stil.** Die Figuren von 0x72 und Ninja Adventure sehen anders aus als Kenneys
+  (andere Farben, teils höher als 16 Pixel). Nebeneinander fällt das auf. Sauberste Lösung: alle
+  Figuren (auch die eigene) aus einem Pack nehmen – siehe Frage 2.
+- **Deine genauen Wunsch-Gegner.** Was es im Pack nicht gibt, wird umbenannt (wie Wölfe →
+  Waldspinnen in V1) oder umgefärbt.
+- **Der Download.** Ich komme von hier weder an kenney.nl noch an itch.io. Du müsstest die Packs
+  laden und die ZIPs bzw. Bilder nach `assets-src/` ins Repo legen; den Rest (Zuschneiden,
+  Zusammensetzen, `CREDITS.md`) mache ich.
+
+### 15.9 Offene Fragen an dich
+
+1. **Levelcap:** 40 mit vier Zonen (mein Vorschlag) – oder bei 60 bleiben und dafür sechs Zonen
+   bzw. längere Zonen?
+2. **Stil:** Dürfen Figuren aus 0x72 / Ninja Adventure neben Kenney stehen, oder soll ich in
+   Meilenstein 11 alle Figuren (auch den Krieger) auf ein Pack umstellen? Das brächte gleich
+   Lauf-Animationen mit.
+3. **Packs laden:** Kannst du „16x16 DungeonTileset II", „Ninja Adventure Asset Pack", Kenney
+   „Roguelike/RPG Pack" und „1-Bit Pack" herunterladen und nach `assets-src/` legen? Am besten
+   vor Meilenstein 11.
+4. **Zonen:** Passen Orkhügel, Nebelmoor und Aschenfeste (Namen, Themen, Bosse)? Drachenberge
+   entfallen vorerst.
+5. **Gegner-Fähigkeiten:** Fernkampf, Heiler, Beschwörer machen den Kampf weniger simpel als
+   „Ziel anwählen und zuschauen" (Abschnitt 4). Gewollt?
+6. **Schwierigkeit:** freie Regler plus vier Knöpfe, oder nur die vier Stufen? Belohnung
+   (mehr EP und Gold) ja oder nein? Global oder pro Spielstand?
+7. **Zerlegen beim Schmied:** In Abschnitt 7 steht „kein Crafting". Zählt Items zu
+   Schmiedesteinen zerlegen für dich dazu?
+8. **Sets** als epische Items mit Zusatz statt als siebte Seltenheit – in Ordnung?
+9. **Zonen auf Maximalstufe** im Endgame – gewollt, oder sollen alte Zonen leicht bleiben?
+10. **Turm:** Tod beendet den Lauf, Wiedereinstieg alle 5 Ebenen – passt das?
+11. **Talentbaum** erst als Meilenstein 14 (nach Zone 2, Cap 20) – oder lieber früher, direkt
+    nach den Quests?
+12. **Rückkauf:** Liste im Spielstand (übersteht Neuladen), 10 Items, das älteste fällt raus –
+    so richtig?
+13. **Kopfgeld-Brett** (wiederholbare Quest alle 30 Minuten) – ja oder nein?
+14. **Wolf und Wildschwein** in Grünwald (Offener Punkt 3): nur wenn ein Pack sie hergibt, sonst
+    bleiben Ratten, Spinnen, Wegelagerer plus Fledermäuse und Goblins. Einverstanden?
