@@ -8,7 +8,8 @@ import { DEFAULT_DIFFICULTY, cleanDifficultyValue, type Difficulty } from '../da
 import { INVENTORY_SIZE } from '../data/loot';
 import { MAX_LEVEL } from '../data/progression';
 import { NAME_MAX_LENGTH, SAVE_VERSION } from '../data/save';
-import { BUYBACK, POTION, SHOP_STOCK } from '../data/shop';
+import { BUYBACK } from '../data/shop';
+import { BUILDING_IDS, MAX_BUILDING_LEVEL, STASH_MAX, STOCK_MAX, startLevels, type TownLevels } from '../data/town';
 import { START_ZONE, ZONES } from '../data/zones';
 import { STATS, type StatId } from '../data/stats';
 import type { TestSaveDef } from '../data/testSaves';
@@ -49,12 +50,18 @@ export interface SaveGame {
   gold: number;
   bag: (Item | null)[];
   equipped: Record<EquipSlot, Item | null>;
-  /** Heiltränke im Gepäck. */
+  /** Heiltränke im Gepäck (ohne Obergrenze). */
   potions: number;
   /** Items, die noch am Boden liegen – in allen Zonen (jedes merkt sich seine Zone). */
   groundItems: GroundItem[];
   /** Das Sortiment des Händlers, wann neue Ware kommt und die Rückkauf-Liste. */
   shop: ShopData;
+  /** Dorfausbau: Stufe je Gebäude (src/data/town.ts). Was die Stufen bringen, wird beim Laden berechnet. */
+  town: TownLevels;
+  /** Inhalt der Lagertruhe im Dorf; null = leerer Platz. */
+  stash: (Item | null)[];
+  /** Besiegte Bosse: Gegnertyp → Anzahl der Siege. Daran hängen die Rathaus-Stufen. */
+  bossKills: Record<string, number>;
   /** Schwierigkeit dieses Spielstands (Regler in den Einstellungen, Werte in src/data/difficulty.ts). */
   difficulty: Difficulty;
   /**
@@ -100,6 +107,10 @@ const MIGRATIONS: Record<number, (old: Plain) => Plain> = {
     const groundItems = Array.isArray(old.groundItems) ? (old.groundItems as unknown[]).map((entry) => (isPlain(entry) ? { ...entry, zone: 'gruenwald' } : entry)) : [];
     return { ...rest, version: 4, zone: 'gruenwald', groundItems, respawnAt };
   },
+  // Format 4 → 5 (Schritt 11b): Neu sind der Dorfausbau (Start: Rathaus 1, alles andere 0), die
+  // Lagertruhe (Start: leer) und die Liste besiegter Bosse (Start: leer – bisher wurde nicht
+  // mitgezählt). Alles füllt normalize() unten. Tränke haben keine Obergrenze mehr.
+  4: (old) => ({ ...old, version: 5 }),
 };
 
 /** Ein frischer Spielstand: Stufe 1, leeres Inventar, am Startpunkt. */
@@ -121,6 +132,9 @@ export function newSave(name: string): SaveGame {
     potions: 0,
     groundItems: [],
     shop: { stock: [], restockAt: 0, buyback: [] },
+    town: startLevels(),
+    stash: [],
+    bossKills: {},
     difficulty: { ...DEFAULT_DIFFICULTY },
     respawnAt: {},
     chests: {},
@@ -132,7 +146,10 @@ export function testSave(def: TestSaveDef): SaveGame {
   const save = newSave(def.name);
   save.character.level = clampInt(def.level, 1, MAX_LEVEL, 1);
   save.gold = def.gold;
-  save.potions = clampInt(def.potions, 0, POTION.maxCarried, 0);
+  save.potions = clampInt(def.potions, 0, Number.MAX_SAFE_INTEGER, 0);
+  // Dorfausbau der Vorlage: Stufen einzelner Gebäude und schon besiegte Bosse.
+  Object.assign(save.town, def.town ?? {});
+  for (const boss of def.bossKills ?? []) save.bossKills[boss] = 1;
   for (const slot of EQUIP_SLOTS) {
     const rarity = def.equipped[slot.id];
     if (rarity) save.equipped[slot.id] = generateItem(save.character.level, rarity, slot.accepts);
@@ -218,7 +235,7 @@ function normalize(data: Plain): SaveGame {
 
   // Händler: Fehlt das Sortiment (alter Spielstand), bleibt es leer – dann kommt beim ersten Besuch frische Ware.
   const storedShop = isPlain(data.shop) ? data.shop : {};
-  const stock = Array.isArray(storedShop.stock) ? (storedShop.stock as unknown[]).slice(0, SHOP_STOCK.size).map(cleanItem) : [];
+  const stock = Array.isArray(storedShop.stock) ? (storedShop.stock as unknown[]).slice(0, STOCK_MAX).map(cleanItem) : [];
   const buyback: Item[] = [];
   if (Array.isArray(storedShop.buyback)) {
     for (const entry of (storedShop.buyback as unknown[]).slice(0, BUYBACK.size)) {
@@ -234,6 +251,14 @@ function normalize(data: Plain): SaveGame {
     enemyHp: cleanDifficultyValue(storedDifficulty.enemyHp),
     enemyDamage: cleanDifficultyValue(storedDifficulty.enemyDamage),
   };
+
+  // Dorfausbau: Fehlt eine Stufe (alter Spielstand), gilt die Startstufe des Gebäudes.
+  const storedTown = isPlain(data.town) ? data.town : {};
+  const town = startLevels();
+  for (const id of BUILDING_IDS) town[id] = clampInt(storedTown[id], town[id], MAX_BUILDING_LEVEL, town[id]);
+  const stash = Array.isArray(data.stash) ? (data.stash as unknown[]).slice(0, STASH_MAX).map(cleanItem) : [];
+  const bossKills: Record<string, number> = {};
+  for (const [type, count] of Object.entries(cleanTimes(data.bossKills))) bossKills[type] = Math.max(0, Math.floor(count));
 
   const respawnAt = cleanTimes(data.respawnAt);
   const chests = cleanTimes(data.chests);
@@ -255,16 +280,20 @@ function normalize(data: Plain): SaveGame {
     gold: clampInt(data.gold, 0, Number.MAX_SAFE_INTEGER, 0),
     bag,
     equipped,
-    potions: clampInt(data.potions, 0, POTION.maxCarried, 0),
+    // Tränke: keine Obergrenze mehr (bis Schritt 11b höchstens 5).
+    potions: clampInt(data.potions, 0, Number.MAX_SAFE_INTEGER, 0),
     groundItems,
     shop,
+    town,
+    stash,
+    bossKills,
     difficulty,
     respawnAt,
     chests,
   };
 }
 
-/** Liest eine Liste "Schlüssel → Zeitpunkt"; alles, was keine Zahl ist, fällt weg. */
+/** Liest eine Liste "Schlüssel → Zahl" (Zeitpunkte, Zähler); alles, was keine Zahl ist, fällt weg. */
 function cleanTimes(raw: unknown): Record<string, number> {
   const times: Record<string, number> = {};
   if (isPlain(raw)) {

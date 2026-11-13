@@ -38,11 +38,15 @@ export const SELL_CONFIRM_MS = 3000;
  * kommt neue Ware (die Uhr läuft weiter, auch wenn das Spiel zu ist).
  * `rarityWeights` = wie oft welche Seltenheit im Regal liegt (Anteile, hier in Prozent).
  * Der Händler führt nur einfache Ware – die besten Stücke gibt es weiter nur als Beute.
+ * Das sind die Werte ohne Dorfausbau: Das Kontor vergrößert das Regal, hebt den Anteil
+ * seltener Ware und verkürzt die Lieferzeit (src/data/town.ts).
  */
 export const SHOP_STOCK = {
   size: 8,
   restockMs: 600000,
   rarityWeights: { common: 60, uncommon: 32, rare: 8 } as Partial<Record<RarityId, number>>,
+  /** "Neue Ware sofort" (Kontor ab Stufe 3) kostet so viel wie ein Item dieser Seltenheit auf der Stufe der Figur. */
+  instantRestockPriceOf: 'uncommon' as RarityId,
 };
 
 /**
@@ -51,7 +55,11 @@ export const SHOP_STOCK = {
  */
 export const BUYBACK = { size: 10 };
 
-/** Der Heiltrank (Taste Q). Der Händler hat immer welche. */
+/**
+ * Der Heiltrank (Taste Q). Der Händler hat immer welche, und die Figur kann beliebig viele
+ * tragen (seit Schritt 11b gibt es keine Obergrenze mehr). Heilung, Abklingzeit und Preis
+ * sind die Werte ohne Dorfausbau – die Alchemistin verbessert sie (src/data/town.ts).
+ */
 export const POTION = {
   name: 'Heiltrank',
   /** Bild-Nummer in characters.png (rote Flasche). */
@@ -60,8 +68,8 @@ export const POTION = {
   healFraction: 0.4,
   /** Abklingzeit nach dem Trinken in Millisekunden. */
   cooldownMs: 30000,
-  /** So viele Tränke kann die Figur höchstens tragen. */
-  maxCarried: 5,
+  /** Umschalt + Klick auf "Kaufen" nimmt gleich so viele (oder so viele, wie das Gold hergibt). */
+  bulkAmount: 10,
   /** Preis = priceBase + pricePerLevel × Stufe der Figur (Stufe 5: 16 Gold, rund 3–4 Gegner). */
   priceBase: 6,
   pricePerLevel: 2,
@@ -77,6 +85,7 @@ export function sellPrice(level: number, rarity: RarityId): number {
   return Math.max(1, Math.round(buyPrice(level, rarity) * PRICE.sellFraction));
 }
 
-export function potionPrice(playerLevel: number): number {
-  return POTION.priceBase + POTION.pricePerLevel * playerLevel;
+/** Preis eines Heiltranks. `discount` = Nachlass der Alchemistin (0.1 = 10 % billiger). */
+export function potionPrice(playerLevel: number, discount = 0): number {
+  return Math.max(1, Math.round((POTION.priceBase + POTION.pricePerLevel * playerLevel) * (1 - discount)));
 }

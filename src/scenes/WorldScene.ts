@@ -9,20 +9,23 @@ import { MINIMAP } from '../data/minimap';
 import { CHEST, PORTAL } from '../data/pois';
 import { AUTOSAVE_INTERVAL_MS, SAVE_DELAY_MS } from '../data/save';
 import { MERCHANT } from '../data/shop';
+import { BUILDER, BUILDINGS, STASH_CHEST, TOWN, type BuildingId } from '../data/town';
 import { SKILLS, WARRIOR } from '../data/warrior';
 import { START_ZONE, ZONES, ZONE_FADE_MS } from '../data/zones';
 import { Actor } from '../entities/Actor';
 import { Chest } from '../entities/Chest';
 import { Enemy } from '../entities/Enemy';
-import { Merchant } from '../entities/Merchant';
+import { Fixture } from '../entities/Fixture';
 import { Player } from '../entities/Player';
 import { Portal } from '../entities/Portal';
 import { generateItem, rollRarityFrom } from '../items/generator';
 import { GroundLoot } from '../items/GroundLoot';
 import { Inventory } from '../items/Inventory';
 import { Shop } from '../items/Shop';
+import { Stash } from '../items/Stash';
 import { cleanName, type SaveGame } from '../save/saveGame';
 import { readTestParams, session, writeSlot } from '../save/slots';
+import { Town } from '../town/Town';
 import { FloatingText } from '../ui/FloatingText';
 import { Hud } from '../ui/Hud';
 import { HudLayout } from '../ui/HudLayout';
@@ -33,6 +36,8 @@ import { Nameplates } from '../ui/Nameplates';
 import { SaveMenu } from '../ui/SaveMenu';
 import { SettingsMenu } from '../ui/SettingsMenu';
 import { ShopWindow } from '../ui/ShopWindow';
+import { StashWindow } from '../ui/StashWindow';
+import { TownWindow } from '../ui/TownWindow';
 import { byId } from '../ui/dom';
 import { Grid, type Point } from '../world/Grid';
 import type { Interactable } from '../world/Interactable';
@@ -40,6 +45,9 @@ import { findWaypoints } from '../world/pathfinding';
 
 /** Längere Aussetzer (z. B. Tab im Hintergrund) zählen höchstens so viel (Millisekunden). */
 const MAX_FRAME_MS = 100;
+
+/** POI-Arten, auf deren Kachel etwas Festes steht – sie ist ein Hindernis (wie SOLID_POIS in tools/build-map.mjs). */
+const SOLID_POIS = ['haendler', 'truhe', 'baumeister', 'lagertruhe'];
 
 /**
  * Die Spielwelt: Karte, Spielfigur, Gegner, Kamera und Steuerung.
@@ -57,6 +65,7 @@ const MAX_FRAME_MS = 100;
  *   Hindernissen entlang. Loslassen = stehen bleiben.
  *
  * Klick auf den Händler im Dorf: hinlaufen und handeln. Klick auf eine Truhe: hinlaufen und öffnen.
+ * Klick auf den Baumeister: Dorfausbau (src/town/Town.ts). Klick auf die Lagertruhe: einlagern.
  * Q oder ein Klick auf das Trank-Feld der Skill-Leiste trinkt einen Heiltrank.
  * Betritt die Figur einen Übergang (z. B. den Höhleneingang), wechselt die Zone.
  *
@@ -84,20 +93,31 @@ export class WorldScene extends Phaser.Scene {
   private loot!: GroundLoot;
   private shop!: Shop;
   private shopWindow!: ShopWindow;
+  /** Dorfausbau (Stufen der Gebäude) und die Lagertruhe – beide stehen im Spielstand. */
+  private town!: Town;
+  private townWindow!: TownWindow;
+  private stash!: Stash;
+  private stashWindow!: StashWindow;
   private minimap!: Minimap;
 
   // ---- Die aktuelle Zone (alles hier baut enterZone neu auf) ----
   private zoneId = START_ZONE;
   private map: Phaser.Tilemaps.Tilemap | null = null;
   private enemies: Enemy[] = [];
-  /** Der Händler – nur in Zonen, in denen einer steht. */
-  private merchant: Merchant | null = null;
+  /** Händler, Baumeister und Lagertruhe – nur in Zonen, in denen sie stehen. */
+  private merchant: Fixture | null = null;
+  private builder: Fixture | null = null;
+  private stashChest: Fixture | null = null;
+  /** Die Fahnen an den Häusern des Dorfs: Bild und Schild zeigen die Stufe des Gebäudes. */
+  private flags: { building: BuildingId; image: Phaser.GameObjects.Image; label: HTMLElement | null }[] = [];
   private chests: Chest[] = [];
   private portals: Portal[] = [];
   /** Alles Anklickbare der Zone: Händler, Truhen, Übergänge. */
   private interactables: Interactable[] = [];
   /** Die Schilder der Orte dieser Zone (sammelt buildPoi, zeigt enterZone an). */
   private labels: { x: number; y: number; text: string }[] = [];
+  /** Mittelpunkt des Dorfs, wenn es in dieser Zone liegt (Marker TOWN.center) – sonst null. */
+  private townCenter: Point | null = null;
   /** Benannte Punkte der Karte (Ebene "Marker"): Startpunkt und Ankunftspunkte. */
   private readonly markers = new Map<string, Point>();
   /** Bosse und benannte Elites der Zone mit ihrem Schlüssel im Spielstand ("Zone:Typ@Platz"). */
@@ -150,8 +170,14 @@ export class WorldScene extends Phaser.Scene {
     Object.assign(this.difficulty, save.difficulty);
     Enemy.difficulty = this.difficulty;
 
+    // Inventar und Dorfausbau zuerst: Die Figur liest aus dem Dorf, wie gut Heiltrank und Erholung sind.
+    const inventory = new Inventory();
+    this.inventory = inventory;
+    this.town = new Town(inventory);
+    this.stash = new Stash(inventory, this.town);
+
     // Die Figur und alle Anzeigen gibt es einmal; sie bleiben beim Zonenwechsel bestehen.
-    this.player = new Player(this, 0, 0);
+    this.player = new Player(this, 0, 0, this.town);
     this.minimap = new Minimap();
     this.floaters = new FloatingText(byId('floaters'));
     this.nameplates = new Nameplates(byId('nameplates'), save.name);
@@ -159,16 +185,22 @@ export class WorldScene extends Phaser.Scene {
     this.hud = hud;
     hud.onPotionClick = () => this.drinkPotion();
 
-    // Inventar und Ausrüstung: nach jeder Änderung bekommt die Figur ihre neuen Werte.
-    const inventory = new Inventory();
-    this.inventory = inventory;
+    // Inventar und Ausrüstung: nach jeder Änderung bekommt die Figur ihre neuen Werte (inventory.onChange unten).
     const tooltip = new ItemTooltip(inventory);
     this.inventoryWindow = new InventoryWindow(inventory, this.player, hud, tooltip);
     // Händler: Sortiment und Preise (Shop) und sein Fenster.
-    this.shop = new Shop(inventory, this.player);
+    this.shop = new Shop(inventory, this.player, this.town);
     this.shopWindow = new ShopWindow(this.shop, inventory, this.player, hud, tooltip, this.inventoryWindow);
     this.shop.onChange = () => {
       this.shopWindow.render();
+      this.requestSave();
+    };
+    // Dorfausbau (Baumeister) und Lagertruhe: ihre Fenster und was nach einer Änderung passiert.
+    this.townWindow = new TownWindow(this.town, inventory, hud);
+    this.stashWindow = new StashWindow(this.stash, hud, tooltip, this.inventoryWindow);
+    this.town.onChange = (changed) => this.onTownChange(changed);
+    this.stash.onChange = () => {
+      this.stashWindow.render();
       this.requestSave();
     };
     // Einstellungen (ein Objekt: settings.values, gilt für alle Spielstände) und die Anordnung der HUD-Elemente.
@@ -185,6 +217,7 @@ export class WorldScene extends Phaser.Scene {
       this.player.setGear(inventory.equippedStats(), inventory.equipped.weapon?.icon ?? null);
       this.inventoryWindow.render();
       this.shopWindow.render();
+      this.townWindow.render();
       this.requestSave();
     };
 
@@ -192,8 +225,12 @@ export class WorldScene extends Phaser.Scene {
     this.loot = loot;
     loot.onChange = () => this.requestSave();
 
-    this.combat = new Combat(this, this.player, hud, this.floaters, inventory, loot);
+    this.combat = new Combat(this, this.player, hud, this.floaters, inventory, loot, this.town);
     this.combat.onSaveEvent = () => this.requestSave();
+    // Jeder Sieg über einen Boss zählt fürs Rathaus (TOWN_HALL_BOSSES in src/data/town.ts).
+    this.combat.onKill = (enemy) => {
+      if (enemy.rank === 'boss') this.town.recordBossKill(enemy.type);
+    };
     this.combat.respawnPoint = () => this.respawnPoint();
 
     this.applySave(save);
@@ -243,6 +280,8 @@ export class WorldScene extends Phaser.Scene {
       else if (this.saveMenu.isOpen) this.saveMenu.close();
       else if (this.settings.isOpen) this.settings.close();
       else if (this.shopWindow.isOpen) this.shopWindow.close();
+      else if (this.townWindow.isOpen) this.townWindow.close();
+      else if (this.stashWindow.isOpen) this.stashWindow.close();
       else if (this.inventoryWindow.isOpen && !this.inventoryWindow.pinned) this.inventoryWindow.close();
       else this.combat.clearTarget();
     });
@@ -265,6 +304,8 @@ export class WorldScene extends Phaser.Scene {
     this.playedMs += delta;
     const cursor = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
 
+    // Im Dorf erholt sich die Figur schneller, sobald das Gasthaus steht (src/data/town.ts).
+    this.player.inTown = this.townCenter !== null && this.player.distanceTo(this.townCenter) <= TOWN.radius;
     // Erst die Kampfregeln (Gegner, Angriffe, Ziel verfolgen), dann die Bewegung der Figur.
     this.combat.update(delta);
     this.inventoryWindow.update();
@@ -286,7 +327,7 @@ export class WorldScene extends Phaser.Scene {
     this.followPlayer();
     if (this.settings.values.hud.minimap.visible) this.minimap.render(this.player.pos, this.enemies, this.minimapMarks());
 
-    // Über einem Gegner, dem Händler, einer Truhe oder einem Eingang wird der Mauszeiger zur Hand.
+    // Über einem Gegner oder etwas Anklickbarem (Händler, Baumeister, Truhe, Eingang) wird der Mauszeiger zur Hand.
     const clickable = this.combat.enemyAt(cursor) !== null || this.interactables.some((thing) => thing.contains(cursor));
     this.input.setDefaultCursor(this.player.alive && clickable ? 'pointer' : 'default');
   }
@@ -320,10 +361,10 @@ export class WorldScene extends Phaser.Scene {
     ground.forEachTile((tile) => {
       if (tile.index === -1) blocked[tile.y * map.width + tile.x] = 1;
     });
-    // Händler und Truhen stehen fest an ihrem Platz – ihre Kachel ist ebenfalls ein Hindernis.
+    // Händler, Baumeister und Truhen stehen fest an ihrem Platz – ihre Kachel ist ebenfalls ein Hindernis.
     const pois = map.getObjectLayer('POI')?.objects ?? [];
     for (const poi of pois) {
-      if (poi.type === 'haendler' || poi.type === 'truhe') blocked[Grid.toTile(poi.y ?? 0) * map.width + Grid.toTile(poi.x ?? 0)] = 1;
+      if (SOLID_POIS.includes(poi.type)) blocked[Grid.toTile(poi.y ?? 0) * map.width + Grid.toTile(poi.x ?? 0)] = 1;
     }
     this.grid = new Grid(map.width, map.height, blocked);
 
@@ -332,17 +373,24 @@ export class WorldScene extends Phaser.Scene {
     }
     const spawn = this.markers.get('spawn');
     if (!spawn) throw new Error(`Marker "spawn" fehlt in der Karte "${zoneId}".`);
+    this.townCenter = zoneId === TOWN.zone ? (this.markers.get(TOWN.center) ?? null) : null;
 
     // Jeder Punkt auf der Ebene "Gegner" ist ein Gegner; der Name des Punkts ist sein Typ.
     for (const object of map.getObjectLayer('Gegner')?.objects ?? []) {
       const def = ENEMIES[object.name];
       if (!def || object.x === undefined || object.y === undefined) throw new Error(`Unbekannter Gegner "${object.name}" in der Karte "${zoneId}".`);
-      this.addEnemy(new Enemy(this, def, numberProperty(object, 'level', 1), object.x, object.y), object.name);
+      this.addEnemy(new Enemy(this, object.name, def, numberProperty(object, 'level', 1), object.x, object.y), object.name);
     }
     // Die besonderen Orte bauen (auch benannte Elites), dann die Schilder: eines je Gegner, eines je Ort.
     for (const poi of pois) this.buildPoi(poi);
     this.nameplates.setEnemies(this.enemies);
     for (const label of this.labels) this.nameplates.addLabel(label.x, label.y, label.text);
+    // Die Fahnen im Dorf bekommen ein eigenes Schild mit Name und Stufe des Gebäudes.
+    for (const flag of this.flags) {
+      flag.label = this.nameplates.addLabel(flag.image.x, flag.image.y - 12, '');
+      flag.label.classList.add('nameplate-building');
+    }
+    this.refreshFlags();
 
     // Ein besiegter Boss (oder eine benannte Elite) bleibt weg, bis seine Zeit um ist. Die Uhr lief weiter, während das Spiel zu war.
     for (const [key, enemy] of this.timedEnemies) {
@@ -384,9 +432,28 @@ export class WorldScene extends Phaser.Scene {
     const y = poi.y ?? 0;
     const builders: Record<string, () => void> = {
       haendler: () => {
-        this.merchant = new Merchant(this, x, y, () => this.shopWindow.open());
+        this.merchant = new Fixture(this, x, y, MERCHANT.sprite, MERCHANT.openRange, () => this.openWindow('shop'));
         this.interactables.push(this.merchant);
         this.labels.push({ x, y, text: MERCHANT.name });
+      },
+      baumeister: () => {
+        this.builder = new Fixture(this, x, y, BUILDER.sprite, BUILDER.openRange, () => this.openWindow('town'));
+        this.interactables.push(this.builder);
+        this.labels.push({ x, y, text: BUILDER.name });
+      },
+      lagertruhe: () => {
+        this.stashChest = new Fixture(this, x, y, STASH_CHEST.sprite, STASH_CHEST.openRange, () => this.openWindow('stash'));
+        this.interactables.push(this.stashChest);
+        this.labels.push({ x, y, text: STASH_CHEST.name });
+      },
+      fahne: () => {
+        // Fahne an einem Haus: `building` sagt, zu welchem Gebäude sie gehört. Sie ist nur ein Bild
+        // über der Karte (kein Hindernis); welches Bild, hängt an der Stufe (refreshFlags).
+        const building = textProperty(poi, 'building') as BuildingId;
+        if (!BUILDINGS[building]) throw new Error(`Fahne "${poi.name}": Das Gebäude "${building}" fehlt in src/data/town.ts.`);
+        // Der Mast steht unten in der Kachel; sein Fuß liegt im Bild bei 3 von 14 Pixeln.
+        const image = this.add.image(x, y + TILE / 2, 'flag-0').setOrigin(3 / 14, 1).setDepth(10 + y / 10000);
+        this.flags.push({ building, image, label: null });
       },
       truhe: () => {
         const chest = new Chest(this, `${this.zoneId}:${poi.name}`, x, y, numberProperty(poi, 'level', 1), (opened) => this.openChest(opened));
@@ -409,7 +476,7 @@ export class WorldScene extends Phaser.Scene {
         const def = named ? ENEMIES[named.enemy] : undefined;
         if (!named || !def) throw new Error(`Benannte Elite "${poi.name}" fehlt in src/data/elites.ts.`);
         const fixed = { name: named.name, traits: named.traits, respawnMs: NAMED_ELITE_RESPAWN_MS };
-        this.addEnemy(new Enemy(this, def, named.level, x, y, fixed), poi.name);
+        this.addEnemy(new Enemy(this, named.enemy, def, named.level, x, y, fixed), poi.name);
       },
     };
     const build = builders[poi.type];
@@ -424,8 +491,15 @@ export class WorldScene extends Phaser.Scene {
     this.cancelPress();
     this.walkingTo = null;
     this.shopWindow.close();
+    this.townWindow.close();
+    this.stashWindow.close();
     for (const enemy of this.enemies) enemy.destroy();
     for (const thing of this.interactables) thing.destroy();
+    for (const flag of this.flags) flag.image.destroy();
+    this.flags = [];
+    this.builder = null;
+    this.stashChest = null;
+    this.townCenter = null;
     this.enemies = [];
     this.interactables = [];
     this.chests = [];
@@ -460,10 +534,12 @@ export class WorldScene extends Phaser.Scene {
     return at;
   }
 
-  /** Die festen Punkte der Zone für die Minimap: Händler, Truhen, Übergänge. */
+  /** Die festen Punkte der Zone für die Minimap: Händler, Baumeister, Lagertruhe, Truhen, Übergänge. */
   private minimapMarks(): MinimapMark[] {
     const marks: MinimapMark[] = [];
     if (this.merchant) marks.push({ pos: this.merchant.pos, color: MINIMAP.merchantColor, radius: MINIMAP.merchantRadius });
+    if (this.builder) marks.push({ pos: this.builder.pos, color: MINIMAP.builderColor, radius: MINIMAP.builderRadius });
+    if (this.stashChest) marks.push({ pos: this.stashChest.pos, color: MINIMAP.stashColor, radius: MINIMAP.stashRadius });
     for (const chest of this.chests) marks.push({ pos: chest.pos, color: chest.full ? MINIMAP.chestColor : MINIMAP.chestEmptyColor, radius: MINIMAP.chestRadius });
     for (const portal of this.portals) marks.push({ pos: portal.pos, color: MINIMAP.portalColor, radius: MINIMAP.portalRadius });
     return marks;
@@ -481,7 +557,44 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  // ---------------------------------------------------------------- Händler, Truhen und Heiltrank
+  // ---------------------------------------------------------------- Händler, Dorfausbau, Truhen und Heiltrank
+
+  /**
+   * Öffnet das Fenster des Händlers, des Baumeisters oder der Lagertruhe. Die drei sitzen am
+   * selben Platz links im Bild – offen ist immer nur eines.
+   */
+  private openWindow(which: 'shop' | 'town' | 'stash'): void {
+    if (which !== 'shop') this.shopWindow.close();
+    if (which !== 'town') this.townWindow.close();
+    if (which !== 'stash') this.stashWindow.close();
+    if (which === 'shop') this.shopWindow.open();
+    else if (which === 'town') this.townWindow.open();
+    else if (this.stash.size > 0) this.stashWindow.open();
+    else this.hud.flash(`Die Lagertruhe ist verschlossen – baue beim ${BUILDER.name} das ${BUILDINGS.lagerhaus.name}`);
+  }
+
+  /**
+   * Im Dorf hat sich etwas getan. `changed` = das ausgebaute Gebäude; null = nur neu zeichnen
+   * (Spielstand geladen, Boss besiegt).
+   */
+  private onTownChange(changed: BuildingId | null): void {
+    // Das Kontor liefert nach dem Ausbau sofort frische Ware ins größere Regal.
+    if (changed === 'kontor') this.shop.restock();
+    this.refreshFlags();
+    this.townWindow.render();
+    this.shopWindow.render();
+    this.stashWindow.render();
+    if (changed) this.requestSave();
+  }
+
+  /** Zeigt an jeder Fahne die Stufe ihres Gebäudes: Tuchfarbe und Schild. */
+  private refreshFlags(): void {
+    for (const flag of this.flags) {
+      const level = this.town.levels[flag.building];
+      flag.image.setTexture(`flag-${level}`);
+      if (flag.label) flag.label.textContent = level > 0 ? `${BUILDINGS[flag.building].name} · Stufe ${level}` : BUILDINGS[flag.building].name;
+    }
+  }
 
   /**
    * Klick auf etwas Anklickbares (Händler, Truhe, Eingang): Steht die Figur nah genug,
@@ -511,8 +624,11 @@ export class WorldScene extends Phaser.Scene {
       this.player.stop();
       thing.use();
     }
-    const tooFar = !this.merchant || this.player.distanceTo(this.merchant.pos) > MERCHANT.closeRange;
-    if (this.shopWindow.isOpen && (tooFar || !this.player.alive)) this.shopWindow.close();
+    // Geht die Figur weg (oder stirbt sie), schließt sich das Fenster von Händler, Baumeister oder Lagertruhe.
+    const gone = (thing: Fixture | null, closeRange: number) => !this.player.alive || !thing || this.player.distanceTo(thing.pos) > closeRange;
+    if (this.shopWindow.isOpen && gone(this.merchant, MERCHANT.closeRange)) this.shopWindow.close();
+    if (this.townWindow.isOpen && gone(this.builder, BUILDER.closeRange)) this.townWindow.close();
+    if (this.stashWindow.isOpen && gone(this.stashChest, STASH_CHEST.closeRange)) this.stashWindow.close();
     this.shopWindow.update();
     for (const chest of this.chests) chest.update();
   }
@@ -559,12 +675,15 @@ export class WorldScene extends Phaser.Scene {
 
   /**
    * Übernimmt einen Spielstand: Inventar, Ausrüstung, Gold, Tränke, Stufe, EP, Leben, Händler,
-   * Items am Boden und die Zeiten von Bossen und Truhen. Die Schwierigkeit übernimmt create
+   * Dorfausbau, Lagertruhe, Items am Boden und die Zeiten von Bossen und Truhen. Die Schwierigkeit übernimmt create
    * schon vorher, Zone und Position danach (enterZone).
    */
   private applySave(save: SaveGame): void {
     this.playedMs = save.playedMs;
     this.player.potions = save.potions;
+    // Erst das Dorf (davon hängen Regalgröße und Truhenplätze ab), dann Händler und Lagertruhe.
+    this.town.load(save.town, save.bossKills);
+    this.stash.load(save.stash);
     this.shop.load(save.shop);
     this.loot.load(save.groundItems);
     this.respawnAt = { ...save.respawnAt };
@@ -584,9 +703,9 @@ export class WorldScene extends Phaser.Scene {
       ...base,
       savedAt: Date.now(),
       playedMs: Math.round(this.playedMs),
-      // Liegt die Figur am Boden, wacht sie nach dem Laden mit vollem Leben im Dorf auf
-      // (am Startpunkt der Zone, in der man aus dieser Zone heraus aufwacht).
-      character: { level: player.level, xp: player.xp, hp: player.alive ? player.hp : null },
+      // Liegt die Figur am Boden, wacht sie nach dem Laden im Dorf auf (am Startpunkt der Zone,
+      // in der man aus dieser Zone heraus aufwacht) – mit so viel Leben wie nach dem Tod üblich.
+      character: { level: player.level, xp: player.xp, hp: player.alive ? player.hp : player.reviveHp },
       zone: player.alive ? this.zoneId : ZONES[this.zoneId].respawn.zone,
       position: player.alive ? { x: Math.round(player.pos.x), y: Math.round(player.pos.y) } : null,
       gold: this.inventory.gold,
@@ -595,6 +714,9 @@ export class WorldScene extends Phaser.Scene {
       potions: player.potions,
       groundItems: this.loot.toData(),
       shop: this.shop.toData(),
+      town: { ...this.town.levels },
+      stash: this.stash.toData(),
+      bossKills: { ...this.town.bossKills },
       difficulty: { ...this.difficulty },
       respawnAt: stillRunning(this.respawnAt),
       chests: stillRunning(this.chestRefillAt),

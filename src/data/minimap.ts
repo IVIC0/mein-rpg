@@ -16,6 +16,11 @@ export const MINIMAP = {
   /** Der Händler. */
   merchantColor: '#4fc3ff',
   merchantRadius: 3,
+  /** Baumeister und Lagertruhe im Dorf. */
+  builderColor: '#ffb86b',
+  builderRadius: 3,
+  stashColor: '#c9a06a',
+  stashRadius: 2.5,
   /** Truhen: gefüllt gold-braun, leer grau. */
   chestColor: '#e89a2e',
   chestEmptyColor: '#77705f',

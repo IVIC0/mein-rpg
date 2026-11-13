@@ -21,7 +21,10 @@ const LOOT_LOG_MS = 7000;
 const LOOT_LOG_LINES = 6;
 
 /** So heißt die passive Regeneration im Spielerrahmen: langsam im Laufen, schneller im Stehen. */
-const REGEN_LABELS = { walking: 'Erholung', resting: 'Rasten' };
+const REGEN_LABELS = { walking: 'Erholung', resting: 'Rasten', town: 'Dorfruhe' };
+
+/** Mehr Stellen zeigt das Trank-Feld der Leiste nicht – darüber steht "999+". Das Händler-Fenster zeigt die genaue Zahl. */
+const POTION_COUNT_MAX = 999;
 
 interface Slot {
   skill: SkillDef;
@@ -62,7 +65,7 @@ export class Hud {
   onPotionClick: () => void = () => {};
   private readonly slots: Slot[] = [];
   /** Das Feld für den Heiltrank am Ende der Skill-Leiste (Taste Q). */
-  private readonly potion: { box: HTMLElement; cooldown: HTMLElement; timer: HTMLElement; count: HTMLElement };
+  private readonly potion: { box: HTMLElement; cooldown: HTMLElement; timer: HTMLElement; count: HTMLElement; info: HTMLElement; heal: HTMLElement };
   private messageTimer = 0;
   private levelUpTimer = 0;
   /** Bearbeitungsmodus (HudLayout): der Zielrahmen ist dann auch ohne Ziel zu sehen, damit man ihn ziehen kann. */
@@ -112,10 +115,10 @@ export class Hud {
       <span class="skill-key">Q</span>
       <span class="skill-tooltip">
         <b>${POTION.name}</b>
-        <i>${POTION.cooldownMs / 1000} s Abklingzeit</i>
+        <i class="potion-info"></i>
         <u>Taste Q oder Mausklick</u>
-        Heilt ${Math.round(POTION.healFraction * 100)} % des maximalen Lebens.
-        <em>Gibt es beim Händler im Dorf, höchstens ${POTION.maxCarried} im Gepäck.</em>
+        <span class="potion-heal"></span>
+        Gibt es beim Händler im Dorf.
       </span>`;
     bar.appendChild(box);
     // Klick auf das Feld trinkt den Trank. Im Bearbeitungsmodus wird die Leiste gezogen – dann nicht.
@@ -127,6 +130,8 @@ export class Hud {
       cooldown: box.querySelector('.skill-cooldown') as HTMLElement,
       timer: box.querySelector('.skill-timer') as HTMLElement,
       count: box.querySelector('.skill-count') as HTMLElement,
+      info: box.querySelector('.potion-info') as HTMLElement,
+      heal: box.querySelector('.potion-heal') as HTMLElement,
     };
   }
 
@@ -179,9 +184,12 @@ export class Hud {
     }
 
     // Heiltrank: Anzahl, Abklingzeit; ohne Trank ist das Feld dunkel.
-    setHeight(this.potion.cooldown, player.potionCooldown / POTION.cooldownMs);
+    // Heilung und Abklingzeit kommen von der Figur – die Alchemistin im Dorf verbessert sie.
+    setHeight(this.potion.cooldown, player.potionCooldown / player.potionCooldownMs);
     setText(this.potion.timer, player.potionCooldown > 0 ? `${Math.ceil(player.potionCooldown / 1000)}` : '');
-    setText(this.potion.count, `${player.potions}`);
+    setText(this.potion.count, player.potions > POTION_COUNT_MAX ? `${POTION_COUNT_MAX}+` : `${player.potions}`);
+    setText(this.potion.info, `${player.potionCooldownMs / 1000} s Abklingzeit · ${player.potions} im Gepäck`);
+    setText(this.potion.heal, `Heilt ${Math.round(player.potionHealFraction * 100)} % des maximalen Lebens.`);
     this.potion.box.classList.toggle('empty', player.potions === 0);
 
     for (const slot of this.slots) {

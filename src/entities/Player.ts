@@ -2,9 +2,9 @@ import Phaser from 'phaser';
 import { BODY_RADIUS, COMBAT_TIMEOUT_MS, PLAYER_SPEED, SWING, SWING_HOLD_MS, SWING_RADIUS, SWING_TRAIL_WIDTH, SWING_WEAPON_FRAME } from '../config';
 import { MAX_LEVEL, xpToNext } from '../data/progression';
 import { REGEN, type RegenState } from '../data/regen';
-import { POTION } from '../data/shop';
 import { emptyStats, withAttributesApplied, type Stats } from '../data/stats';
 import { SKILLS, WARRIOR, warriorStat, type SkillDef, type SkillId } from '../data/warrior';
+import type { Town } from '../town/Town';
 import type { Grid, Point } from '../world/Grid';
 import { moveToward } from '../world/movement';
 import { Actor, SPRITE_OFFSET_Y } from './Actor';
@@ -31,6 +31,8 @@ export class Player extends Actor {
   /** Heiltränke im Gepäck (Taste Q, Werte in src/data/shop.ts) und die Zeit, bis der nächste wirkt. */
   potions = 0;
   potionCooldown = 0;
+  /** Steht die Figur gerade im Dorf? (setzt WorldScene jeden Frame – dort heilt das Gasthaus schneller) */
+  inTown = false;
 
   /** Zeit bis zum nächsten Auto-Angriff in Millisekunden. */
   attackCooldown = 0;
@@ -55,7 +57,13 @@ export class Player extends Actor {
   private readonly swingTrail: Phaser.GameObjects.Graphics;
   private readonly swing = { progress: 0 };
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  /** `town` = der Dorfausbau: Er verbessert Heiltrank und Erholung (src/data/town.ts). */
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    private readonly town: Town,
+  ) {
     super(scene, x, y, 'ritter', WARRIOR.maxHp);
     this.swingTrail = scene.add.graphics().setVisible(false);
     // Drehpunkt knapp unter dem Griff: so kreist die Klinge um die Figur.
@@ -110,11 +118,42 @@ export class Player extends Actor {
 
   /**
    * Passive Regeneration (Werte in src/data/regen.ts): im Kampf und kurz danach keine,
-   * dann langsam im Laufen und schneller beim Rasten.
+   * dann langsam im Laufen und schneller beim Rasten. Im Dorf geht es mit Gasthaus am schnellsten.
    */
   get regenState(): RegenState {
     if (!this.alive || Math.min(this.sinceCombatMs, this.sinceHuntedMs) < REGEN.delayMs) return 'none';
+    if (this.inTown && this.town.effects.townFullSeconds !== null) return 'town';
     return this.stillMs >= REGEN.restAfterMs ? 'resting' : 'walking';
+  }
+
+  /** So viele Sekunden dauert die passive Regeneration gerade von 0 auf volles Leben; 0 = es gibt keine. */
+  private get regenFullSeconds(): number {
+    const effects = this.town.effects;
+    switch (this.regenState) {
+      case 'town':
+        return effects.townFullSeconds ?? 0;
+      case 'resting':
+        return effects.restingFullSeconds;
+      case 'walking':
+        return REGEN.walkingFullSeconds;
+      case 'none':
+        return 0;
+    }
+  }
+
+  /** Ein Heiltrank heilt diesen Anteil des maximalen Lebens (die Alchemistin verbessert ihn). */
+  get potionHealFraction(): number {
+    return this.town.effects.potionHealFraction;
+  }
+
+  /** Abklingzeit des Heiltranks in Millisekunden. */
+  get potionCooldownMs(): number {
+    return this.town.effects.potionCooldownMs;
+  }
+
+  /** Mit so viel Leben wacht die Figur nach dem Tod auf (REGEN.reviveHpFraction). */
+  get reviveHp(): number {
+    return Math.max(1, Math.round(this.maxHp * REGEN.reviveHpFraction));
   }
 
   /** Stärke, Ausdauer und Geschick aus der Ausrüstung (für das Charakterfenster). */
@@ -144,9 +183,9 @@ export class Player extends Actor {
   drinkPotion(): number {
     if (!this.alive || this.potions <= 0 || this.potionCooldown > 0 || this.hp >= this.maxHp) return 0;
     const before = this.hp;
-    this.heal(this.maxHp * POTION.healFraction);
+    this.heal(this.maxHp * this.potionHealFraction);
     this.potions--;
-    this.potionCooldown = POTION.cooldownMs;
+    this.potionCooldown = this.potionCooldownMs;
     return this.hp - before;
   }
 
@@ -299,8 +338,8 @@ export class Player extends Actor {
     this.sinceHuntedMs = hunted ? 0 : this.sinceHuntedMs + deltaMs;
     // Leben pro Sekunde: die Ausrüstung wirkt immer, die passive Regeneration nur in Ruhe.
     let regen = this.hpRegen;
-    const state = this.regenState;
-    if (state !== 'none') regen += this.maxHp / (state === 'resting' ? REGEN.restingFullSeconds : REGEN.walkingFullSeconds);
+    const fullSeconds = this.regenFullSeconds;
+    if (fullSeconds > 0) regen += this.maxHp / fullSeconds;
     this.heal((regen * deltaMs) / 1000);
   }
 
@@ -315,10 +354,10 @@ export class Player extends Actor {
     this.sprite.setAngle(90);
   }
 
-  /** Stellt die Figur mit vollem Leben an den Punkt `at`. */
+  /** Stellt die Figur an den Punkt `at` – mit einem Teil ihres Lebens (REGEN.reviveHpFraction, Start: die Hälfte). */
   revive(at: Point): void {
     this.pos.set(at.x, at.y);
-    this.hp = this.maxHp;
+    this.hp = this.reviveHp;
     this.attackCooldown = 0;
     this.cooldowns.clear();
     this.hitCounts.clear();

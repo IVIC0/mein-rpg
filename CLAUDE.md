@@ -17,17 +17,21 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/sprites.ts` – Bilder-Verzeichnis: Name → Bild-Datei und Einzelbilder (Stehen, Laufen)
    - `src/data/pois.ts` – Truhen (Inhalt, Auffüllzeit) und Übergänge zwischen Zonen
    - `src/data/progression.ts` – Levelkurve, EP pro Gegner (auch je Rang), EP- und Gold-Verlust beim Tod
-   - `src/data/regen.ts` – passive Lebensregeneration: Sperre nach dem Kampf, Tempo beim Laufen und beim Rasten
+   - `src/data/regen.ts` – passive Lebensregeneration: Sperre nach dem Kampf, Tempo beim Laufen und beim Rasten,
+     Leben beim Aufwachen nach dem Tod
    - `src/data/items.ts` – Seltenheiten, Basis-Items und Affixe (Wertespannen, erlaubte Plätze)
    - `src/data/loot.ts` – Drop-Tabellen je Gegnerrang (Drop-Chance, Seltenheits-Anteile), Gold pro Gegner, Inventargröße
    - `src/data/stats.ts` – Werte auf Items und was ein Attributpunkt bringt
    - `src/data/shop.ts` – Händler: Preisformel, Sortiment (Größe, Seltenheiten, Lieferzeit), Rückkauf (Größe der Liste), Heiltrank
+     (jeweils die Werte ohne Dorfausbau)
+   - `src/data/town.ts` – Dorfausbau: Gebäude, Kosten, was jede Stufe bringt (Kontor, Alchemistin, Gasthaus,
+     Lagerhaus), welcher Boss welche Rathaus-Stufe freischaltet, Baumeister, Lagertruhe, Fahnenfarben
    - `src/data/difficulty.ts` – Schwierigkeit: Grenzen der Regler, die vier Knöpfe, Belohnung (EP und Gold)
    - `src/data/minimap.ts` – Minimap: Größe, Ausschnitt, Farben der Punkte
    - `src/data/save.ts` – Speichern: Format-Nummer, Anzahl Slots, Auto-Save-Abstände, Namenslänge
    - `src/data/testSaves.ts` – Vorlagen für Test-Spielstände
    - `tools/zones/<zone>.mjs` – Bauplan je Zone: Lichtungen, Wege, Bauten, besondere Orte (`pois`:
-     Händler, Truhen mit Itemlevel, Übergänge, feste Elite-Plätze) und welche Gegner mit welcher
+     Händler, Baumeister, Lagertruhe, Fahnen der Gebäude, Truhen mit Itemlevel, Übergänge, feste Elite-Plätze) und welche Gegner mit welcher
      Stufe wo stehen (`enemyGroups`); nach Änderungen `npm run assets`
 
    Neue Werte kommen in die passende Datei oder in eine neue Datei unter `src/data/`.
@@ -73,10 +77,16 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
   `src/ui/SaveMenu.ts`, Dialoge in `src/ui/dialog.ts`. Übernehmen und Einsammeln des Stands:
   `applySave` / `snapshot` in `src/scenes/WorldScene.ts`. Kommt etwas Neues dazu, das gespeichert
   werden soll: dort ergänzen. Ändert sich der Aufbau: `SAVE_VERSION` erhöhen und in `MIGRATIONS` eintragen.
-- Händler: Regeln in `src/items/Shop.ts`, Fenster in `src/ui/ShopWindow.ts`, Figur in
-  `src/entities/Merchant.ts`; verkauft wird per Rechtsklick im Inventar-Fenster,
-  zurückgekauft im Reiter „Rückkauf" des Händler-Fensters. Der Item-Tooltip
-  (`src/ui/ItemTooltip.ts`) gehört beiden Fenstern.
+- Händler: Regeln in `src/items/Shop.ts`, Fenster in `src/ui/ShopWindow.ts`; verkauft wird per
+  Rechtsklick im Inventar-Fenster, zurückgekauft im Reiter „Rückkauf" des Händler-Fensters. Der
+  Item-Tooltip (`src/ui/ItemTooltip.ts`) gehört allen Fenstern mit Items. Händler, Baumeister und
+  Lagertruhe sind in der Welt dasselbe: ein anklickbares Bild (`src/entities/Fixture.ts`).
+- Dorfausbau: Regeln in `src/town/Town.ts` (Stufen, Sperren, `effects` = was die Gebäude gerade
+  bringen), Fenster in `src/ui/TownWindow.ts`, Texte in `src/ui/townText.ts`. Wer einen Wert
+  braucht, den ein Gebäude verbessert (Händler, Heiltrank, Rasten, Gold-Verlust beim Tod), liest
+  ihn aus `town.effects` – nicht direkt aus `shop.ts` / `regen.ts`. Gebäude geben nur Komfort,
+  nie Kampfwerte. Lagertruhe: `src/items/Stash.ts`, `src/ui/StashWindow.ts` (Rechtsklick im
+  Inventar lagert ein). `Combat.onKill` meldet jeden besiegten Gegner (Boss-Siege fürs Rathaus).
 - Name: Das Spiel heißt „Rogoi Offline" (`GAME_TITLE` in `src/config.ts`). Repo-Name, `name` in
   `package.json`, `base` in `vite.config.ts`, die Schlüssel im Browser-Speicher (`mein-rpg.…`) und
   das Kennzeichen `app: 'mein-rpg'` im Spielstand bleiben, wie sie sind – sonst bricht die

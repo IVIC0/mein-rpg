@@ -14,11 +14,19 @@ export const REGEN = {
   delayMs: 8000,
   /** Laufen: so viele Sekunden dauert es von 0 auf volles Leben. Kleiner = schneller. */
   walkingFullSeconds: 180,
-  /** Rasten (stehen bleiben): so viele Sekunden von 0 auf volles Leben. */
+  /** Rasten (stehen bleiben): so viele Sekunden von 0 auf volles Leben. Das Gasthaus verkürzt das (src/data/town.ts). */
   restingFullSeconds: 120,
   /** Erst wenn die Figur so lange still steht, gilt sie als rastend (Millisekunden). */
   restAfterMs: 1500,
+  /**
+   * Nach dem Tod wacht die Figur mit diesem Anteil ihres Lebens im Dorf auf (0.5 = halbes Leben,
+   * 1 = volles Leben). So ist Sterben kein billiger Heilweg.
+   */
+  reviveHpFraction: 0.5,
 };
 
-/** Wie sich die Figur gerade erholt: gar nicht, langsam im Laufen oder schneller beim Rasten. */
-export type RegenState = 'none' | 'walking' | 'resting';
+/**
+ * Wie sich die Figur gerade erholt: gar nicht, langsam im Laufen, schneller beim Rasten –
+ * oder im Dorf, sobald das Gasthaus steht (src/data/town.ts).
+ */
+export type RegenState = 'none' | 'walking' | 'resting' | 'town';

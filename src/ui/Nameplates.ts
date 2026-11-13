@@ -93,13 +93,17 @@ export class Nameplates {
     });
   }
 
-  /** Ein Namensschild für eine friedliche Figur oder einen Ort am Punkt (x, y), z. B. den Händler. */
-  addLabel(x: number, y: number, name: string): void {
+  /**
+   * Ein Namensschild für eine friedliche Figur oder einen Ort am Punkt (x, y), z. B. den Händler.
+   * Zurück kommt das Schild selbst – so lässt sich sein Text später ändern (Stufe eines Gebäudes).
+   */
+  addLabel(x: number, y: number, name: string): HTMLElement {
     const root = document.createElement('div');
     root.className = 'nameplate nameplate-npc';
     root.textContent = name;
     this.root.appendChild(root);
     this.labels.push({ x, y, root });
+    return root;
   }
 
   /** Trägt den Namen der eigenen Figur ein (auch nach dem Umbenennen). */

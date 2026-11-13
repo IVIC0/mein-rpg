@@ -4,6 +4,7 @@
 // Neue Vorlage: einfach einen weiteren Eintrag an die Liste hängen.
 
 import type { EquipSlot, RarityId } from './items';
+import type { TownLevels } from './town';
 
 export interface TestSaveDef {
   /** So heißt die Vorlage im Menü. */
@@ -12,12 +13,16 @@ export interface TestSaveDef {
   name: string;
   level: number;
   gold: number;
-  /** Heiltränke im Gepäck (höchstens POTION.maxCarried aus src/data/shop.ts). */
+  /** Heiltränke im Gepäck. */
   potions: number;
   /** Angelegte Ausrüstung: Platz → Seltenheit. Die Werte werden gewürfelt, Itemlevel = Stufe der Figur. */
   equipped: Partial<Record<EquipSlot, RarityId>>;
   /** Inventar: je Eintrag ein zufälliges Item dieser Seltenheit (Itemlevel = Stufe der Figur). */
   bag: RarityId[];
+  /** Dorfausbau: Stufe einzelner Gebäude (src/data/town.ts). Ohne Angabe: wie bei einem neuen Spiel. */
+  town?: Partial<TownLevels>;
+  /** Diese Bosse gelten als schon besiegt (Gegnertyp aus src/data/enemies.ts) – das schaltet Rathaus-Stufen frei. */
+  bossKills?: string[];
 }
 
 export const TEST_SAVES: TestSaveDef[] = [
@@ -57,5 +62,17 @@ export const TEST_SAVES: TestSaveDef[] = [
       ring2: 'uncommon',
     },
     bag: ['common', 'uncommon', 'uncommon', 'rare', 'rare', 'epic', 'legendary', 'mythic'],
+  },
+  {
+    // Zum Ausprobieren des Dorfausbaus: genug Gold für Rathaus 2 und alle Gebäude auf Stufe 2
+    // (1 500 + 4 × 950 = 5 300 Gold), der Räuberhauptmann gilt als besiegt.
+    label: 'Stufe 10 – Dorfausbau',
+    name: 'Test Dorf',
+    level: 10,
+    gold: 6000,
+    potions: 12,
+    equipped: { weapon: 'rare', shield: 'uncommon', helmet: 'uncommon', chest: 'rare', gloves: 'uncommon', boots: 'uncommon' },
+    bag: ['common', 'uncommon', 'uncommon', 'rare', 'epic'],
+    bossKills: ['raeuberhauptmann'],
   },
 ];
