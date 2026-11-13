@@ -1,6 +1,6 @@
 import type { Bestiary } from '../bestiary/Bestiary';
 import type { FieldGuide, GuideEntry } from '../bestiary/fieldGuide';
-import { BESTIARY_PAGES, BESTIARY_RANKS, BOSS_STEPS, ELITE_KILL_WEIGHT, PAGE_TIERS, type BestiaryPageDef, type TypeBonus } from '../data/bestiary';
+import { BESTIARY_PAGES, BESTIARY_RANKS, BOSS_STEPS, ELITE_KILL_WEIGHT, PAGE_TIERS, TRIVIAL_KILLS, type BestiaryPageDef, type TypeBonus } from '../data/bestiary';
 import { RANKS, traitName } from '../data/elites';
 import { enemyStats } from '../data/enemies';
 import { byId } from './dom';
@@ -48,7 +48,10 @@ export class BestiaryWindow {
       this.button.blur();
     });
     byId('bestiary-close').addEventListener('click', () => this.close());
-    byId('bestiary-help').textContent = `Gezählt wird jeder besiegte Gegner, eine Elite zählt ${ELITE_KILL_WEIGHT}-fach. Die Boni gelten nur gegen den jeweiligen Typ.`;
+    // Schwache Gegner zählen nur zum Teil oder gar nicht (TRIVIAL_KILLS in src/data/bestiary.ts).
+    const weight = TRIVIAL_KILLS.weight;
+    const weak = weight >= 1 ? '' : ` Gegner, die ${TRIVIAL_KILLS.levelLead} oder mehr Stufen unter dir liegen, zählen ${weight <= 0 ? 'nicht' : weight === 0.5 ? 'nur halb' : `nur zu ${Math.round(weight * 100)} %`}.`;
+    byId('bestiary-help').textContent = `Gezählt wird jeder besiegte Gegner, eine Elite zählt ${ELITE_KILL_WEIGHT}-fach.${weak} Die Boni gelten nur gegen den jeweiligen Typ.`;
   }
 
   get isOpen(): boolean {
@@ -117,7 +120,9 @@ export class BestiaryWindow {
 
     // Balken: vom aktuellen Rang bis zum nächsten.
     const fill = next === null ? 1 : (kills - progress.from) / (next - progress.from);
-    const counter = next === null ? `${kills} besiegt` : `${kills} / ${next}`;
+    // Halbe Zähler (schwache Gegner) stehen mit Komma da: "12,5 / 50".
+    const shown = Number.isInteger(kills) ? `${kills}` : kills.toFixed(1).replace('.', ',');
+    const counter = next === null ? `${shown} besiegt` : `${shown} / ${next}`;
 
     const lines: string[] = [];
     // Ab Rang 1 steht der Eintrag da: Werte und Fundorte.

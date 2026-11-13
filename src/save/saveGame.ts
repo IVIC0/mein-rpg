@@ -271,7 +271,7 @@ function normalize(data: Plain): SaveGame {
 
   // Jagdbuch: Fehlt es (alter Spielstand), beginnen alle Zähler bei 0.
   const storedBestiary = isPlain(data.bestiary) ? data.bestiary : {};
-  const bestiary: BestiaryData = { kills: cleanCounts(storedBestiary.kills), bosses: cleanCounts(storedBestiary.bosses) };
+  const bestiary: BestiaryData = { kills: cleanCounts(storedBestiary.kills, false), bosses: cleanCounts(storedBestiary.bosses) };
 
   const respawnAt = cleanTimes(data.respawnAt);
   const chests = cleanTimes(data.chests);
@@ -317,10 +317,12 @@ function cleanTimes(raw: unknown): Record<string, number> {
 }
 
 /** Liest eine Liste "Schlüssel → Zähler": nur ganze Zahlen ab 1 bleiben. */
-function cleanCounts(raw: unknown): Record<string, number> {
+function cleanCounts(raw: unknown, whole = true): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const [key, value] of Object.entries(cleanTimes(raw))) {
-    if (value >= 1) counts[key] = Math.floor(value);
+    // Im Jagdbuch gibt es halbe Zähler (schwache Gegner) – dort bleiben zwei Nachkommastellen stehen.
+    if (whole && value >= 1) counts[key] = Math.floor(value);
+    if (!whole && value > 0) counts[key] = Math.round(value * 100) / 100;
   }
   return counts;
 }

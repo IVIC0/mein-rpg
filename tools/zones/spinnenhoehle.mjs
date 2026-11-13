@@ -15,11 +15,11 @@ export default {
 
   // Kammern, vom Eingang (oben links) bis zur Brutkammer (unten rechts).
   clearings: [
-    { marker: 'eingang', cx: 12, cy: 9, rx: 6, ry: 4 },
-    { marker: 'fledermaushalle', cx: 31, cy: 12, rx: 8, ry: 5 },
-    { marker: 'netzkammer', cx: 49, cy: 20, rx: 8, ry: 6 },
-    { marker: 'tropfgang', cx: 22, cy: 31, rx: 9, ry: 5 },
-    { marker: 'brutkammer', cx: 47, cy: 38, rx: 10, ry: 5.5 },
+    { marker: 'eingang', label: 'Eingang', cx: 12, cy: 9, rx: 6, ry: 4 },
+    { marker: 'fledermaushalle', label: 'Fledermaushalle', cx: 31, cy: 12, rx: 8, ry: 5 },
+    { marker: 'netzkammer', label: 'Netzkammer', cx: 49, cy: 20, rx: 8, ry: 6 },
+    { marker: 'tropfgang', label: 'Tropfgang', cx: 22, cy: 31, rx: 9, ry: 5 },
+    { marker: 'brutkammer', label: 'Brutkammer', cx: 47, cy: 38, rx: 10, ry: 5.5 },
   ],
 
   // Gänge zwischen den Kammern – ein Weg ohne Abkürzung, die Brutkammer liegt am Ende.

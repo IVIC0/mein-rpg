@@ -43,6 +43,11 @@ export class Minimap {
     this.terrain = buildTerrain(map, tileset);
   }
 
+  /** Das Gelände der aktuellen Zone als kleines Bild (1 Pixel pro Kachel) – nutzt auch die große Karte. */
+  get terrainPicture(): HTMLCanvasElement {
+    return this.terrain;
+  }
+
   /** Zeichnet die Minimap neu. `player` ist der Platz der Figur in Welt-Pixeln, `marks` die festen Punkte der Zone. */
   render(player: Point, enemies: readonly Enemy[], marks: readonly MinimapMark[]): void {
     const context = this.context;

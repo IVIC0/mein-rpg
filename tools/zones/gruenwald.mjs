@@ -19,19 +19,20 @@ export default {
   spawn: { x: 22, y: 75 },
 
   // Freiflächen. Mit `marker` landen sie als Punkt in der Karte und können Gegnergruppen
-  // aufnehmen (unten). Die erste ist das Dorf.
+  // aufnehmen (unten). Die erste ist das Dorf. `label` = Ortsname auf der großen Karte (Taste M);
+  // das geht auch bei Lagern (`structures`) und benannten Punkten (`markers`).
   clearings: [
     { cx: 22, cy: 72, rx: 15, ry: 10.5, wobble: 0.25 },
-    { marker: 'pilzhain', cx: 24, cy: 30, rx: 8, ry: 6.5, mushrooms: 0.12 },
-    { marker: 'lichtung', cx: 66, cy: 46, rx: 10, ry: 7.5 },
-    { marker: 'ostlichtung', cx: 98, cy: 54, rx: 8.5, ry: 6.5 },
-    { marker: 'suedlichtung', cx: 90, cy: 78, rx: 7, ry: 5 },
-    { marker: 'ruine', cx: 97, cy: 18, rx: 10, ry: 6.5 },
-    { marker: 'westlichtung', cx: 46, cy: 52, rx: 5.5, ry: 4.5 },
+    { marker: 'pilzhain', label: 'Pilzhain', cx: 24, cy: 30, rx: 8, ry: 6.5, mushrooms: 0.12 },
+    { marker: 'lichtung', label: 'Große Lichtung', cx: 66, cy: 46, rx: 10, ry: 7.5 },
+    { marker: 'ostlichtung', label: 'Ostlichtung', cx: 98, cy: 54, rx: 8.5, ry: 6.5 },
+    { marker: 'suedlichtung', label: 'Südlichtung', cx: 90, cy: 78, rx: 7, ry: 5 },
+    { marker: 'ruine', label: 'Ruine', cx: 97, cy: 18, rx: 10, ry: 6.5 },
+    { marker: 'westlichtung', label: 'Westlichtung', cx: 46, cy: 52, rx: 5.5, ry: 4.5 },
     // Neu seit Meilenstein 11:
-    { marker: 'wolfshang', cx: 50, cy: 13, rx: 8, ry: 5 },
-    { marker: 'eichenhain', cx: 74, cy: 66, rx: 7, ry: 5 },
-    { marker: 'wachposten', cx: 78, cy: 25.5, rx: 5, ry: 3.5 },
+    { marker: 'wolfshang', label: 'Wolfshang', cx: 50, cy: 13, rx: 8, ry: 5 },
+    { marker: 'eichenhain', label: 'Eichenhain', cx: 74, cy: 66, rx: 7, ry: 5 },
+    { marker: 'wachposten', label: 'Wachposten', cx: 78, cy: 25.5, rx: 5, ry: 3.5 },
   ],
 
   // Wege als Linienzüge. width = Breite des Erdwegs in Kacheln.
@@ -81,7 +82,7 @@ export default {
     { type: 'ruine', x: 92, y: 14 },
     // Neu seit Meilenstein 11: Höhleneingang im Pilzhain und das Goblin-Lager.
     { type: 'ding', tile: 'caveEntrance', x: 22, y: 25 },
-    { type: 'lager', marker: 'goblinlager', x: 77, y: 35, width: 13, height: 9, gate: 6 },
+    { type: 'lager', marker: 'goblinlager', label: 'Goblin-Lager', x: 77, y: 35, width: 13, height: 9, gate: 6 },
     { type: 'ding', tile: 'log', x: 80, y: 37 },
     { type: 'ding', tile: 'pot', x: 86, y: 37 },
     { type: 'ding', tile: 'hay', x: 79, y: 41 },
@@ -123,7 +124,7 @@ export default {
    */
   markers: [
     { name: 'vor-der-hoehle', x: 22, y: 28 },
-    { name: 'dorfmitte', x: 22, y: 73 },
+    { name: 'dorfmitte', x: 22, y: 73, label: 'Dorf' },
   ],
 
   // Gegnergruppen je Lichtung oder Lager: Gegnertyp → Stufen, ein Gegner pro Eintrag.

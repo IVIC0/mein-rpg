@@ -118,6 +118,9 @@ export class SettingsMenu {
     }
     this.check(this.row(hud), 'Schwebende Zahlen', values.floaters, 'visible');
     this.sliders(hud, values.floaters);
+    // Die große Karte hat kein Häkchen: Sie geht mit M oder ihrem Knopf in der Leiste auf und zu.
+    this.row(hud).textContent = 'Große Karte';
+    this.sliders(hud, values.worldMap);
 
     if (this.callbacks) this.buildDifficulty(this.callbacks.difficulty, this.callbacks.onDifficultyChange);
 
