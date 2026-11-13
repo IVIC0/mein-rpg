@@ -146,7 +146,7 @@
               <span id="bag-count"></span>
               <span id="gold"></span>
             </div>
-            <!-- Ist der Händler offen, ergänzt InventoryWindow.setShop hier "Rechtsklick: verkaufen". -->
+            <!-- Ist der Händler oder die Lagertruhe offen, ergänzt InventoryWindow hier "Rechtsklick: verkaufen" bzw. "einlagern". -->
             <div class="window-help" id="inventory-help">Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen</div>
           </div>
         </div>
@@ -173,10 +173,16 @@
             <span id="shop-restock"></span>
             <span id="shop-gold"></span>
           </div>
+          <!-- "Neue Ware sofort" gibt es erst mit Kontor Stufe 3 (Dorfausbau). -->
+          <button id="shop-restock-now" class="shop-button" type="button" hidden></button>
           <div id="shop-potion">
             <span class="shop-potion-icon"><span id="shop-potion-icon" class="sprite-icon"></span></span>
-            <span id="shop-potion-text"></span>
-            <button id="shop-potion-buy" type="button"></button>
+            <span id="shop-potion-info">
+              <span id="shop-potion-text"></span>
+              <b id="shop-potion-count"></b>
+            </span>
+            <button id="shop-potion-buy" class="shop-button" type="button"></button>
+            <span class="window-help" id="shop-potion-help"></span>
           </div>
           <div class="window-help">Linksklick auf Ware: kaufen<br />Rechtsklick auf ein Item im Inventar: verkaufen</div>
         </div>
@@ -188,6 +194,36 @@
           </div>
           <div class="window-help" id="shop-buyback-help"></div>
         </div>
+      </div>
+
+      <!-- Dorfausbau (Klick auf den Baumeister im Dorf). Die Zeilen baut src/ui/TownWindow.ts. -->
+      <div id="town" class="side-window" hidden>
+        <div class="window-title">
+          <span>Dorfausbau</span>
+          <span class="window-buttons">
+            <button id="town-close" type="button" title="Schließen (Esc)">×</button>
+          </span>
+        </div>
+        <div id="town-list"></div>
+        <div class="bag-footer">
+          <span id="town-note">Die Gebäude bringen Komfort – keine Kampfwerte.</span>
+          <span id="town-gold"></span>
+        </div>
+      </div>
+
+      <!-- Lagertruhe (Klick auf die Truhe am Lagerhaus). Die Felder baut src/ui/StashWindow.ts. -->
+      <div id="stash" class="side-window" hidden>
+        <div class="window-title">
+          <span>Lagertruhe</span>
+          <span class="window-buttons">
+            <button id="stash-close" type="button" title="Schließen (Esc)">×</button>
+          </span>
+        </div>
+        <div id="stash-slots"></div>
+        <div class="bag-footer">
+          <span id="stash-count"></span>
+        </div>
+        <div class="window-help">Linksklick: ins Inventar nehmen<br />Rechtsklick auf ein Item im Inventar: einlagern</div>
       </div>
       <div id="item-tooltip" hidden></div>
 

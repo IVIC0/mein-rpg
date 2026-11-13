@@ -22,9 +22,9 @@ import { buildForest } from './lib/terrain-wald.mjs';
 const TERRAINS = { wald: buildForest, hoehle: buildCave };
 
 /** POI-Arten, die das Spiel kennt (Verhalten: POI_BUILDERS in src/scenes/WorldScene.ts). */
-const POI_TYPES = ['haendler', 'truhe', 'portal', 'elite'];
+const POI_TYPES = ['haendler', 'truhe', 'portal', 'elite', 'baumeister', 'lagertruhe', 'fahne'];
 /** Auf diesen POIs steht etwas Festes: Die Kachel selbst ist ein Hindernis, davor (darunter) muss Platz sein. */
-const SOLID_POIS = ['haendler', 'truhe'];
+const SOLID_POIS = ['haendler', 'truhe', 'baumeister', 'lagertruhe'];
 
 // ---------------------------------------------------------------- Baupläne und Spieldaten lesen
 
@@ -53,6 +53,7 @@ function readKeys(file, constant) {
 const enemyTypes = readKeys('src/data/enemies.ts', 'ENEMIES');
 const namedElites = readKeys('src/data/elites.ts', 'NAMED_ELITES');
 const gameZones = readKeys('src/data/zones.ts', 'ZONES');
+const buildings = readKeys('src/data/town.ts', 'BUILDINGS');
 for (const plan of plans) {
   if (!gameZones.includes(plan.id)) throw new Error(`Zone "${plan.id}" hat einen Bauplan, fehlt aber in src/data/zones.ts.`);
 }
@@ -86,6 +87,7 @@ function buildZone(plan) {
     if (!inside(poi.x, poi.y)) fail(`POI "${poi.name}" liegt außerhalb der Karte.`);
     if (SOLID_POIS.includes(poi.type)) reserved[idx(poi.x, poi.y)] = 1;
     if (poi.type === 'elite' && !namedElites.includes(poi.name)) fail(`Elite "${poi.name}" fehlt in NAMED_ELITES (src/data/elites.ts).`);
+    if (poi.type === 'fahne' && !buildings.includes(poi.building)) fail(`Fahne "${poi.name}": Das Gebäude "${poi.building}" fehlt in BUILDINGS (src/data/town.ts).`);
     if (poi.type === 'portal') {
       const target = plans.find((other) => other.id === poi.to);
       if (!target) fail(`Portal "${poi.name}" führt in die Zone "${poi.to}", die es nicht gibt.`);

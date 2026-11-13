@@ -24,6 +24,8 @@ Jeder Push auf `main` veröffentlicht das Spiel automatisch auf GitHub Pages.
 | Linksklick auf den Händler im Dorf | hinlaufen und handeln (Linksklick auf Ware: kaufen) |
 | Rechtsklick auf ein Item im Inventar | verkaufen (nur beim Händler; ab Episch zweimal klicken) |
 | `Q` | Heiltrank trinken |
+| Linksklick auf den Baumeister im Dorf | Dorfausbau: Gebäude mit Gold ausbauen |
+| Linksklick auf die Lagertruhe am Lagerhaus | Truhe öffnen (Rechtsklick im Inventar: einlagern, Linksklick in der Truhe: herausnehmen) |
 | `I` oder `C` | Charakter & Inventar öffnen und schließen |
 | Linksklick auf ein Item im Inventar | anlegen (angelegte Ausrüstung: ablegen) |
 | Umschalt + Linksklick auf ein Item | wegwerfen |
@@ -42,7 +44,8 @@ Menü „Spielstände" (Diskette oben rechts), HUD-Einstellungen hinter dem Zahn
 | Ordner | Inhalt |
 |---|---|
 | `src/scenes/` | Szenen: `BootScene` lädt alles, `WorldScene` ist die Spielwelt |
-| `src/entities/` | Spielfigur, Gegner, Händler, Truhe, Übergang; `Actor` ist die gemeinsame Basis der Figuren |
+| `src/entities/` | Spielfigur, Gegner, Truhe, Übergang; `Fixture` = Händler, Baumeister und Lagertruhe; `Actor` ist die gemeinsame Basis der Figuren |
+| `src/town/` | Dorfausbau: Stufen der Gebäude und was sie bringen |
 | `src/combat/` | Kampfregeln (`Combat`: Angriffe, EP, Stufenaufstieg, Tod) und Schadensformel |
 | `src/items/` | Loot: Item-Generator, Inventar mit Ausrüstung, Items am Boden, Händler |
 | `src/save/` | Spielstand (Aufbau, Format-Umbau) und Slots im Browser |
@@ -101,6 +104,7 @@ Eine neue Zone: Bauplan in `tools/zones/` anlegen, in `src/data/zones.ts` eintra
 ## Händler ändern
 
 - Preise, Sortiment (Größe, Seltenheiten, Lieferzeit) und Heiltrank: `src/data/shop.ts`.
+- Dorfausbau (Kosten und Boni der Gebäude): `src/data/town.ts`.
 - Wo der Händler steht: Eintrag `haendler` in der Liste `pois` in `tools/zones/gruenwald.mjs`, danach `npm run assets`.
 
 ## Truhen ändern

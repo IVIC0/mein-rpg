@@ -5,6 +5,7 @@ import type { Player } from '../entities/Player';
 import { rarityById, type Item } from '../items/generator';
 import type { Inventory } from '../items/Inventory';
 import type { Shop } from '../items/Shop';
+import type { Stash } from '../items/Stash';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
 import type { ItemTooltip } from './ItemTooltip';
@@ -49,6 +50,7 @@ interface Cell {
  * Linksklick auf ein Item im Inventar legt es an, Linksklick auf angelegte Ausrüstung
  * legt sie ab. Umschalt + Linksklick wirft ein Item aus dem Inventar weg.
  * Ist der Händler offen (setShop), verkauft ein Rechtsklick das Item.
+ * Ist die Lagertruhe offen (setStash), legt ein Rechtsklick es hinein.
  *
  * Das Fenster lässt sich an der Titelzeile verschieben, an der Ecke unten rechts in der
  * Größe ziehen und mit der Pinnnadel anpinnen. Position, Größe und Pin werden gemerkt.
@@ -61,6 +63,8 @@ export class InventoryWindow {
   private readonly help = byId('inventory-help');
   /** Der Händler, solange sein Fenster offen ist – dann lässt sich per Rechtsklick verkaufen. */
   private shop: Shop | null = null;
+  /** Die Lagertruhe, solange ihr Fenster offen ist – dann lagert ein Rechtsklick das Item ein. */
+  private stash: Stash | null = null;
   /** Das Feld, das auf den zweiten Sicherheits-Klick zum Verkaufen wartet. */
   private confirming: Cell | null = null;
   private confirmTimer = 0;
@@ -121,7 +125,19 @@ export class InventoryWindow {
   setShop(shop: Shop | null): void {
     this.shop = shop;
     this.clearConfirm();
-    this.help.innerHTML = 'Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen' + (shop ? '<br /><b>Rechtsklick: verkaufen</b>' : '');
+    this.showHelp();
+  }
+
+  /** Lagertruhe offen (`stash`) oder wieder zu (null): schaltet das Einlagern per Rechtsklick. */
+  setStash(stash: Stash | null): void {
+    this.stash = stash;
+    this.showHelp();
+  }
+
+  /** Die Hilfe-Zeilen unter dem Inventar: Was der Rechtsklick gerade tut, hängt am offenen Fenster. */
+  private showHelp(): void {
+    const rightClick = this.shop ? '<br /><b>Rechtsklick: verkaufen</b>' : this.stash ? '<br /><b>Rechtsklick: einlagern</b>' : '';
+    this.help.innerHTML = 'Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen' + rightClick;
     this.showTooltip();
   }
 
@@ -314,6 +330,8 @@ export class InventoryWindow {
       else hints.push(`Rechtsklick: verkaufen für ${gold} Gold${needsConfirm(item) ? ' (mit Sicherheits-Klick)' : ''}`);
     } else if (this.shop) {
       hints.push('Zum Verkaufen erst ablegen');
+    } else if (this.stash) {
+      hints.push(inBag ? 'Rechtsklick: in die Lagertruhe legen' : 'Zum Einlagern erst ablegen');
     }
     // Der Vergleich mit dem angelegten Item gibt es nur für Items im Inventar.
     this.tooltip.show(item, cell.box, this.root, 'left', inBag, hints);
@@ -322,12 +340,17 @@ export class InventoryWindow {
   /**
    * Rechtsklick auf ein Item im Inventar, während der Händler offen ist: verkaufen.
    * Seltene Items (ab SELL_CONFIRM_FROM) brauchen einen zweiten Rechtsklick zur Sicherheit.
+   * Ist stattdessen die Lagertruhe offen, wandert das Item dort hinein.
    */
   private onRightClick(cell: Cell): void {
     const ref = cell.ref;
-    if (!this.shop || ref.kind !== 'bag') return;
+    if (ref.kind !== 'bag') return;
     const item = this.inventory.bag[ref.index];
     if (!item) return;
+    if (!this.shop) {
+      if (this.stash && !this.stash.store(ref.index)) this.hud.flash('Lagertruhe voll');
+      return;
+    }
     if (needsConfirm(item) && this.confirming !== cell) {
       this.clearConfirm();
       this.confirming = cell;

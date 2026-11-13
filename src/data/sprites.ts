@@ -1,5 +1,5 @@
 // Bilder-Verzeichnis: Name → wo das Bild liegt und welche Einzelbilder zu Stehen und Laufen gehören.
-// Gegner, Händler, Truhen und die eigene Figur nennen ihr Bild nur noch beim Namen.
+// Gegner, Händler, Baumeister, Truhen und die eigene Figur nennen ihr Bild nur noch beim Namen.
 //
 // Es gibt zwei Bild-Dateien (beide erzeugt `npm run assets`):
 // - 'characters' = assets/sprites/characters.png: Kenney "Tiny Dungeon", ein Raster aus 16 × 16
@@ -30,6 +30,7 @@ export const SPRITES = {
   // Kenney "Tiny Dungeon"
   ritter: { sheet: 'characters', idle: [96] },
   haendler: { sheet: 'characters', idle: [86] },
+  baumeister: { sheet: 'characters', idle: [87] },
   ratte: { sheet: 'characters', idle: [123] },
   spinne: { sheet: 'characters', idle: [122] },
   fledermaus: { sheet: 'characters', idle: [120] },
@@ -37,6 +38,8 @@ export const SPRITES = {
   raeuberhauptmann: { sheet: 'characters', idle: [111] },
   'truhe-zu': { sheet: 'characters', idle: [89] },
   'truhe-offen': { sheet: 'characters', idle: [91] },
+  // Die Lagertruhe im Dorf: eine andere Truhe als die Beute-Truhen draußen.
+  lagertruhe: { sheet: 'characters', idle: [90] },
   // 0x72 "DungeonTileset II": vier Bilder Stehen, vier Bilder Laufen
   goblin: creature('goblin', 4, 4),
   'goblin-schleuderer': creature('goblin-schleuderer', 4, 4),

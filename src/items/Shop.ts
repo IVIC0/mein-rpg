@@ -1,6 +1,8 @@
 import { RARITIES, type RarityId } from '../data/items';
-import { BUYBACK, POTION, SHOP_STOCK, buyPrice, potionPrice, sellPrice } from '../data/shop';
+import { BUYBACK, SHOP_STOCK, buyPrice, potionPrice, sellPrice } from '../data/shop';
+import { STOCK_MAX, type TownEffects } from '../data/town';
 import type { Player } from '../entities/Player';
+import type { Town } from '../town/Town';
 import { generateItem, nextItemId, type Item } from './generator';
 import type { Inventory } from './Inventory';
 
@@ -14,11 +16,13 @@ export interface ShopData {
   buyback: Item[];
 }
 
-/** Ergebnis eines Kaufversuchs: geklappt, zu wenig Gold, Inventar voll oder schon genug Tränke. */
-export type BuyResult = 'ok' | 'gold' | 'full' | 'max';
+/** Ergebnis eines Kaufversuchs: geklappt, zu wenig Gold oder Inventar voll. */
+export type BuyResult = 'ok' | 'gold' | 'full';
 
 /**
  * Der Händler: sein Sortiment, Kaufen und Verkaufen. Die Preise stehen in src/data/shop.ts.
+ * Größe des Regals, Seltenheiten, Lieferzeit und Trankpreis hängen am Dorfausbau
+ * (Kontor und Alchemistin, src/data/town.ts) – der Händler liest sie aus `town.effects`.
  * Nach jeder Änderung am Sortiment wird `onChange` aufgerufen (Fenster neu zeichnen, speichern).
  */
 export class Shop {
@@ -31,11 +35,12 @@ export class Shop {
   constructor(
     private readonly inventory: Inventory,
     private readonly player: Player,
+    private readonly town: Town,
   ) {}
 
   /** Übernimmt das Sortiment aus einem Spielstand. */
   load(data: ShopData): void {
-    this.stock = data.stock.map((item) => (item ? { ...item, id: nextItemId() } : null));
+    this.stock = data.stock.slice(0, STOCK_MAX).map((item) => (item ? { ...item, id: nextItemId() } : null));
     this.restockAt = data.restockAt;
     this.buyback = data.buyback.slice(0, BUYBACK.size).map((item) => ({ ...item, id: nextItemId() }));
   }
@@ -49,12 +54,38 @@ export class Shop {
     return Math.max(0, this.restockAt - Date.now());
   }
 
-  /** Ist die Zeit um (oder das Regal noch nie gefüllt), kommt neue Ware auf der Stufe der Figur. */
+  /** Ist die Zeit um (oder das Regal noch nie gefüllt), kommt neue Ware. */
   restockIfDue(): void {
     if (this.stock.length > 0 && Date.now() < this.restockAt) return;
-    this.stock = Array.from({ length: SHOP_STOCK.size }, () => generateItem(this.player.level, rollStockRarity()));
-    this.restockAt = Date.now() + SHOP_STOCK.restockMs;
+    this.restock();
+  }
+
+  /** Neue Ware auf der Stufe der Figur – sofort, egal wie lange die letzte Lieferung her ist. */
+  restock(): void {
+    const effects = this.town.effects;
+    this.stock = Array.from({ length: effects.stockSize }, () => generateItem(this.player.level, rollStockRarity(effects)));
+    this.restockAt = Date.now() + effects.restockMs;
     this.onChange();
+  }
+
+  /** Gibt es den Knopf "Neue Ware sofort" schon? (Kontor ab Stufe 3) */
+  get canRestockNow(): boolean {
+    return this.town.effects.instantRestock;
+  }
+
+  /** So viel Gold kostet "Neue Ware sofort". */
+  get instantRestockPrice(): number {
+    return buyPrice(this.player.level, SHOP_STOCK.instantRestockPriceOf);
+  }
+
+  /** Bezahlt für neue Ware und füllt das Regal sofort. */
+  buyRestock(): BuyResult {
+    const price = this.instantRestockPrice;
+    if (!this.canRestockNow) return 'ok';
+    if (this.inventory.gold < price) return 'gold';
+    this.inventory.spendGold(price);
+    this.restock();
+    return 'ok';
   }
 
   /** Kauft das Item vom Regalplatz `index`. */
@@ -97,20 +128,44 @@ export class Shop {
     return 'ok';
   }
 
-  /** Kauft einen Heiltrank. */
-  buyPotion(): BuyResult {
-    const price = potionPrice(this.player.level);
-    if (this.player.potions >= POTION.maxCarried) return 'max';
-    if (this.inventory.gold < price) return 'gold';
-    this.player.potions++;
-    this.inventory.spendGold(price);
-    return 'ok';
+  /** Was ein Heiltrank gerade kostet (die Alchemistin gibt Nachlass). */
+  get potionPrice(): number {
+    return potionPrice(this.player.level, this.town.effects.potionDiscount);
+  }
+
+  /**
+   * Kauft bis zu `count` Heiltränke – weniger, wenn das Gold nicht für alle reicht.
+   * Gibt zurück, wie viele es geworden sind (0 = zu wenig Gold). Eine Obergrenze fürs Gepäck gibt es nicht.
+   */
+  buyPotions(count: number): number {
+    const price = this.potionPrice;
+    const bought = Math.min(count, Math.floor(this.inventory.gold / price));
+    if (bought <= 0) return 0;
+    this.player.potions += bought;
+    this.inventory.spendGold(price * bought);
+    return bought;
   }
 }
 
-/** Würfelt die Seltenheit eines Items im Regal nach SHOP_STOCK.rarityWeights. */
-function rollStockRarity(): RarityId {
-  const weights = SHOP_STOCK.rarityWeights;
+/**
+ * Die Anteile der Seltenheiten im Regal. Selten und Episch gibt das Kontor vor; was übrig bleibt,
+ * teilen sich Gewöhnlich und Ungewöhnlich im Verhältnis aus SHOP_STOCK.rarityWeights (60 : 32).
+ */
+function stockWeights(effects: TownEffects): Partial<Record<RarityId, number>> {
+  const common = SHOP_STOCK.rarityWeights.common ?? 0;
+  const uncommon = SHOP_STOCK.rarityWeights.uncommon ?? 0;
+  const rest = 100 - effects.stockRareShare - effects.stockEpicShare;
+  return {
+    common: (rest * common) / (common + uncommon),
+    uncommon: (rest * uncommon) / (common + uncommon),
+    rare: effects.stockRareShare,
+    epic: effects.stockEpicShare,
+  };
+}
+
+/** Würfelt die Seltenheit eines Items im Regal. */
+function rollStockRarity(effects: TownEffects): RarityId {
+  const weights = stockWeights(effects);
   const total = RARITIES.reduce((sum, rarity) => sum + (weights[rarity.id] ?? 0), 0);
   let roll = Math.random() * total;
   for (const rarity of RARITIES) {

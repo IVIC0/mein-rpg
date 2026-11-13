@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_TITLE } from '../config';
 import { SPRITES, type SpriteDef } from '../data/sprites';
+import { FLAG_COLORS } from '../data/town';
 import { ZONES } from '../data/zones';
 
 /** Lädt alle Grafiken und Karten und startet danach die Spielwelt. */
@@ -79,6 +80,16 @@ export class BootScene extends Phaser.Scene {
       '..oo########oo..',
       '....oooooooo....',
     ]);
+    // Fahnenmast für die Gebäude im Dorf: 'flag-0' ist der leere Mast (noch nicht ausgebaut),
+    // 'flag-1' bis 'flag-5' tragen ein Tuch in der Farbe der Stufe (FLAG_COLORS in src/data/town.ts).
+    const pole = { k: '#e8d9a0', p: '#7a5230', o: '#2a1c10' };
+    const cloth = ['..kk..........', '..ppFFFFFFFF..', '..ppFFFFFFFFF.', '..ppFFFFFFFFFF', '..ppffFFFFFFF.', '..ppffffFFFF..', '..pp..ffff....'];
+    const bare = ['..kk..........', ...new Array<string>(6).fill('..pp..........')];
+    const mast = [...new Array<string>(15).fill('..pp..........'), '.pppp.........', 'oooooo........'];
+    pixelTexture(this, 'flag-0', pole, [...bare, ...mast]);
+    FLAG_COLORS.forEach(([light, shade], index) => {
+      pixelTexture(this, `flag-${index + 1}`, { ...pole, F: light, f: shade }, [...cloth, ...mast]);
+    });
     this.scene.start('World');
   }
 }

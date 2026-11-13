@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
 import { MELEE_APPROACH, MELEE_RANGE, PLAYER_RESPAWN_MS } from '../config';
 import { TRAIT_VALUES } from '../data/elites';
-import { DEATH_GOLD_LOSS, DEATH_XP_LOSS, xpForKill } from '../data/progression';
+import { DEATH_XP_LOSS, xpForKill } from '../data/progression';
 import { SKILLS, type SkillDef } from '../data/warrior';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 import type { GroundLoot } from '../items/GroundLoot';
 import type { Inventory } from '../items/Inventory';
+import type { Town } from '../town/Town';
 import type { FloatingText } from '../ui/FloatingText';
 import type { Hud } from '../ui/Hud';
 import type { Grid, Point } from '../world/Grid';
@@ -34,6 +35,9 @@ export class Combat {
   /** Wird bei wichtigen Ereignissen aufgerufen (Stufenaufstieg, Tod, Aufwachen, Boss besiegt) – daran hängt das Speichern. */
   onSaveEvent: () => void = () => {};
 
+  /** Wird für jeden besiegten Gegner aufgerufen (setzt WorldScene) – z. B. zählt das Dorf daran die Boss-Siege. */
+  onKill: (enemy: Enemy) => void = () => {};
+
   /**
    * Wo die Figur nach dem Tod aufwacht (setzt WorldScene). Liegt der Punkt in einer anderen
    * Zone, wechselt die Spielwelt dabei die Zone.
@@ -59,6 +63,8 @@ export class Combat {
     private readonly floaters: FloatingText,
     private readonly inventory: Inventory,
     private readonly loot: GroundLoot,
+    /** Der Dorfausbau: Das Gasthaus senkt den Gold-Verlust beim Tod. */
+    private readonly town: Town,
   ) {
     this.ring = scene.add.image(0, 0, 'target-ring').setDepth(6).setVisible(false);
   }
@@ -247,6 +253,7 @@ export class Combat {
     if (!enemy.alive) {
       this.grantXp(enemy);
       this.loot.dropFrom(enemy);
+      this.onKill(enemy);
       if (enemy.hasTrait('explosiv')) this.explode(enemy.pos.x, enemy.pos.y, enemy.baseAttackPower);
       if (enemy.timed) this.onSaveEvent(); // Boss oder benannte Elite: der Respawn-Timer gehört in den Spielstand
     }
@@ -352,7 +359,7 @@ export class Combat {
     this.clearTarget();
     this.player.die();
     this.respawnIn = PLAYER_RESPAWN_MS;
-    this.hud.setDead(true, this.player.loseXp(DEATH_XP_LOSS), this.inventory.loseGold(DEATH_GOLD_LOSS));
+    this.hud.setDead(true, this.player.loseXp(DEATH_XP_LOSS), this.inventory.loseGold(this.town.effects.deathGoldLoss));
     this.onSaveEvent();
   }
 

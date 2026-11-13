@@ -1,4 +1,5 @@
-import { BUYBACK, POTION, SHOP_STOCK, buyPrice, potionPrice, sellPrice } from '../data/shop';
+import { BUYBACK, POTION, buyPrice, sellPrice } from '../data/shop';
+import { STOCK_MAX } from '../data/town';
 import type { Player } from '../entities/Player';
 import { rarityById, type Item } from '../items/generator';
 import type { Inventory } from '../items/Inventory';
@@ -9,6 +10,8 @@ import type { InventoryWindow } from './InventoryWindow';
 import type { ItemTooltip } from './ItemTooltip';
 
 interface Slot {
+  /** Das ganze Feld samt Preis – ausgeblendet, wenn das Regal (noch) nicht so viele Plätze hat. */
+  root: HTMLElement;
   box: HTMLElement;
   icon: HTMLElement;
   price: HTMLElement;
@@ -19,7 +22,8 @@ type Tab = 'stock' | 'buyback';
 
 /**
  * Das Fenster des Händlers mit zwei Reitern:
- * - "Ware": sein Sortiment (Linksklick = kaufen) und der Heiltrank.
+ * - "Ware": sein Sortiment (Linksklick = kaufen) und der Heiltrank (Umschalt + Klick = gleich mehrere).
+ *   Wie viele Plätze das Regal hat, hängt am Kontor (src/data/town.ts); ab Kontor 3 gibt es "Neue Ware sofort".
  * - "Rückkauf": die zuletzt verkauften Items (Linksklick = zum Verkaufspreis zurückkaufen).
  * Verkauft wird im Inventar-Fenster, das sich mit öffnet (Rechtsklick auf ein Item).
  * Das Grundgerüst steht in index.html, die Regeln und Preise in src/items/Shop.ts und src/data/shop.ts.
@@ -29,7 +33,9 @@ export class ShopWindow {
   private readonly gold = byId('shop-gold');
   private readonly restock = byId('shop-restock');
   private readonly potionText = byId('shop-potion-text');
+  private readonly potionCount = byId('shop-potion-count');
   private readonly potionButton = byId('shop-potion-buy') as HTMLButtonElement;
+  private readonly restockButton = byId('shop-restock-now') as HTMLButtonElement;
   private readonly tabButtons: Record<Tab, HTMLElement> = { stock: byId('shop-tab-stock'), buyback: byId('shop-tab-buyback') };
   private readonly pages: Record<Tab, HTMLElement> = { stock: byId('shop-page-stock'), buyback: byId('shop-page-buyback') };
   private readonly slots: Record<Tab, Slot[]>;
@@ -46,7 +52,7 @@ export class ShopWindow {
     private readonly inventoryWindow: InventoryWindow,
   ) {
     this.slots = {
-      stock: this.buildSlots(byId('shop-stock'), SHOP_STOCK.size, (index) => this.shop.buy(index)),
+      stock: this.buildSlots(byId('shop-stock'), STOCK_MAX, (index) => this.shop.buy(index)),
       buyback: this.buildSlots(byId('shop-buyback'), BUYBACK.size, (index) => this.shop.buyBack(index)),
     };
     for (const tab of ['stock', 'buyback'] as const) {
@@ -58,10 +64,18 @@ export class ShopWindow {
     byId('shop-buyback-help').innerHTML =
       `Linksklick: zum Verkaufspreis zurückkaufen<br />Der Händler merkt sich die letzten ${BUYBACK.size} verkauften Items.`;
     (byId('shop-potion-icon') as HTMLElement).style.backgroundPosition = iconPosition(POTION.frame);
-    this.potionButton.addEventListener('click', () => {
-      this.report(this.shop.buyPotion());
+    byId('shop-potion-help').textContent = `Umschalt + Klick: ${POTION.bulkAmount} Stück auf einmal`;
+    this.potionButton.addEventListener('click', (event) => {
+      // Umschalt + Klick kauft einen ganzen Vorrat – oder so viele, wie das Gold hergibt.
+      const bought = this.shop.buyPotions(event.shiftKey ? POTION.bulkAmount : 1);
+      if (bought === 0) this.hud.flash('Zu wenig Gold');
+      else if (bought > 1) this.hud.flash(`${bought} Heiltränke gekauft`);
       this.potionButton.blur();
       this.render();
+    });
+    this.restockButton.addEventListener('click', () => {
+      this.report(this.shop.buyRestock());
+      this.restockButton.blur();
     });
     byId('shop-close').addEventListener('click', () => this.close());
   }
@@ -84,7 +98,7 @@ export class ShopWindow {
         this.tooltip.hide();
       });
       parent.appendChild(slot);
-      slots.push({ box, icon: slot.querySelector('.item-icon') as HTMLElement, price: slot.querySelector('.shop-price') as HTMLElement });
+      slots.push({ root: slot, box, icon: slot.querySelector('.item-icon') as HTMLElement, price: slot.querySelector('.shop-price') as HTMLElement });
     }
     return slots;
   }
@@ -133,11 +147,18 @@ export class ShopWindow {
     byId('shop-buyback-count').textContent = `${this.shop.buyback.length} / ${BUYBACK.size} Items`;
     this.tabButtons.buyback.textContent = this.shop.buyback.length > 0 ? `Rückkauf (${this.shop.buyback.length})` : 'Rückkauf';
 
-    const price = potionPrice(this.player.level);
-    const full = this.player.potions >= POTION.maxCarried;
-    this.potionText.textContent = `${POTION.name} (${this.player.potions} / ${POTION.maxCarried}) – heilt ${Math.round(POTION.healFraction * 100)} % Leben, Taste Q`;
-    this.potionButton.textContent = full ? 'Gepäck voll' : `Kaufen: ${price} Gold`;
-    this.potionButton.disabled = full || price > gold;
+    // Heiltrank: Heilung und Preis hängen an der Alchemistin. Tragen kann die Figur beliebig viele.
+    const price = this.shop.potionPrice;
+    this.potionText.textContent = `${POTION.name} – heilt ${Math.round(this.player.potionHealFraction * 100)} % Leben, Taste Q`;
+    this.potionCount.textContent = `Im Gepäck: ${this.player.potions}`;
+    this.potionButton.textContent = `Kaufen: ${price} Gold`;
+    this.potionButton.disabled = price > gold;
+
+    // "Neue Ware sofort" gibt es erst mit Kontor Stufe 3.
+    const restockPrice = this.shop.instantRestockPrice;
+    this.restockButton.hidden = !this.shop.canRestockNow;
+    this.restockButton.textContent = `Neue Ware sofort: ${restockPrice} Gold`;
+    this.restockButton.disabled = restockPrice > gold;
     this.showTooltip();
   }
 
@@ -145,6 +166,8 @@ export class ShopWindow {
   private renderSlots(slots: Slot[], items: (Item | null)[], priceOf: (level: number, rarity: Item['rarity']) => number, emptyText: string): void {
     const gold = this.inventory.gold;
     slots.forEach((slot, index) => {
+      // Das Regal wächst mit dem Kontor: Plätze, die es noch nicht gibt, bleiben unsichtbar.
+      slot.root.hidden = slots === this.slots.stock && index >= items.length;
       const item = items[index] ?? null;
       slot.box.classList.toggle('filled', item !== null);
       slot.box.style.borderColor = item ? rarityById(item.rarity).color : '';
@@ -169,7 +192,6 @@ export class ShopWindow {
   private report(result: BuyResult): void {
     if (result === 'gold') this.hud.flash('Zu wenig Gold');
     else if (result === 'full') this.hud.flash('Inventar voll');
-    else if (result === 'max') this.hud.flash('Mehr Tränke kannst du nicht tragen');
   }
 
   private showTooltip(): void {

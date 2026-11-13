@@ -56,6 +56,9 @@ export default {
     { line: [[14, 68], [14, 71], [17, 71]], width: 2 }, // Haus im Westen
     { line: [[29, 67], [29, 70], [27, 70]], width: 2 }, // Haus im Nordosten
     { line: [[35, 70], [35, 71]], width: 2 }, // Haus im Osten
+    // Neu seit Schritt 11b (Dorfausbau):
+    { line: [[24, 67], [24, 68]], width: 2 }, // Kontor hinter dem Händler
+    { line: [[28, 74], [28, 77], [31, 77]], width: 2 }, // Gasse zum Lagerhaus
   ],
 
   // Bauten. Arten: haus, zaun, ruine, ding (ein einzelnes Teil aus PROPS in tools/lib/tiles.mjs),
@@ -69,7 +72,7 @@ export default {
     { type: 'ding', tile: 'sign', x: 39, y: 70 },
     { type: 'ding', tile: 'log', x: 17, y: 66 },
     { type: 'ding', tile: 'pot', x: 32, y: 67 },
-    { type: 'ding', tile: 'cart', x: 29, y: 76 },
+    { type: 'ding', tile: 'cart', x: 34, y: 77 },
     { type: 'zaun', x: 10, y: 73, width: 5, height: 4, gate: 3 },
     { type: 'ding', tile: 'hay', x: 11, y: 74 },
     { type: 'ding', tile: 'hay', x: 12, y: 74 },
@@ -82,6 +85,11 @@ export default {
     { type: 'ding', tile: 'log', x: 80, y: 37 },
     { type: 'ding', tile: 'pot', x: 86, y: 37 },
     { type: 'ding', tile: 'hay', x: 79, y: 41 },
+    // Neu seit Schritt 11b (Dorfausbau): Kontor hinter dem Händler, Lagerhaus im Südosten des Dorfs.
+    // Die anderen Gebäude sind die drei alten Häuser: Gasthaus (Westen), Rathaus (Nordosten, Stein),
+    // Alchemistin (Osten). Welches Haus welches Gebäude ist, legen die Fahnen unten fest.
+    { type: 'haus', x: 23, y: 64, width: 3, roof: 'gray', wall: 'wood', door: 1 },
+    { type: 'haus', x: 30, y: 74, width: 4, roof: 'red', wall: 'stone', door: 1 },
   ],
 
   // Besondere Orte (POIs). Was sie im Spiel tun, hängt an `type`:
@@ -89,16 +97,34 @@ export default {
   //   truhe    – Truhe mit Itemlevel `level` (Werte: src/data/pois.ts)
   //   portal   – Übergang in die Zone `to`; die Figur kommt dort am Marker `arrive` an
   //   elite    – fester Elite-Platz; `name` ist der Schlüssel in NAMED_ELITES (src/data/elites.ts)
+  //   baumeister – bei ihm baut man das Dorf aus (Werte: src/data/town.ts)
+  //   lagertruhe – die Lagertruhe am Lagerhaus
+  //   fahne    – Fahne am Haus des Gebäudes `building` (Schlüssel in BUILDINGS, src/data/town.ts);
+  //              sie zeigt dessen Stufe und ist kein Hindernis
   // `name` muss in der Zone eindeutig sein – daran hängen die Zeiten im Spielstand.
   pois: [
     { type: 'haendler', name: 'haendler', x: 25, y: 70 },
     { type: 'portal', name: 'hoehleneingang', x: 22, y: 26, to: 'spinnenhoehle', arrive: 'spawn', label: 'Spinnenhöhle' },
     { type: 'truhe', name: 'truhe-wolfshang', x: 50, y: 10, level: 4 },
     { type: 'truhe', name: 'truhe-goblinlager', x: 83, y: 38, level: 7 },
+    // Dorfausbau (seit Schritt 11b)
+    { type: 'baumeister', name: 'baumeister', x: 18, y: 70 },
+    { type: 'lagertruhe', name: 'lagertruhe', x: 32, y: 77 },
+    { type: 'fahne', name: 'fahne-rathaus', x: 28, y: 67, building: 'rathaus' },
+    { type: 'fahne', name: 'fahne-gasthaus', x: 13, y: 68, building: 'gasthaus' },
+    { type: 'fahne', name: 'fahne-alchemistin', x: 34, y: 70, building: 'alchemistin' },
+    { type: 'fahne', name: 'fahne-kontor', x: 23, y: 67, building: 'kontor' },
+    { type: 'fahne', name: 'fahne-lagerhaus', x: 30, y: 77, building: 'lagerhaus' },
   ],
 
-  /** Benannte Punkte, an denen die Figur ankommen kann (Ziel `arrive` eines Portals). */
-  markers: [{ name: 'vor-der-hoehle', x: 22, y: 28 }],
+  /**
+   * Benannte Punkte: Ankunft eines Portals (`arrive`) und die Dorfmitte – um sie herum gilt die
+   * Dorf-Erholung des Gasthauses (TOWN in src/data/town.ts).
+   */
+  markers: [
+    { name: 'vor-der-hoehle', x: 22, y: 28 },
+    { name: 'dorfmitte', x: 22, y: 73 },
+  ],
 
   // Gegnergruppen je Lichtung oder Lager: Gegnertyp → Stufen, ein Gegner pro Eintrag.
   // Die Typen mit ihren Werten stehen in src/data/enemies.ts. Je weiter vom Dorf,

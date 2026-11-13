@@ -70,6 +70,8 @@ export class Enemy extends Actor {
 
   constructor(
     scene: Phaser.Scene,
+    /** Gegnertyp: der Schlüssel in ENEMIES (src/data/enemies.ts), z. B. 'ratte'. */
+    readonly type: string,
     readonly def: EnemyDef,
     readonly level: number,
     x: number,

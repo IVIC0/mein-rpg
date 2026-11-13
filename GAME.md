@@ -238,7 +238,8 @@ Format 4, alte Stände laden unverändert.
 - Stufe 5 (192 Leben): Rasten bringt 1,6 Leben pro Sekunde, Laufen 1,1. Vorher 9,6.
 - Im Spielerrahmen steht unter den Balken „Erholung" (Laufen) bzw. „Rasten", solange Leben
   zurückkommt – so sieht man, dass Stehenbleiben hilft und wann die Sperre vorbei ist.
-- Unverändert: Stufenaufstieg und Aufwachen im Dorf füllen das Leben, Lebensraub und der Affix
+- Unverändert: Der Stufenaufstieg füllt das Leben (das Aufwachen im Dorf seit Schritt 11b nur
+  noch zur Hälfte, siehe unten), Lebensraub und der Affix
   „… der Erholung" (Leben pro Sekunde von der Ausrüstung) wirken weiter auch im Kampf. Gegner
   heilen voll, wenn sie zurücklaufen.
 - Ein Heiltrank (40 %) spart damit rund 48 Sekunden Rasten.
@@ -275,6 +276,9 @@ Format 4, alte Stände laden unverändert.
   weil man sie jetzt braucht. Sie sind damit die laufende Gold-Ausgabe.
 - **Tod:** Aufwachen im Dorf bleibt mit vollem Leben. Damit Sterben kein billiger Heilweg wird,
   kostet es doppelt so viel Gold; der EP-Verlust bleibt, weil der Weg zurück schon Zeit kostet.
+  *(Seit Schritt 11b von dir geändert: Man wacht mit **halbem** Leben auf – `reviveHpFraction`
+  in `src/data/regen.ts`, 0.5 = die Hälfte, 1 = voll. Das Gasthaus senkt den Gold-Verlust,
+  Abschnitt 16.2.)*
 - Händler-Sortiment (60 / 32 / 8 %), Lieferzeit, Rückkauf zum Verkaufspreis: unverändert.
 - Die große Gold-Verwendung fehlt weiter – dafür ist der Stadtausbau geplant (Abschnitt 16.2).
 
@@ -543,14 +547,25 @@ der Lieferung), jede Art gleich oft. Seltenheit: 60 % Gewöhnlich, 32 % Ungewöh
 der Händler führt bewusst nur einfache Ware, die besten Stücke gibt es weiter nur als Beute.
 Gekauftes ist weg, bis neue Ware kommt: alle **10 Minuten** wird das ganze Regal neu gewürfelt.
 Die Uhr läuft in echter Zeit weiter, auch wenn das Spiel zu ist (wie beim Boss). Sortiment und
-Lieferzeitpunkt stehen im Spielstand, also pro Slot.
+Lieferzeitpunkt stehen im Spielstand, also pro Slot. Das sind die Werte ohne Dorfausbau – das
+**Kontor** macht das Regal größer, die Ware seltener und die Lieferzeit kürzer (Abschnitt 16.2).
 
-**Heiltrank:** heilt 40 % des maximalen Lebens, 30 Sekunden Abklingzeit, höchstens 5 im Gepäck
-(sie belegen keinen Inventar-Platz). Preis = 6 + 2 × Stufe der Figur (Stufe 1: 8, Stufe 5: 16,
-Stufe 10: 26 Gold – seit Schritt 10b, vorher 14 / 30 / 50). Der Händler hat immer welche. Getrunken wird mit `Q` oder per Mausklick auf
-das Trank-Feld *(Klick seit Meilenstein 11)*. Der Trank steht als Feld mit Anzahl und
-Abklingzeit am Ende der Skill-Leiste; er ist das Einzige dort, das man selbst auslöst (`Q`).
-Die Abklingzeit wird nicht gespeichert.
+**Heiltrank:** heilt 40 % des maximalen Lebens, 30 Sekunden Abklingzeit. Preis = 6 + 2 × Stufe
+der Figur (Stufe 1: 8, Stufe 5: 16, Stufe 10: 26 Gold – seit Schritt 10b, vorher 14 / 30 / 50).
+Der Händler hat immer welche. Getrunken wird mit `Q` oder per Mausklick auf das Trank-Feld
+*(Klick seit Meilenstein 11)*. Der Trank steht als Feld mit Anzahl und Abklingzeit am Ende der
+Skill-Leiste; er ist das Einzige dort, das man selbst auslöst (`Q`). Die Abklingzeit wird nicht
+gespeichert.
+- **Keine Obergrenze** *(Entschieden, seit Schritt 11b – vorher höchstens 5 im Gepäck)*: Man darf
+  beliebig viele Tränke kaufen und tragen; sie belegen keinen Inventar-Platz. Gebremst wird nur
+  noch durch Gold und die Abklingzeit.
+- **Kaufen:** Klick auf „Kaufen" nimmt einen Trank, **Umschalt + Klick** gleich 10 (oder so viele,
+  wie das Gold hergibt) – `bulkAmount` in `src/data/shop.ts` *(Startwert)*.
+- **Anzeige:** Im Händler-Fenster steht „Im Gepäck: 126" in einer eigenen Zeile. Das Trank-Feld der
+  Skill-Leiste zeigt die Zahl oben links auf dunklem Grund, auch dreistellig; ab 1 000 steht dort
+  „999+" (die genaue Zahl zeigen der Tooltip des Felds und das Händler-Fenster).
+- **Spielstand:** Der Zähler hat keine Grenze mehr (Format 5, Abschnitt 11).
+- Heilung, Abklingzeit und Preis verbessert die **Alchemistin** im Dorf (Abschnitt 16.2).
 
 ## 8. Elite- und Boss-Gegner
 
@@ -708,6 +723,7 @@ Abklingzeiten bleiben, wie sie sind.
 | Übergang (Höhle) | Wechsel in eine andere Zone | Umkreis 9 Pixel |
 | Lager | Zaun mit Tor, darin eine dichte Gegnergruppe und eine Truhe. Gegner sehen nicht durch den Zaun – sie greifen erst an, wenn man durchs Tor kommt | – |
 | Händler | wie bisher (Abschnitt 7b), jetzt ebenfalls als POI im Bauplan | – |
+| Baumeister, Lagertruhe, Fahne *(seit Schritt 11b)* | Dorfausbau: Fenster „Dorfausbau", Fenster der Lagertruhe, Fahne mit der Stufe eines Gebäudes (Abschnitt 16.2) | `src/data/town.ts` |
 
 Die drei Truhen: **Wolfshang** (Itemlevel 4), **Goblin-Lager** (7), **Brutkammer** am Ende der
 Spinnenhöhle (6). Eine leere Truhe sagt beim Anklicken, in wie vielen Minuten sie wieder voll ist.
@@ -808,6 +824,8 @@ Export/Import als Datei; Versionsnummer; Namenseingabe pro Slot. Alles, was unte
   3 Minuten bis zum Verschwinden zählen nur Spielzeit – bei geschlossenem Spiel läuft nichts ab.
 - Sortiment des Händlers, wann neue Ware kommt und die Rückkauf-Liste (Abschnitt 7b).
 - Schwierigkeit: Gegnerleben und Gegnerschaden in Prozent (Abschnitt 15.6). *(seit Meilenstein 10)*
+- Dorfausbau: Stufe je Gebäude, Inhalt der Lagertruhe und die Liste besiegter Bosse (Gegnertyp →
+  Anzahl der Siege; daran hängen die Rathaus-Stufen). *(seit Schritt 11b, Abschnitt 16.2)*
 - Respawn-Zeitpunkt besiegter Bosse und benannter Elites, Zeitpunkt, ab dem eine geöffnete Truhe
   wieder gefüllt ist *(beides je Zone, seit Meilenstein 11)*, Spielzeit, Zeitpunkt des letzten
   Speicherns, Format-Nummer.
@@ -822,14 +840,16 @@ Export/Import als Datei; Versionsnummer; Namenseingabe pro Slot. Alles, was unte
 **Was beim Neuladen verloren geht** *(Startwert)*: Abklingzeiten (auch die des Heiltranks) und
 Buffs, der Wuchtschlag-Zähler und der Zustand normaler Gegner – sie stehen alle wieder frisch
 an ihrem Platz (Elites werden neu gewürfelt). Lag die Figur beim Speichern am Boden, wacht sie mit
-vollem Leben im Dorf auf (der Verlust durch den Tod ist dann schon abgezogen).
+halbem Leben im Dorf auf – wie nach jedem Tod seit Schritt 11b (der Verlust durch den Tod ist dann
+schon abgezogen).
 
 **Wann gespeichert wird** (Werte in `src/data/save.ts`, *Startwerte*):
 - alle 30 Sekunden,
 - 1 Sekunde nach einem wichtigen Ereignis: Item fällt zu Boden, aufgehoben, Gold erhalten (also
   nach jedem besiegten Gegner), an-/abgelegt, weggeworfen, gekauft, verkauft, zurückgekauft,
   Schwierigkeit geändert, Trank getrunken,
-  neue Ware beim Händler, Stufenaufstieg, Tod, Aufwachen, Boss besiegt,
+  neue Ware beim Händler, Stufenaufstieg, Tod, Aufwachen, Boss besiegt, Gebäude ausgebaut,
+  Item in die Lagertruhe gelegt oder herausgenommen,
 - sofort beim Verlassen, Neuladen oder Wegschalten der Seite und mit „Jetzt speichern".
 
 **Slots:** 3 normale Slots plus 1 Slot „Test" *(Anzahl 3 ist ein Startwert, `SLOT_COUNT`)*.
@@ -849,13 +869,18 @@ vollem Leben im Dorf auf (der Verlust durch den Tod ist dann schon abgezogen).
 Slot „Test" (ersetzt dort ohne Nachfrage den vorigen Test-Spielstand), wird gleich geladen und
 speichert wie jeder andere Slot – die normalen Slots bleiben unberührt. Vorlagen stehen in
 `src/data/testSaves.ts` (Stufe, Gold, Tränke, Ausrüstung je Platz mit Seltenheit, Inventar als Liste von
-Seltenheiten; die Items werden beim Anlegen gewürfelt). *Startwerte:*
+Seltenheiten; die Items werden beim Anlegen gewürfelt; seit Schritt 11b wahlweise auch Stufen
+einzelner Gebäude `town` und schon besiegte Bosse `bossKills`). *Startwerte:*
 
 | Vorlage | Stufe | Gold | Tränke | Ausrüstung | Inventar |
 |---|---|---|---|---|---|
 | Stufe 1 – neu | 1 | 0 | 0 | – | leer |
 | Stufe 5 – etwas Loot | 5 | 150 | 2 | Waffe und Stiefel grün, Brust und Helm weiß | 6 Items (3 weiß, 2 grün, 1 blau) |
 | Stufe 10 – voll ausgerüstet | 10 | 1500 | 5 | alle 9 Plätze: Waffe und Brust lila, Ring 2 grün, Rest blau | 8 Items, jede Seltenheit dabei |
+| Stufe 10 – Dorfausbau *(seit 11b)* | 10 | 6000 | 12 | Waffe und Brust blau, Schild, Helm, Hände und Füße grün | 5 Items |
+
+Die Vorlage „Dorfausbau" hat den Räuberhauptmann schon besiegt: Die 6 000 Gold reichen für
+Rathaus 2 und alle vier Gebäude auf Stufe 2 (1 500 + 4 × 950 = 5 300 Gold).
 
 **Test-Parameter in der Adresse** (`?stufe`, `?beute`, `?elite`, `?zone`) *(Startwert)*: Ist einer davon
 gesetzt, läuft ein **Testlauf** – eine frische „Testfigur", die in keinem Slot liegt. Es wird
@@ -869,8 +894,8 @@ derselbe Text wie im Browser). „Importieren …" legt eine Datei in den **erst
 Slot und lädt sie nicht von selbst. Sind alle Slots belegt, gibt es eine Meldung – ein Import
 überschreibt nie etwas. *(Startwert)*
 
-**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **4** (Schritt 10b hat nur
-Balancing-Werte geändert – das Format ist geblieben, alte Stände laden unverändert). Ändert sich der Aufbau,
+**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **5** (Schritt 10b hat nur
+Balancing-Werte geändert – dort ist das Format geblieben). Ändert sich der Aufbau,
 wird sie erhöht und in `MIGRATIONS` (`src/save/saveGame.ts`) eingetragen, wie ein alter Stand ins
 neue Format kommt.
 - Format 1 (Meilenstein 7) → 2 (Meilenstein 8): Die Einstellungen fallen aus dem Spielstand;
@@ -885,6 +910,11 @@ neue Format kommt.
   Im Browser geprüft mit einem Format-3-Stand. Der Boss steht nach dem Umbau der Karte ein paar
   Kacheln woanders – ein gerade laufender Boss-Timer aus einem alten Stand verfällt deshalb
   einmalig (der Boss ist dann sofort wieder da).
+- Format 4 → 5 (Schritt 11b): Neu sind der Dorfausbau (`town`: Stufe je Gebäude, Start: Rathaus 1,
+  alles andere 0), die Lagertruhe (`stash`, Start: leer) und die besiegten Bosse (`bossKills`,
+  Start: leer). Der Trank-Zähler hat keine Obergrenze mehr. Alte Stände verlieren nichts; im
+  Browser geprüft mit einem Format-4-Stand. **Boss-Siege werden erst ab jetzt gezählt** – wer den
+  Räuberhauptmann schon besiegt hatte, muss ihn für Rathaus 2 noch einmal schlagen.
 - Im Menü „Spielstände" steht bei jedem Slot jetzt auch die Zone.
 - Alter Stand: wird beim Laden Schritt für Schritt umgebaut.
 - Stand aus einer **neueren** Spielversion, zu alter Stand ohne Umbau oder kaputte Daten: Der Slot
@@ -928,8 +958,8 @@ nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 
 Meilenstein 10 (Minimap, Rückkauf, Schwierigkeit), Meilenstein 11 (Zonen-Fundament,
 Grünwald-Ergänzung, Abschnitt 9b) und Schritt 10b (Balancing-Fixes, Abschnitt 4b) sind
-umgesetzt ✅ – siehe Tabelle in 15.7. Die zweite Fortschrittsachse (Dorfausbau, Jagdbuch,
-Meisterschaft) ist in Abschnitt 16 geplant.
+umgesetzt ✅ – siehe Tabelle in 15.7. Von der zweiten Fortschrittsachse (Abschnitt 16) ist der
+Dorfausbau umgesetzt ✅ (Schritt 11b); Jagdbuch (11c) und Meisterschaft sind geplant.
 
 **Reihenfolge nach V1:** steht jetzt als Meilensteine 10–20 in Abschnitt 15.7 (ersetzt die
 frühere Kurzliste Talentbaum → Quests → Aufwerten → Zone 2 → …).
@@ -971,7 +1001,8 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
    Umrechnung der Attribute sind erste Schätzungen.
 8. Händler (Meilenstein 8), von mir gesetzte Startwerte zum Prüfen im Spiel (alle in
    `src/data/shop.ts`): Preisformel und Faktoren, 10 % Erlös (seit 10b), 8 Regalplätze, 60/32/8 %
-   Seltenheiten, neue Ware alle 10 Minuten, Trank (40 %, 30 s, höchstens 5, Preis).
+   Seltenheiten, neue Ware alle 10 Minuten, Trank (40 %, 30 s, Preis; seit Schritt 11b ohne
+   Obergrenze im Gepäck).
    - Erledigt *(Umgesetzt, Meilenstein 10)*: Rückkauf der letzten 10 verkauften Items zum
      Verkaufspreis (Abschnitt 7b).
    - Sortiment auf der Stufe der Figur: Wer aufsteigt, sieht bis zur nächsten Lieferung noch
@@ -1032,14 +1063,37 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
       und wirken auch im Kampf. Gegenüber der gebremsten Regeneration sind sie jetzt viel mehr
       wert: Ein einziges Teil mit 0,5 Leben pro Sekunde ist auf Stufe 1 so stark wie halbes
       Rasten. Nicht angefasst – im Spiel beobachten.
-    - Aufwachen im Dorf mit vollem Leben: Sterben ist damit eine (teure) Heilung. Reichen
-      10 % Gold und 5 % EP als Preis?
+    - Erledigt *(Entschieden, Schritt 11b)*: Aufwachen im Dorf mit halbem statt vollem Leben
+      (`reviveHpFraction` in `src/data/regen.ts`).
     - Gold: Einkommen rund −40 %, blaues Item rund dreimal so viel Spielzeit wie vorher.
       Tränke 8 / 16 / 26 Gold. Truhen geben rund 40 % weniger Gold.
     - Drops: 6 % statt 10 %, gute Seltenheiten seltener. Elite-Chance (5 %) unverändert.
     - Die Test-Vorlagen (150 Gold auf Stufe 5, 1 500 auf Stufe 10) sind unverändert und damit
       etwas reicher als eine echte Figur.
     - Verfolgt irgendein Gegner die Figur, steht die Regeneration – auch wenn er nie trifft.
+18. Schritt 11b (Dorfausbau), von mir gesetzte Startwerte zum Prüfen im Spiel (Abschnitt 16.2,
+    alle in `src/data/town.ts`):
+    - Kosten und Boni aller Gebäude. In Grünwald erreichbar: Stufe 1 sofort, Stufe 2 nach dem
+      Räuberhauptmann. Stufe 3–5 sind eingebaut, aber gesperrt, bis ihre Zonen-Bosse existieren.
+    - **Alchemistin:** Weil die Trank-Obergrenze weg ist, gibt sie statt „mehr Tränke im Gepäck"
+      einen Nachlass von 5 / 10 / 15 / 20 / 25 % auf den Trankpreis. Das ist mein Ersatz, nicht
+      deine Vorgabe – passt das, oder lieber etwas anderes (oder gar kein Ersatz)?
+    - **Tränke ohne Obergrenze:** Mit genug Gold kann man sich durch jeden Kampf trinken – die
+      einzige Bremse ist die Abklingzeit (30 s). Ist das zu stark, sind Abklingzeit und Preis die
+      Stellschrauben (`POTION` in `src/data/shop.ts`).
+    - **Dorfruhe** (Gasthaus ab Stufe 1): voll in 15 s, im Umkreis von 15 Kacheln um den Brunnen,
+      auch im Laufen; die 8 s Sperre nach einem Kampf gilt weiter. Zusammen mit „halbes Leben nach
+      dem Tod" heißt das: Für 150 Gold ist man nach dem Aufwachen in rund 10 Sekunden wieder voll.
+    - Welches Haus welches Gebäude ist, Platz von Baumeister, Lagertruhe und Fahnen, die Bilder
+      von Baumeister (Zwerg mit Helm) und Lagertruhe, die Fahnenfarben je Stufe.
+    - Lagertruhe: Rechtsklick im Inventar lagert ein, Linksklick in der Truhe nimmt heraus – ohne
+      Sicherheits-Klick. Sortieren oder Verschieben von Plätzen gibt es noch nicht.
+    - Kontor-Ausbau liefert sofort frische Ware (das alte Regal ist dann weg). „Neue Ware sofort"
+      (ab Kontor 3) kostet so viel wie ein grünes Item der eigenen Stufe.
+    - Der Baumeister öffnet sein Fenster links wie der Händler; bei 720 Pixeln Bildhöhe ist es
+      knapp und bekommt dann einen Rollbalken.
+    - Für die zwei neuen Häuser hat sich die Karte südlich des Dorfs leicht verändert: einzelne
+      Büsche und Pilze stehen woanders. Gegner, Wege und Lichtungen sind unverändert.
 
 ---
 
@@ -1313,21 +1367,21 @@ Von dir entschieden *(Entschieden)*: vier Knöpfe plus freie Regler, mehr EP und
 das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter dem Meilenstein
 (Meilenstein 10 = 0.10.0, Meilenstein 11 = 0.11.0); Zwischenschritte mit Buchstaben zählen die
 letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2 …). Die Schritte
-11b, 11c und 14b sind die zweite Fortschrittsachse aus Abschnitt 16 – sie sind **Vorschlag**, bis
-du die Fragen in 16.6 beantwortet hast. Die Nummern 12–20 bleiben, wie sie waren.
+11b, 11c und 14b sind die zweite Fortschrittsachse aus Abschnitt 16 – seit deinen Antworten in
+16.6 *(Entschieden)*; offen ist nur die Waffen-Meisterschaft. Die Nummern 12–20 bleiben, wie sie waren.
 
 | # | Meilenstein | Inhalt | Aufwand |
 |---|---|---|---|
 | 10 ✅ | Minimap, Rückkauf, Schwierigkeit | **Minimap** unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe (rot, Elite gold, Boss lila), Händler; HUD-Element mit Schalter, Größe, Deckkraft, verschiebbar. **Rückkauf:** eigener Reiter beim Händler mit den letzten 10 verkauften Items zum Verkaufspreis; die Liste steht im Spielstand, das älteste fällt raus. **Schwierigkeit** (15.6): zwei Regler plus vier Knöpfe, pro Spielstand, Bonus auf EP und Gold über 100 %. Spielstand Format 3 | 1–2 Sitzungen, klein bis mittel |
 | 11 ✅ | Zonen-Fundament | Umgesetzt (Abschnitt 9b). Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 4. Die hochgeladenen Packs einbinden (Figuren von 0x72 und Ninja Adventure neben Kenney, kein Umstellen der vorhandenen Figuren), `CREDITS.md` ergänzen. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus und Goblins ergänzt; Wolf und Wildschwein nur, wenn ein Pack sie hat – also Wildschwein und als Wolf-Ersatz Hyäne/Hund (15.8) | 2–3 Sitzungen, groß |
 | 10b ✅ | Balancing-Fixes | Umgesetzt nach Meilenstein 11 (Abschnitt 4b): Regeneration gebremst (Sperre, Rasten), Gold-Drops, Händlerpreise, Trankpreis, Todesstrafe und Drop-Tabellen neu. Kein neues Spielstand-Format. Dazu der Plan für die zweite Fortschrittsachse (Abschnitt 16) | 1 Sitzung, klein |
-| 11b | Dorfausbau *(Vorschlag, 16.2)* | Baumeister im Dorf, Fenster „Dorfausbau", Rathaus, Kontor, Alchemistin, Gasthaus, Lagerhaus mit Lagertruhe; in Grünwald erreichbar sind Stufe 1–2 (Stufe 2 nach dem Räuberhauptmann). Spielstand Format 5 | 1–2 Sitzungen, mittel |
-| 11c | Jagdbuch *(Vorschlag, 16.3)* | Kills je Gegnertyp zählen, Ränge mit kleinen Boni, Sammelseite Grünwald, Bosse-Zeile, Fenster (`J`). Spielstand Format 6 | 1 Sitzung, klein bis mittel |
+| 11b ✅ | Dorfausbau (16.2) | Umgesetzt. Baumeister im Dorf, Fenster „Dorfausbau", Rathaus, Kontor, Alchemistin, Gasthaus, Lagerhaus mit Lagertruhe, Fahnen an den Häusern; in Grünwald erreichbar sind Stufe 1–2 (Stufe 2 nach dem Räuberhauptmann). Dazu: Trank-Obergrenze entfernt, Aufwachen nach dem Tod mit halbem Leben. Spielstand Format 5 | 1 Sitzung, mittel |
+| 11c | Jagdbuch *(Entschieden: mit kleinen Boni, 16.3)* | Kills je Gegnertyp zählen, Ränge mit kleinen Boni, Sammelseite Grünwald, Bosse-Zeile, Fenster (`J`). Spielstand Format 6 | 1 Sitzung, klein bis mittel |
 | 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD (unter der Minimap), Kopfgeld-Brett (Anzahl der Kopfgelder hängt an der Rathaus-Stufe, 16.2), die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
 | 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, große Karte (`M`), Cap 20, neue Assets | 2–3 Sitzungen, groß |
 | 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
-| 14b | Skill-Meisterschaft *(Vorschlag, 16.4)* | Skills steigen durch Auslösen (Stufe 0–10), Übungsplatz als Gebäude im Dorf. Erst hier, weil es vorher nichts zu wählen gibt und die Rechnung „Skill-Werte nach Talenten" aus Meilenstein 14 stammt | 1 Sitzung, mittel |
-| 15 | Loot-Vielfalt | Neue Affixe, Waffen-Unterschiede, zwei neue Waffen, 12 Legendär-Effekte. Dazu *(Vorschlag, 16.4)* die Waffen-Meisterschaft, weil sich die Waffen erst hier unterscheiden | 2 Sitzungen, mittel |
+| 14b | Skill-Meisterschaft (16.4) | Skills steigen durch Auslösen (Stufe 0–10), Übungsplatz als Gebäude im Dorf. Erst hier, weil es vorher nichts zu wählen gibt und die Rechnung „Skill-Werte nach Talenten" aus Meilenstein 14 stammt | 1 Sitzung, mittel |
+| 15 | Loot-Vielfalt | Neue Affixe, Waffen-Unterschiede, zwei neue Waffen, 12 Legendär-Effekte. Dazu vielleicht die Waffen-Meisterschaft (16.4) – *offen, du entscheidest später* | 2 Sitzungen, mittel |
 | 16 | Zone 3: Nebelmoor | Zone, Fähigkeiten Beschwören / Gift / Teilen, Cap 30 | 1–2 Sitzungen, mittel |
 | 17 | Schmied | Aufwerten bis +10, Items zu Schmiedesteinen zerlegen. Die Schmiede wird ein Gebäude im Dorfausbau (16.2) | 1 Sitzung, mittel |
 | 18 | Sets und Weltbosse | Die Sets der bis dahin fertigen Zonen (Grünwald, Orkhügel, Nebelmoor) als epische Items mit Zusatz „Set", je Zone ein Weltboss auf Zonen-Stufe mit Timer und Anzeige auf der Karte | 1–2 Sitzungen, mittel |
@@ -1421,20 +1475,21 @@ Abschnitten 9b und 4b und in den Offenen Punkten 16 und 17.
 
 ---
 
-## 16. Zweite Fortschrittsachse *(Schritt 10b, Teil B – nur Planung, kein Code)*
+## 16. Zweite Fortschrittsachse *(Plan aus Schritt 10b; Dorfausbau umgesetzt in Schritt 11b)*
 
 Dem Spiel fehlt neben der Stufe etwas, auf das man hinarbeitet. Drei Systeme sollen das ändern.
 Die Richtung (Stadtausbau als Gold-Sink, Jagdbuch, Meisterschaft durch Benutzung) ist von dir
-vorgegeben; **alle Gebäude, Stufen, Zahlen, Boni und die Reihenfolge sind Vorschläge von mir**
-und gelten erst, wenn du die Fragen in 16.6 beantwortet hast.
+vorgegeben; **alle Gebäude, Stufen, Zahlen und Boni sind Vorschläge von mir** und gelten seit
+deinen Antworten in 16.6 als Startwerte fürs Balancing. Stand: **Dorfausbau umgesetzt** (16.2),
+Jagdbuch als Nächstes (11c), Meisterschaft später.
 
 ### 16.1 Überblick und Grundregeln
 
 | System | Womit man es füllt | Was man bekommt | Wann |
 |---|---|---|---|
-| Dorfausbau | Gold | Komfort und Wirtschaft (Händler, Tränke, Rasten, Lager) – keine Kampfwerte | Schritt 11b |
+| Dorfausbau ✅ | Gold | Komfort und Wirtschaft (Händler, Tränke, Rasten, Lager) – keine Kampfwerte | Schritt 11b, umgesetzt |
 | Jagdbuch | besiegte Gegner je Typ | kleine Boni gegen den Typ, je Zone eine Sammelseite mit +1 % Leben / Angriffskraft | Schritt 11c |
-| Meisterschaft | Skills auslösen, mit einer Waffenart zuschlagen | der Skill bzw. die Waffenart wird bis zu 20 % / 10 % besser | Skills 14b, Waffen in 15 |
+| Meisterschaft | Skills auslösen, mit einer Waffenart zuschlagen | der Skill bzw. die Waffenart wird bis zu 20 % / 10 % besser | Skills 14b; Waffen offen (frühestens 15) |
 
 - **Alles hat ein Ende.** „Keine Paragon-Stufen" ist entschieden (Abschnitt 10) – deshalb hat
   jedes System feste Höchststufen statt endloser Stufen.
@@ -1457,19 +1512,20 @@ und gelten erst, wenn du die Fragen in 16.6 beantwortet hast.
 | Jagdbuch | Rang 1 nach 10 Gegnern: 3 Minuten | Bronze und Silber fast überall beim Leveln, in Grünwald rund 3 Stunden extra | alle vier Gold-Seiten: rund 35–50 Stunden extra |
 | Meisterschaft | Stufe 1 nach rund 30 Minuten | ein Skill auf Stufe 10 nach rund 28 Stunden, eine Waffenart auf Stufe 10 nach rund 11 Stunden | alle 8–10 Skills: rund 55–70 Stunden; eine Waffenart auf Stufe 20: rund 42 Stunden |
 
-### 16.2 Dorfausbau (Stadtausbau als Gold-Sink)
+### 16.2 Dorfausbau (Stadtausbau als Gold-Sink) *(Schritt 11b, umgesetzt)*
 
 Das Dorf in Grünwald ist der Hub (15.2). Dort steht ein **Baumeister**; bei ihm baut man mit Gold
-Gebäude aus. Jedes Gebäude hat Stufe 0–5, Stufe 0 heißt „noch nicht gebaut" (nur das Rathaus
-beginnt auf Stufe 1).
+Gebäude aus. Jedes Gebäude hat Stufe 0–5, Stufe 0 heißt „noch nicht ausgebaut" (nur das Rathaus
+beginnt auf Stufe 1). Alle Werte stehen in `src/data/town.ts` und sind **Startwerte**. Was vom
+Plan abweicht oder dazugekommen ist, steht unten unter „So ist es gebaut".
 
 **Gebäude und Boni**
 
 | Gebäude | Stufe 1 → 5 | Heute (ohne Ausbau) |
 |---|---|---|
-| **Rathaus** | begrenzt alle anderen Gebäude auf seine eigene Stufe. Stufe 1 steht von Anfang an (das Dorf gibt es ja schon), Stufe 2–5 brauchen den Sieg über den Zonen-Boss: Räuberhauptmann / Grommak / Lich Morvan / Azgar. Dazu ab Meilenstein 12: 1 / 1 / 2 / 2 / 3 Kopfgelder gleichzeitig am Kopfgeld-Brett | – |
+| **Rathaus** | begrenzt alle anderen Gebäude auf seine eigene Stufe. Stufe 1 steht von Anfang an (das Dorf gibt es ja schon), Stufe 2–5 brauchen den Sieg über den Zonen-Boss: Räuberhauptmann / Grommak / Lich Morvan / Azgar. Dazu ab Meilenstein 12 *(noch nicht gebaut)*: 1 / 1 / 2 / 2 / 3 Kopfgelder gleichzeitig am Kopfgeld-Brett | – |
 | **Kontor** (Händler) | Regal 9 / 10 / 11 / 12 / 14 Plätze · Anteil Selten 10 / 12 / 14 / 17 / 20 %, ab Stufe 4 dazu 2 % / 4 % Episch · neue Ware alle 9 / 8 / 7 / 6 / 5 Minuten · ab Stufe 3 Knopf „Neue Ware sofort" (kostet so viel wie ein grünes Item der eigenen Stufe – eine kleine Dauer-Ausgabe) | 8 Plätze, 8 % Selten, 10 Minuten |
-| **Alchemistin** | Tränke im Gepäck 6 / 7 / 8 / 9 / 10 · Heilung 42 / 44 / 46 / 48 / 50 % · Abklingzeit ab Stufe 3: 25 s, ab Stufe 5: 20 s | 5 Tränke, 40 %, 30 s |
+| **Alchemistin** | Heilung 42 / 44 / 46 / 48 / 50 % · Abklingzeit ab Stufe 3: 25 s, ab Stufe 5: 20 s · Trank 5 / 10 / 15 / 20 / 25 % billiger *(mein Ersatz für „Tränke im Gepäck 6–10" – die Obergrenze gibt es seit 11b nicht mehr)* | 40 %, 30 s, voller Preis |
 | **Gasthaus** | Rasten: voll in 110 / 100 / 90 / 80 / 70 s · Gold-Verlust beim Tod 9 / 8 / 7 / 6 / 5 % · im Dorf selbst heilt die Figur ab Stufe 1 in 15 s voll | 120 s, 10 % |
 | **Lagerhaus** | Lagertruhe im Dorf mit 20 / 40 / 60 / 80 / 100 Plätzen | nur 40 Plätze im Inventar |
 | **Übungsplatz** *(erst mit 14b baubar)* | Meisterschaft (16.4) wächst 10 / 20 / 30 / 40 / 50 % schneller; hier werden auch Talente zurückgesetzt | – |
@@ -1518,13 +1574,39 @@ Zu sehen ist der Ausbau an einem Schild mit Fahne am jeweiligen Haus, das mit de
 (ein Bild über der Karte – die Karte selbst wird nicht umgebaut). Die Lagertruhe steht am
 Lagerhaus und öffnet ein Fenster neben dem Inventar.
 
+**So ist es gebaut** *(Schritt 11b)*:
+
+| Was | Wie | Wo |
+|---|---|---|
+| Baumeister | steht oben links auf dem Dorfplatz (Zwerg mit Helm). Klick: hinlaufen, Fenster „Dorfausbau" geht links auf; weggehen, `Esc` oder × schließt es | POI `baumeister` in `tools/zones/gruenwald.mjs`, `BUILDER` in `src/data/town.ts` |
+| Fenster „Dorfausbau" | je Gebäude: Bild, Name, Stufe, ein Satz wozu, „Jetzt: …", „Stufe n: …" (grün), Sperrgrund (rot), Knopf „Ausbauen" mit Preis (rot = Gold fehlt). Reihenfolge: Rathaus, Alchemistin, Gasthaus, Kontor, Lagerhaus | `src/ui/TownWindow.ts`, Texte in `src/ui/townText.ts` |
+| Regeln | Stufen, Sperren (Rathaus, Boss, Gold) und was die Gebäude gerade bringen (`effects`) | `src/town/Town.ts` |
+| Häuser | Gasthaus = Haus im Westen, Rathaus = Steinhaus im Nordosten, Alchemistin = Haus im Osten. Neu gebaut: **Kontor** direkt hinter dem Händler und **Lagerhaus** im Südosten (mit Gasse von der Straße, der Karren steht jetzt daneben) | `structures` im Bauplan |
+| Fahnen | an jedem der fünf Häuser ein Mast; Stufe 0 = leerer Mast, Stufe 1–5 = Tuch in Weiß / Grün / Blau / Lila / Gold. Darüber ein Schild „Gasthaus · Stufe 2". Kein Hindernis | POI `fahne` mit `building`, Farben `FLAG_COLORS` |
+| Lagertruhe | steht vor dem Lagerhaus. Ohne Lagerhaus ist sie verschlossen (Hinweis). Sonst: Fenster links, Inventar rechts; **Rechtsklick** auf ein Item im Inventar lagert ein, **Linksklick** in der Truhe nimmt es heraus | POI `lagertruhe`, `src/items/Stash.ts`, `src/ui/StashWindow.ts` |
+| Kontor | Regal 9–14 Plätze, Anteil Selten / Episch, Lieferzeit. Nach dem Ausbau kommt **sofort frische Ware**. Der Knopf „Neue Ware sofort" (ab Stufe 3) ist eingebaut | `KONTOR`, `src/items/Shop.ts` |
+| Alchemistin | Heilung, Abklingzeit und Preis des Tranks; Trank-Feld und Händler-Fenster zeigen die aktuellen Werte | `ALCHEMIST`, `src/entities/Player.ts` |
+| Gasthaus | Rasten schneller, Tod kostet weniger Gold. **Dorfruhe:** Im Dorf (15 Kacheln um den Brunnen) heilt die Figur ab Stufe 1 in 15 s voll, auch im Laufen; unter den Balken steht dann „Dorfruhe". Die 8 s Sperre nach einem Kampf gilt weiter | `INN`, `TOWN`, Marker `dorfmitte` |
+| Rathaus | Stufe 2 braucht einen Sieg über den Räuberhauptmann. Stufe 3–5 sind gesperrt, bis es Grommak, Lich Morvan und Azgar gibt | `TOWN_HALL_BOSSES` |
+| Boss-Siege | werden ab Schritt 11b je Gegnertyp gezählt (`bossKills` im Spielstand). Das Jagdbuch (11c) nutzt dasselbe Ereignis „Gegner besiegt" (`Combat.onKill`) | `src/combat/Combat.ts`, `WorldScene` |
+| Minimap | Baumeister orange, Lagertruhe hellbraun | `src/data/minimap.ts` |
+
+- **Noch nicht gebaut:** Übungsplatz (kommt mit 14b) und Schmiede (Meilenstein 17) – sie stehen
+  noch nicht im Fenster. Das Kopfgeld-Brett am Rathaus kommt mit Meilenstein 12.
+- **Trank-Obergrenze entfernt** *(von dir vorgegeben)*: Details in Abschnitt 7b. Die Alchemistin
+  gibt dafür einen Preisnachlass statt mehr Platz im Gepäck.
+- **Aufwachen mit halbem Leben** *(von dir vorgegeben, Frage 11)*: `reviveHpFraction` in
+  `src/data/regen.ts`. Mit Gasthaus ist man im Dorf danach in rund 10 Sekunden wieder voll.
+- Die Stufen 3–5 aller Gebäude lassen sich im Spiel noch nicht erreichen (Rathaus höchstens 2),
+  ihre Werte stehen aber schon in der Datei.
+
 | | |
 |---|---|
 | Passt zu den Zonen | Jede Zone schaltet mit ihrem Boss eine Rathaus-Stufe frei – das Dorf wächst mit der Welt. Die Boni gelten überall, auch bei den Händlern der Außenposten. Portalsteine (Meilenstein 13) bringen einen zum Bauen zurück |
 | Passt zum Talentbaum | Keine Überschneidung: Das Dorf gibt keine Kampfwerte. „Talente zurücksetzen gegen Gold" zieht an den Übungsplatz |
 | Passt zum Rest | Kopfgeld-Brett (12) hängt am Rathaus, Schmied (17) wird ein Gebäude, das Gasthaus stellt an den Werten aus `src/data/regen.ts` |
 | Aufwand | 1–2 Sitzungen, mittel. Neu: `src/data/town.ts`, Baumeister, Fenster, Lagertruhe (das größte Einzelteil). Die Boni hängen an Stellen, die es schon gibt (Händler-Sortiment, Trank, Regeneration, Tod) |
-| Spielstand | Format 5: `town` (Stufe je Gebäude) und `stash` (Items der Lagertruhe). Alte Stände: alles Stufe 0, Truhe leer – nichts geht verloren |
+| Spielstand | Format 5: `town` (Stufe je Gebäude), `stash` (Items der Lagertruhe) und `bossKills` (Siege je Boss). Alte Stände: alles Stufe 0, Truhe leer – nichts geht verloren |
 
 ### 16.3 Jagdbuch (Bestiarium)
 
@@ -1596,7 +1678,7 @@ alle zehn Stufen zusammen das 55-Fache.
 - Die Auslöse-Zahlen sind geschätzt. Vor dem Einbau zähle ich sie eine Stunde im Spiel mit und
   stelle die Grundwerte danach ein.
 
-**Waffen-Meisterschaft:** Jede Waffenart (Schwert, Axt, Dolch; ab Meilenstein 15 auch Streitkolben
+**Waffen-Meisterschaft** *(offen – du entscheidest später, Frage 9)*: Jede Waffenart (Schwert, Axt, Dolch; ab Meilenstein 15 auch Streitkolben
 und Zweihandschwert) hat Stufe 0–20. Sie steigt mit jedem Schlag, den man mit dieser Art macht
 (rund 1 000 pro Spielstunde); Stufe n braucht 200 × n Schläge.
 
@@ -1633,11 +1715,11 @@ und Zweihandschwert) hat Stufe 0–20. Sie steigt mit jedem Schlag, den man mit 
 
 | Schritt | Was | Warum dort |
 |---|---|---|
-| **11b** | Dorfausbau | **Vor den Quests.** Antwortet direkt auf dein Feedback „Gold hat zu wenig Verwendung", braucht nichts, was es noch nicht gibt, und Stufe 1–2 lassen sich schon in Grünwald testen. Das Kopfgeld-Brett dockt in Meilenstein 12 an |
+| **11b** ✅ | Dorfausbau | Umgesetzt. **Vor den Quests.** Antwortet direkt auf dein Feedback „Gold hat zu wenig Verwendung", braucht nichts, was es noch nicht gibt, und Stufe 1–2 lassen sich schon in Grünwald testen. Das Kopfgeld-Brett dockt in Meilenstein 12 an |
 | **11c** | Jagdbuch | **Vor den Quests.** Gezählt wird erst ab dem Einbau – je früher, desto weniger geht verloren. Das Ereignis „Gegner besiegt" brauchen die Quests danach ohnehin |
 | 12, 13, 14 | Quests, Orkhügel, Talentbaum | wie geplant |
 | **14b** | Skill-Meisterschaft, Übungsplatz | **Nicht vor Meilenstein 12**, sondern direkt nach dem Talentbaum (Gründe in 16.4, Punkt 1 und 2) |
-| 15 | Loot-Vielfalt **plus Waffen-Meisterschaft** | die Waffen unterscheiden sich erst hier |
+| 15 | Loot-Vielfalt, vielleicht **plus Waffen-Meisterschaft** | die Waffen unterscheiden sich erst hier; ob es die Waffen-Meisterschaft gibt, ist offen |
 | 17 | Schmied **als Gebäude** | Aufwerten war dort schon geplant |
 | 20 | Kodex | übernimmt das Jagdbuch als ersten Reiter |
 
@@ -1645,19 +1727,22 @@ Du hattest „vor Meilenstein 11" geschrieben – der ist schon umgesetzt und ge
 heißt es hier „vor Meilenstein 12". Die Nummern 12–20 bleiben; die neuen Schritte bekommen
 Buchstaben (wie 5b, 6b, 10b). Mehraufwand: 3–4 Sitzungen.
 
-### 16.6 Offene Fragen an dich
+### 16.6 Fragen und deine Antworten
 
-| # | Frage | Mein Vorschlag |
+| # | Frage | Antwort |
 |---|---|---|
-| 1 | **Reihenfolge:** Dorfausbau (11b) und Jagdbuch (11c) vor den Quests – oder erst Quests? | 11b und 11c zuerst |
-| 2 | **Meisterschaft erst nach dem Talentbaum** (14b), Waffen in 15? Oder früher als reiner „Balken füllt sich"? | wie geplant, nicht früher |
-| 3 | **Dorf: nur Komfort** (Händler, Tränke, Rasten, Lager) oder auch Gebäude mit Kampfwerten? | nur Komfort |
-| 4 | **Kosten:** Stufe 1–4 fressen rund 40 % des Golds bis zum Cap, Stufe 5 rund 21 Stunden im Endgame. Passt die Größenordnung? | ja, als Startwert |
-| 5 | **Rathaus-Stufen an die Zonen-Bosse koppeln?** Dann geht in Grünwald nur Stufe 1–2 | ja |
-| 6 | **Sichtbarer Ausbau:** reicht Schild mit Fahne am Haus, oder soll sich das Dorf wirklich verändern (neue Häuser – deutlich mehr Aufwand, eigene Karten-Varianten)? | Schild mit Fahne |
-| 7 | **Lagertruhe pro Spielstand** oder eine für alle Slots (dann könnte man Items zwischen Figuren tauschen; braucht eigenen Speicher und eigenen Export)? | pro Spielstand |
-| 8 | **Jagdbuch mit Boni** (wie oben) oder reines Sammeln wie der Kodex? Und: Gold-Seite Grünwald kostet 15–18 Stunden in einer leichten Zone – zu viel? | mit Boni; Schwellen als Startwert lassen |
-| 9 | **Waffen-Meisterschaft je Waffenart** (bindet an Schwert, Axt …) – gewollt? Alternativen: eine einzige Meisterschaft „Waffen", oder nur Skills | je Waffenart, wegen der kleinen Boni vertretbar |
-| 10 | **Zählt das Jagdbuch auf jeder Schwierigkeit?** Auf „Leicht" geht es schneller | ja, immer – sonst wird es kompliziert |
-| 11 | **Aus 10b:** Aufwachen im Dorf mit vollem Leben lassen? Mit der langsamen Regeneration ist Sterben eine (teure) Heilung | lassen, im Spiel beobachten |
-| 12 | **Aus 10b:** „… der Erholung" und Lebensraub wirken weiter im Kampf und sind jetzt viel mehr wert. Bremsen? | erst spielen, dann entscheiden |
+| 1 | **Reihenfolge:** Dorfausbau (11b) und Jagdbuch (11c) vor den Quests – oder erst Quests? | **Dorfausbau und Jagdbuch zuerst** *(Entschieden)* |
+| 2 | **Meisterschaft erst nach dem Talentbaum** (14b), Waffen in 15? Oder früher als reiner „Balken füllt sich"? | wie geplant, nicht früher *(mein Vorschlag, als Startwert übernommen)* |
+| 3 | **Dorf: nur Komfort** (Händler, Tränke, Rasten, Lager) oder auch Gebäude mit Kampfwerten? | **nur Komfort, keine Kampfwerte** *(Entschieden)* |
+| 4 | **Kosten:** Stufe 1–4 fressen rund 40 % des Golds bis zum Cap, Stufe 5 rund 21 Stunden im Endgame. Passt die Größenordnung? | ja, als Startwert *(mein Vorschlag übernommen)* – die Zahlen stehen in `src/data/town.ts` |
+| 5 | **Rathaus-Stufen an die Zonen-Bosse koppeln?** Dann geht in Grünwald nur Stufe 1–2 | ja *(mein Vorschlag übernommen, umgesetzt)* |
+| 6 | **Sichtbarer Ausbau:** reicht Schild mit Fahne am Haus, oder soll sich das Dorf wirklich verändern? | Schild mit Fahne *(mein Vorschlag übernommen, umgesetzt)* |
+| 7 | **Lagertruhe pro Spielstand** oder eine für alle Slots? | pro Spielstand *(mein Vorschlag übernommen, umgesetzt)* |
+| 8 | **Jagdbuch mit Boni** oder reines Sammeln wie der Kodex? Und: Gold-Seite Grünwald kostet 15–18 Stunden – zu viel? | **mit kleinen Boni, kommt in 11c** *(Entschieden)*; die Schwellen bleiben Startwert |
+| 9 | **Waffen-Meisterschaft je Waffenart** – gewollt? Alternativen: eine einzige Meisterschaft „Waffen", oder nur Skills | **offen – du entscheidest später** |
+| 10 | **Zählt das Jagdbuch auf jeder Schwierigkeit?** | ja, immer *(mein Vorschlag übernommen, gilt für 11c)* |
+| 11 | **Aus 10b:** Aufwachen im Dorf mit vollem Leben lassen? | **Nein: halbes Leben** *(Entschieden, umgesetzt in 11b – `reviveHpFraction` in `src/data/regen.ts`)* |
+| 12 | **Aus 10b:** „… der Erholung" und Lebensraub wirken weiter im Kampf und sind jetzt viel mehr wert. Bremsen? | erst spielen, dann entscheiden *(mein Vorschlag übernommen, nichts geändert)* |
+
+Dazugekommen in Schritt 11b *(von dir vorgegeben)*: Die Obergrenze für Heiltränke ist weg
+(Abschnitt 7b). Neue Startwerte zum Prüfen stehen in Abschnitt 14, Punkt 18.
