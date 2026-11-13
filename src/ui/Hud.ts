@@ -261,8 +261,13 @@ export class Hud {
 
   /** Schreibt ein aufgehobenes Item in die Beute-Liste unten links; die Zeile verschwindet von selbst. */
   logLoot(name: string, color: string): void {
+    this.logLine(`Erhalten: ${name}`, color);
+  }
+
+  /** Schreibt eine Meldung in die Beute-Liste (z. B. ein neuer Rang im Jagdbuch); sie verschwindet von selbst. */
+  logLine(text: string, color: string): void {
     const line = document.createElement('div');
-    line.textContent = `Erhalten: ${name}`;
+    line.textContent = text;
     line.style.color = color;
     this.lootLog.appendChild(line);
     while (this.lootLog.children.length > LOOT_LOG_LINES) this.lootLog.firstElementChild?.remove();

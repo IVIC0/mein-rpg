@@ -27,6 +27,8 @@ const WANDER_RADIUS = 36;
  * Elite mit genau diesen Eigenschaften, hat einen eigenen Namen und einen eigenen Respawn.
  */
 export interface FixedElite {
+  /** Schlüssel in NAMED_ELITES – unter ihm zählt das Jagdbuch die Siege. */
+  id: string;
   name: string;
   traits: TraitId[];
   respawnMs: number;
@@ -99,6 +101,15 @@ export class Enemy extends Actor {
   /** Bosse und benannte Elites: Ihr Respawn-Timer steht im Spielstand und läuft weiter, wenn das Spiel zu ist. */
   get timed(): boolean {
     return this.fixed !== null || this.def.rank === 'boss';
+  }
+
+  /**
+   * Bosse und feste Elites stehen im Jagdbuch in der Bosse-Zeile. Das ist ihr Schlüssel dort:
+   * bei festen Elites der aus NAMED_ELITES, bei Bossen ihr Gegnertyp. Alle anderen: null.
+   */
+  get bossId(): string | null {
+    if (this.fixed) return this.fixed.id;
+    return this.rank === 'boss' ? this.type : null;
   }
 
   hasTrait(id: TraitId): boolean {

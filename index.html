@@ -96,6 +96,7 @@
         <button id="bag-button" class="topbar-button" type="button" title="Charakter &amp; Inventar (I)">
           <span class="sprite-icon topbar-icon"></span>
         </button>
+        <button id="bestiary-button" class="topbar-button" type="button" title="Jagdbuch (J)">📖</button>
         <button id="saves-button" class="topbar-button" type="button" title="Spielstände">💾</button>
         <button id="settings-button" class="topbar-button" type="button" title="Einstellungen">⚙</button>
       </div>
@@ -224,6 +225,27 @@
           <span id="stash-count"></span>
         </div>
         <div class="window-help">Linksklick: ins Inventar nehmen<br />Rechtsklick auf ein Item im Inventar: einlagern</div>
+      </div>
+
+      <!-- Jagdbuch (Taste J oder der Knopf in der Leiste). Den Inhalt baut src/ui/BestiaryWindow.ts. -->
+      <div id="bestiary" class="side-window" hidden>
+        <div class="window-title">
+          <span>Jagdbuch</span>
+          <span class="window-buttons">
+            <button id="bestiary-close" type="button" title="Schließen (J oder Esc)">×</button>
+          </span>
+        </div>
+        <!-- Ein Reiter je Sammelseite (Zone). -->
+        <div id="bestiary-tabs"></div>
+        <!-- Die drei Stufen der Sammelseite: Bronze, Silber, Gold. -->
+        <div id="bestiary-page"></div>
+        <div id="bestiary-list"></div>
+        <div class="bestiary-heading">Bosse <span>– reines Sammeln, ohne Bonus</span></div>
+        <div id="bestiary-bosses"></div>
+        <div class="bag-footer">
+          <span id="bestiary-total"></span>
+        </div>
+        <div class="window-help" id="bestiary-help"></div>
       </div>
       <div id="item-tooltip" hidden></div>
 
