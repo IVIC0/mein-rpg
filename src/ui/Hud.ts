@@ -20,6 +20,9 @@ const ZONE_BANNER_MS = 3500;
 const LOOT_LOG_MS = 7000;
 const LOOT_LOG_LINES = 6;
 
+/** So heißt die passive Regeneration im Spielerrahmen: langsam im Laufen, schneller im Stehen. */
+const REGEN_LABELS = { walking: 'Erholung', resting: 'Rasten' };
+
 interface Slot {
   skill: SkillDef;
   box: HTMLElement;
@@ -146,7 +149,10 @@ export class Hud {
       setWidth(this.xpFill, 1);
       setText(this.xpText, 'Maximalstufe');
     }
-    setText(this.buffs, player.buffs.map((buff) => `${buff.name} ${Math.ceil(buff.remainingMs / 1000)} s`).join(' · '));
+    // Unter den Balken: laufende Buffs – und ob sich die Figur gerade erholt (src/data/regen.ts).
+    const notes = player.buffs.map((buff) => `${buff.name} ${Math.ceil(buff.remainingMs / 1000)} s`);
+    if (player.hp < player.maxHp && player.regenState !== 'none') notes.push(REGEN_LABELS[player.regenState]);
+    setText(this.buffs, notes.join(' · '));
 
     this.targetFrame.hidden = target === null && !this.editing;
     if (!target && this.editing) {

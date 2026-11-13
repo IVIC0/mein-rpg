@@ -119,7 +119,8 @@ export class Combat {
   update(deltaMs: number): void {
     const player = this.player;
     if (player.alive) {
-      player.tick(deltaMs);
+      // Solange ein Gegner die Figur verfolgt, erholt sie sich nicht (src/data/regen.ts).
+      player.tick(deltaMs, this.enemies.some((enemy) => enemy.state === 'chase'));
       this.followTarget(deltaMs);
       this.fireBuffSkills();
       this.autoAttack();

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BODY_RADIUS, COMBAT_TIMEOUT_MS, PLAYER_SPEED, SWING, SWING_HOLD_MS, SWING_RADIUS, SWING_TRAIL_WIDTH, SWING_WEAPON_FRAME } from '../config';
 import { MAX_LEVEL, xpToNext } from '../data/progression';
+import { REGEN, type RegenState } from '../data/regen';
 import { POTION } from '../data/shop';
 import { emptyStats, withAttributesApplied, type Stats } from '../data/stats';
 import { SKILLS, WARRIOR, warriorStat, type SkillDef, type SkillId } from '../data/warrior';
@@ -45,6 +46,10 @@ export class Player extends Actor {
   private bonus: Stats = emptyStats();
 
   private sinceCombatMs = COMBAT_TIMEOUT_MS;
+  /** Zeit, seit zuletzt ein Gegner die Figur verfolgt hat – solange gibt es keine Regeneration. */
+  private sinceHuntedMs = REGEN.delayMs;
+  /** So lange steht die Figur schon still (fürs Rasten). */
+  private stillMs = 0;
   /** Die Waffe ist nur während eines Schwungs zu sehen, die Spur ist der helle Bogen dahinter. */
   private readonly weapon: Phaser.GameObjects.Sprite;
   private readonly swingTrail: Phaser.GameObjects.Graphics;
@@ -101,6 +106,15 @@ export class Player extends Actor {
   /** Leben pro Sekunde aus der Ausrüstung – wirkt auch im Kampf. */
   get hpRegen(): number {
     return this.bonus.hpRegen;
+  }
+
+  /**
+   * Passive Regeneration (Werte in src/data/regen.ts): im Kampf und kurz danach keine,
+   * dann langsam im Laufen und schneller beim Rasten.
+   */
+  get regenState(): RegenState {
+    if (!this.alive || Math.min(this.sinceCombatMs, this.sinceHuntedMs) < REGEN.delayMs) return 'none';
+    return this.stillMs >= REGEN.restAfterMs ? 'resting' : 'walking';
   }
 
   /** Stärke, Ausdauer und Geschick aus der Ausrüstung (für das Charakterfenster). */
@@ -263,8 +277,11 @@ export class Player extends Actor {
     this.refreshTint();
   }
 
-  /** Lässt Abklingzeiten und Buffs ablaufen und regeneriert Leben. */
-  tick(deltaMs: number): void {
+  /**
+   * Lässt Abklingzeiten und Buffs ablaufen und regeneriert Leben.
+   * `hunted` = gerade verfolgt ein Gegner die Figur (dann gibt es keine passive Regeneration).
+   */
+  tick(deltaMs: number, hunted: boolean): void {
     this.attackCooldown = Math.max(0, this.attackCooldown - deltaMs);
     this.potionCooldown = Math.max(0, this.potionCooldown - deltaMs);
     for (const [id, remaining] of this.cooldowns) this.cooldowns.set(id, Math.max(0, remaining - deltaMs));
@@ -279,10 +296,12 @@ export class Player extends Actor {
     }
 
     this.sinceCombatMs += deltaMs;
-    const seconds = deltaMs / 1000;
+    this.sinceHuntedMs = hunted ? 0 : this.sinceHuntedMs + deltaMs;
+    // Leben pro Sekunde: die Ausrüstung wirkt immer, die passive Regeneration nur in Ruhe.
     let regen = this.hpRegen;
-    if (!this.inCombat) regen += this.maxHp * WARRIOR.hpRegenIdle;
-    this.heal(regen * seconds);
+    const state = this.regenState;
+    if (state !== 'none') regen += this.maxHp / (state === 'resting' ? REGEN.restingFullSeconds : REGEN.walkingFullSeconds);
+    this.heal((regen * deltaMs) / 1000);
   }
 
   /** Die Figur fällt um und bleibt liegen, bis revive() aufgerufen wird. */
@@ -317,12 +336,20 @@ export class Player extends Actor {
     const moved = Math.hypot(next.x - this.pos.x, next.y - this.pos.y) > 0.01;
     if (Math.abs(target.x - this.pos.x) > 2) this.face(target.x);
     this.pos.set(next.x, next.y);
+    this.trackStill(moved, deltaMs);
     this.draw(moved, deltaMs);
   }
 
   /** Einen Frame lang dem berechneten Weg folgen. `deltaMs` = Zeit seit dem letzten Frame. */
   step(deltaMs: number): void {
-    this.draw(this.followPath(PLAYER_SPEED, deltaMs), deltaMs);
+    const walking = this.followPath(PLAYER_SPEED, deltaMs);
+    this.trackStill(walking, deltaMs);
+    this.draw(walking, deltaMs);
+  }
+
+  /** Merkt sich, wie lange die Figur schon still steht – daran hängt das Rasten. */
+  private trackStill(moving: boolean, deltaMs: number): void {
+    this.stillMs = moving ? 0 : this.stillMs + deltaMs;
   }
 
   /** Maximales Leben aus Stufe und Ausrüstung. Das aktuelle Leben bleibt, höchstens bis zum neuen Maximum. */

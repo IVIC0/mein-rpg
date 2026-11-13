@@ -17,6 +17,7 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/sprites.ts` – Bilder-Verzeichnis: Name → Bild-Datei und Einzelbilder (Stehen, Laufen)
    - `src/data/pois.ts` – Truhen (Inhalt, Auffüllzeit) und Übergänge zwischen Zonen
    - `src/data/progression.ts` – Levelkurve, EP pro Gegner (auch je Rang), EP- und Gold-Verlust beim Tod
+   - `src/data/regen.ts` – passive Lebensregeneration: Sperre nach dem Kampf, Tempo beim Laufen und beim Rasten
    - `src/data/items.ts` – Seltenheiten, Basis-Items und Affixe (Wertespannen, erlaubte Plätze)
    - `src/data/loot.ts` – Drop-Tabellen je Gegnerrang (Drop-Chance, Seltenheits-Anteile), Gold pro Gegner, Inventargröße
    - `src/data/stats.ts` – Werte auf Items und was ein Attributpunkt bringt

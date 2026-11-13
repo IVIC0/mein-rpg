@@ -31,7 +31,7 @@ export const XP_RANK_FACTOR: Record<EnemyRank, number> = { normal: 1, elite: 3, 
 export const DEATH_XP_LOSS = 0.05;
 
 /** Beim Tod verliert die Figur außerdem diesen Anteil ihres Goldes. Items gehen nie verloren. */
-export const DEATH_GOLD_LOSS = 0.05;
+export const DEATH_GOLD_LOSS = 0.1;
 
 /** EP bis zur nächsten Stufe; auf der Maximalstufe 0. */
 export function xpToNext(level: number): number {

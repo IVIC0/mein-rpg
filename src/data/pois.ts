@@ -19,10 +19,10 @@ export const CHEST = {
   openRange: 26,
   /** So viele Items liegen darin: eine Zahl zwischen min und max. */
   items: { min: 1, max: 2 },
-  /** Gold = (base + perLevel × Stufe der Truhe) × Zufall zwischen 0.8 und 1.2. Stufe 6: 32–48 Gold. */
-  gold: { base: 10, perLevel: 5, spread: 0.2 },
+  /** Gold = (base + perLevel × Stufe der Truhe) × Zufall zwischen 0.8 und 1.2. Stufe 6: 19–29 Gold. */
+  gold: { base: 6, perLevel: 3, spread: 0.2 },
   /** Anteil jeder Seltenheit in Prozent – besser als ein normaler Gegner, knapp unter einer Elite. */
-  rarity: { common: 0, uncommon: 55, rare: 32, epic: 10.5, legendary: 2.3, mythic: 0.2 } as Record<RarityId, number>,
+  rarity: { common: 0, uncommon: 64, rare: 28, epic: 7, legendary: 0.9, mythic: 0.1 } as Record<RarityId, number>,
 };
 
 /** Übergang in eine andere Zone: Betritt die Figur diesen Umkreis (Welt-Pixel), wechselt die Zone. */

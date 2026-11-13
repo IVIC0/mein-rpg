@@ -16,15 +16,16 @@ export const MERCHANT = {
 
 /**
  * Wert eines Items in Gold = (base + perLevel × Itemlevel) × Faktor der Seltenheit.
- * Beispiel Itemlevel 5, Selten: (10 + 6 × 5) × 6 = 240 Gold.
+ * Beispiel Itemlevel 5, Selten: (10 + 6 × 5) × 10 = 400 Gold.
  * Kaufen kostet den vollen Wert, Verkaufen bringt den Anteil `sellFraction`.
+ * Startwerte seit Schritt 10b: Ein blaues Item soll spürbar Spielzeit kosten (rund 20 Minuten).
  */
 export const PRICE = {
   base: 10,
   perLevel: 6,
-  rarityFactor: { common: 1, uncommon: 2.5, rare: 6, epic: 15, legendary: 40, mythic: 100 } as Record<RarityId, number>,
-  /** 0.2 = der Händler zahlt 20 % des Werts. */
-  sellFraction: 0.2,
+  rarityFactor: { common: 1, uncommon: 3, rare: 10, epic: 25, legendary: 60, mythic: 150 } as Record<RarityId, number>,
+  /** 0.1 = der Händler zahlt 10 % des Werts. */
+  sellFraction: 0.1,
 };
 
 /** Ab dieser Seltenheit braucht das Verkaufen einen zweiten Klick zur Sicherheit. */
@@ -61,9 +62,9 @@ export const POTION = {
   cooldownMs: 30000,
   /** So viele Tränke kann die Figur höchstens tragen. */
   maxCarried: 5,
-  /** Preis = priceBase + pricePerLevel × Stufe der Figur (Stufe 5: 30 Gold). */
-  priceBase: 10,
-  pricePerLevel: 4,
+  /** Preis = priceBase + pricePerLevel × Stufe der Figur (Stufe 5: 16 Gold, rund 3–4 Gegner). */
+  priceBase: 6,
+  pricePerLevel: 2,
 };
 
 /** Was ein Item wert ist – so viel kostet es beim Händler. */
