@@ -41,6 +41,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     das Ziel, wechselt sie zum nächsten Angreifer.
 - **Skills:** lösen automatisch aus, es gibt keine Skill-Tasten. Die Tasten `1`–`6`
   entfallen. *(Entschieden, umgesetzt – siehe Abschnitt 4 und 5)*
+- **Jagdbuch:** `J` öffnet und schließt das Jagdbuch (Abschnitt 16.3). *(Umgesetzt, Schritt 11c)*
 - **Fenster:** `I` oder `C` öffnet „Charakter & Inventar" (ein gemeinsames Fenster), `Esc`
   schließt es. *(Umgesetzt)*
   - Das Fenster lässt sich an der Titelzeile verschieben und an der Ecke unten rechts in der
@@ -50,8 +51,8 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     Zielauswahl auf, und nach dem Neuladen ist es wieder da. `I`, `C` und × schließen es weiterhin.
     Der Kampf läuft bei offenem Fenster immer weiter.
   - Position, Größe und Pin merkt sich der Browser (`localStorage`, getrennt vom Spielstand).
-- **Knopf-Leiste** oben rechts *(Umgesetzt)*: kleine Knöpfe für Inventar, Spielstände (Diskette,
-  Abschnitt 11) und Einstellungen; weitere (Talente, Karte) kommen dort dazu. Was die
+- **Knopf-Leiste** oben rechts *(Umgesetzt)*: kleine Knöpfe für Inventar, Jagdbuch (Buch,
+  Abschnitt 16.3), Spielstände (Diskette, Abschnitt 11) und Einstellungen; weitere (Talente, Karte) kommen dort dazu. Was die
   Einstellungen können, steht in Abschnitt 2b.
   `T` Talente kommt mit dem Talentbaum. *(Vorschlag)*
 - **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
@@ -826,6 +827,8 @@ Export/Import als Datei; Versionsnummer; Namenseingabe pro Slot. Alles, was unte
 - Schwierigkeit: Gegnerleben und Gegnerschaden in Prozent (Abschnitt 15.6). *(seit Meilenstein 10)*
 - Dorfausbau: Stufe je Gebäude, Inhalt der Lagertruhe und die Liste besiegter Bosse (Gegnertyp →
   Anzahl der Siege; daran hängen die Rathaus-Stufen). *(seit Schritt 11b, Abschnitt 16.2)*
+- Jagdbuch: `bestiary` mit `kills` (Gegnertyp → Zähler) und `bosses` (Boss oder feste Elite →
+  Siege). Nur Zähler – Ränge und Boni werden beim Laden berechnet. *(seit Schritt 11c, Abschnitt 16.3)*
 - Respawn-Zeitpunkt besiegter Bosse und benannter Elites, Zeitpunkt, ab dem eine geöffnete Truhe
   wieder gefüllt ist *(beides je Zone, seit Meilenstein 11)*, Spielzeit, Zeitpunkt des letzten
   Speicherns, Format-Nummer.
@@ -870,7 +873,8 @@ Slot „Test" (ersetzt dort ohne Nachfrage den vorigen Test-Spielstand), wird gl
 speichert wie jeder andere Slot – die normalen Slots bleiben unberührt. Vorlagen stehen in
 `src/data/testSaves.ts` (Stufe, Gold, Tränke, Ausrüstung je Platz mit Seltenheit, Inventar als Liste von
 Seltenheiten; die Items werden beim Anlegen gewürfelt; seit Schritt 11b wahlweise auch Stufen
-einzelner Gebäude `town` und schon besiegte Bosse `bossKills`). *Startwerte:*
+einzelner Gebäude `town` und schon besiegte Bosse `bossKills`, seit 11c auch Zähler des Jagdbuchs
+`bestiary`). *Startwerte:*
 
 | Vorlage | Stufe | Gold | Tränke | Ausrüstung | Inventar |
 |---|---|---|---|---|---|
@@ -879,8 +883,16 @@ einzelner Gebäude `town` und schon besiegte Bosse `bossKills`). *Startwerte:*
 | Stufe 10 – voll ausgerüstet | 10 | 1500 | 5 | alle 9 Plätze: Waffe und Brust lila, Ring 2 grün, Rest blau | 8 Items, jede Seltenheit dabei |
 | Stufe 10 – Dorfausbau *(seit 11b)* | 10 | 6000 | 12 | Waffe und Brust blau, Schild, Helm, Hände und Füße grün | 5 Items |
 
+| Stufe 10 – Jagdbuch *(seit 11c)* | 10 | 800 | 10 | wie „Dorfausbau" | 3 Items |
+
 Die Vorlage „Dorfausbau" hat den Räuberhauptmann schon besiegt: Die 6 000 Gold reichen für
 Rathaus 2 und alle vier Gebäude auf Stufe 2 (1 500 + 4 × 950 = 5 300 Gold).
+
+Die Vorlage „Jagdbuch" hat ein gefülltes Jagdbuch, in dem jeder Rang vorkommt: Riesenratte 749
+(ein Gegner vor Rang 5), Waldspinne 760 (Rang 5), Wolf 349 (einer vor Rang 4), Wildschwein 200,
+Fledermaus 149 (eine vor Rang 3), Wegelagerer 400, Goblin 150, Goblin-Schleuderer 155; Brutmutter
+5 Siege, Räuberhauptmann 1. Die Seite Grünwald ist Bronze – eine Fledermaus (Spinnenhöhle) macht
+sie Silber.
 
 **Test-Parameter in der Adresse** (`?stufe`, `?beute`, `?elite`, `?zone`) *(Startwert)*: Ist einer davon
 gesetzt, läuft ein **Testlauf** – eine frische „Testfigur", die in keinem Slot liegt. Es wird
@@ -915,6 +927,9 @@ neue Format kommt.
   Start: leer). Der Trank-Zähler hat keine Obergrenze mehr. Alte Stände verlieren nichts; im
   Browser geprüft mit einem Format-4-Stand. **Boss-Siege werden erst ab jetzt gezählt** – wer den
   Räuberhauptmann schon besiegt hatte, muss ihn für Rathaus 2 noch einmal schlagen.
+- Format 5 → 6 (Schritt 11c): Neu ist das Jagdbuch (`bestiary`, Start: alle Zähler 0). Alte Stände
+  verlieren nichts; im Browser geprüft mit einem Format-5-Stand. **Gezählt wird erst ab jetzt** –
+  auch die Boss-Siege aus `bossKills` (11b) werden nicht ins Jagdbuch übernommen.
 - Im Menü „Spielstände" steht bei jedem Slot jetzt auch die Zone.
 - Alter Stand: wird beim Laden Schritt für Schritt umgebaut.
 - Stand aus einer **neueren** Spielversion, zu alter Stand ohne Umbau oder kaputte Daten: Der Slot
@@ -959,7 +974,7 @@ nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 Meilenstein 10 (Minimap, Rückkauf, Schwierigkeit), Meilenstein 11 (Zonen-Fundament,
 Grünwald-Ergänzung, Abschnitt 9b) und Schritt 10b (Balancing-Fixes, Abschnitt 4b) sind
 umgesetzt ✅ – siehe Tabelle in 15.7. Von der zweiten Fortschrittsachse (Abschnitt 16) ist der
-Dorfausbau umgesetzt ✅ (Schritt 11b); Jagdbuch (11c) und Meisterschaft sind geplant.
+Dorfausbau (Schritt 11b) und das Jagdbuch (Schritt 11c) umgesetzt ✅; die Meisterschaft ist geplant.
 
 **Reihenfolge nach V1:** steht jetzt als Meilensteine 10–20 in Abschnitt 15.7 (ersetzt die
 frühere Kurzliste Talentbaum → Quests → Aufwerten → Zone 2 → …).
@@ -1094,6 +1109,27 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
       knapp und bekommt dann einen Rollbalken.
     - Für die zwei neuen Häuser hat sich die Karte südlich des Dorfs leicht verändert: einzelne
       Büsche und Pilze stehen woanders. Gegner, Wege und Lichtungen sind unverändert.
+19. Schritt 11c (Jagdbuch), von mir gesetzte Startwerte zum Prüfen im Spiel (Abschnitt 16.3,
+    alle in `src/data/bestiary.ts`):
+    - Schwellen 10 / 50 / 150 / 350 / 750, Elite zählt fünffach, die Boni je Rang (3 % / 3 % /
+      10 % / 10 %) und die Seiten-Boni (+1 % je Stufe, Gold zweimal).
+    - **Graue Gegner zählen mit.** Auf Stufe 10 lassen sich Ratten in Sekunden farmen – die
+      Gold-Seite Grünwald geht damit schneller als die geplanten 15–18 Stunden. Stört das, wäre
+      „triviale Gegner zählen nicht" oder „nur halb" die Stellschraube (noch nicht eingebaut).
+    - Die Fledermaus gibt es nur in der Spinnenhöhle (9 Stück) – sie ist der Typ, der die Seite
+      Grünwald am längsten aufhält. Kurz raus und wieder rein füllt die Höhle auf (Punkt 16).
+    - Die Brutmutter zählt als Boss-Sieg **und** als +5 Waldspinne. Der Räuberhauptmann zählt nur
+      als Boss.
+    - Unbekannte Gegner stehen als Umriss mit „???" im Buch – man sieht also, dass noch etwas
+      fehlt, aber nicht was. Lieber gleich mit Namen?
+    - Namen der Ränge (Gesichtet, Bekannt, Erfahren, Jäger, Meisterjäger) und Stufen der Seite
+      (Bronze, Silber, Gold); Bosse-Zeile 1 / 5 / 20 Siege.
+    - Die Meldung zu einem neuen Rang steht in der Beute-Liste. Wer die Beute-Liste in den
+      Einstellungen ausblendet, sieht sie nicht.
+    - Das Fenster sitzt links (wie der Händler) und ist nicht verschiebbar; bei 720 Pixeln
+      Bildhöhe bekommt es einen Rollbalken. Im Zielrahmen steht der Rang des Gegners noch nicht.
+    - Boni im Fenster sind auf den Typ bezogen; ob ein Bonus gerade wirkt, sieht man im Kampf
+      nur an den Zahlen (3 % sind klein).
 
 ---
 
@@ -1241,7 +1277,7 @@ stark man ist, und das Aufwerten frisst Gold und Material aus beidem.
   zählt nicht als Crafting.
 - **Kodex:** ein Fenster, das festhält, was man schon geschafft hat – gefundene Legendär-Effekte
   und Set-Teile, besiegte Bosse und Weltbosse, Turm-Rekord. Reines Sammelziel, kein Bonus.
-  Das Jagdbuch (Abschnitt 16.3, geplant als Schritt 11c) kommt früher und wird später der erste
+  Das Jagdbuch (Abschnitt 16.3, umgesetzt in Schritt 11c) kommt früher und wird später der erste
   Reiter des Kodex.
 
 Bewusst nicht: Seasons, Paragon-Stufen, Dungeons (bleibt wie in Abschnitt 10 entschieden).
@@ -1366,7 +1402,7 @@ Von dir entschieden *(Entschieden)*: vier Knöpfe plus freie Regler, mehr EP und
 „Sitzung" = ein Arbeitsgang mit einem PR wie bisher. Die Schätzungen sind grob; dein Testen und
 das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter dem Meilenstein
 (Meilenstein 10 = 0.10.0, Meilenstein 11 = 0.11.0); Zwischenschritte mit Buchstaben zählen die
-letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2 …). Die Schritte
+letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2, 11c = 0.11.3 …). Die Schritte
 11b, 11c und 14b sind die zweite Fortschrittsachse aus Abschnitt 16 – seit deinen Antworten in
 16.6 *(Entschieden)*; offen ist nur die Waffen-Meisterschaft. Die Nummern 12–20 bleiben, wie sie waren.
 
@@ -1376,7 +1412,7 @@ letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2 
 | 11 ✅ | Zonen-Fundament | Umgesetzt (Abschnitt 9b). Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 4. Die hochgeladenen Packs einbinden (Figuren von 0x72 und Ninja Adventure neben Kenney, kein Umstellen der vorhandenen Figuren), `CREDITS.md` ergänzen. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus und Goblins ergänzt; Wolf und Wildschwein nur, wenn ein Pack sie hat – also Wildschwein und als Wolf-Ersatz Hyäne/Hund (15.8) | 2–3 Sitzungen, groß |
 | 10b ✅ | Balancing-Fixes | Umgesetzt nach Meilenstein 11 (Abschnitt 4b): Regeneration gebremst (Sperre, Rasten), Gold-Drops, Händlerpreise, Trankpreis, Todesstrafe und Drop-Tabellen neu. Kein neues Spielstand-Format. Dazu der Plan für die zweite Fortschrittsachse (Abschnitt 16) | 1 Sitzung, klein |
 | 11b ✅ | Dorfausbau (16.2) | Umgesetzt. Baumeister im Dorf, Fenster „Dorfausbau", Rathaus, Kontor, Alchemistin, Gasthaus, Lagerhaus mit Lagertruhe, Fahnen an den Häusern; in Grünwald erreichbar sind Stufe 1–2 (Stufe 2 nach dem Räuberhauptmann). Dazu: Trank-Obergrenze entfernt, Aufwachen nach dem Tod mit halbem Leben. Spielstand Format 5 | 1 Sitzung, mittel |
-| 11c | Jagdbuch *(Entschieden: mit kleinen Boni, 16.3)* | Kills je Gegnertyp zählen, Ränge mit kleinen Boni, Sammelseite Grünwald, Bosse-Zeile, Fenster (`J`). Spielstand Format 6 | 1 Sitzung, klein bis mittel |
+| 11c ✅ | Jagdbuch (16.3) | Umgesetzt. Besiegte Gegner je Typ zählen (Elite fünffach), fünf Ränge mit kleinen Boni gegen den Typ, Sammelseite Grünwald (Bronze / Silber / Gold: Leben und Angriffskraft), Bosse-Zeile, Fenster mit Taste `J` und Knopf in der Leiste, Meldung bei neuem Rang. Spielstand Format 6 | 1 Sitzung, klein bis mittel |
 | 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD (unter der Minimap), Kopfgeld-Brett (Anzahl der Kopfgelder hängt an der Rathaus-Stufe, 16.2), die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
 | 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, große Karte (`M`), Cap 20, neue Assets | 2–3 Sitzungen, groß |
 | 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
@@ -1470,25 +1506,25 @@ Was kein Pack löst:
 Zu Abschnitt 15 ist keine Frage offen. Meilenstein 11 und Schritt 10b sind umgesetzt. Neue
 Fragen zur zweiten Fortschrittsachse stehen in Abschnitt 16.6; nächster Schritt nach deinen
 Antworten: 11b (Dorfausbau) – oder direkt Meilenstein 12 (Quests), falls du die Achse später
-willst. Was ich in Meilenstein 11 und 10b selbst festgelegt habe, steht als Startwert in den
+willst. *(Stand Schritt 11c: Dorfausbau und Jagdbuch sind umgesetzt, als Nächstes kommt Meilenstein 12.)* Was ich in Meilenstein 11 und 10b selbst festgelegt habe, steht als Startwert in den
 Abschnitten 9b und 4b und in den Offenen Punkten 16 und 17.
 
 ---
 
-## 16. Zweite Fortschrittsachse *(Plan aus Schritt 10b; Dorfausbau umgesetzt in Schritt 11b)*
+## 16. Zweite Fortschrittsachse *(Plan aus Schritt 10b; Dorfausbau umgesetzt in Schritt 11b, Jagdbuch in 11c)*
 
 Dem Spiel fehlt neben der Stufe etwas, auf das man hinarbeitet. Drei Systeme sollen das ändern.
 Die Richtung (Stadtausbau als Gold-Sink, Jagdbuch, Meisterschaft durch Benutzung) ist von dir
 vorgegeben; **alle Gebäude, Stufen, Zahlen und Boni sind Vorschläge von mir** und gelten seit
 deinen Antworten in 16.6 als Startwerte fürs Balancing. Stand: **Dorfausbau umgesetzt** (16.2),
-Jagdbuch als Nächstes (11c), Meisterschaft später.
+**Jagdbuch umgesetzt** (16.3), Meisterschaft später.
 
 ### 16.1 Überblick und Grundregeln
 
 | System | Womit man es füllt | Was man bekommt | Wann |
 |---|---|---|---|
 | Dorfausbau ✅ | Gold | Komfort und Wirtschaft (Händler, Tränke, Rasten, Lager) – keine Kampfwerte | Schritt 11b, umgesetzt |
-| Jagdbuch | besiegte Gegner je Typ | kleine Boni gegen den Typ, je Zone eine Sammelseite mit +1 % Leben / Angriffskraft | Schritt 11c |
+| Jagdbuch ✅ | besiegte Gegner je Typ | kleine Boni gegen den Typ, je Zone eine Sammelseite mit +1 % Leben / Angriffskraft | Schritt 11c, umgesetzt |
 | Meisterschaft | Skills auslösen, mit einer Waffenart zuschlagen | der Skill bzw. die Waffenart wird bis zu 20 % / 10 % besser | Skills 14b; Waffen offen (frühestens 15) |
 
 - **Alles hat ein Ende.** „Keine Paragon-Stufen" ist entschieden (Abschnitt 10) – deshalb hat
@@ -1608,7 +1644,10 @@ Lagerhaus und öffnet ein Fenster neben dem Inventar.
 | Aufwand | 1–2 Sitzungen, mittel. Neu: `src/data/town.ts`, Baumeister, Fenster, Lagertruhe (das größte Einzelteil). Die Boni hängen an Stellen, die es schon gibt (Händler-Sortiment, Trank, Regeneration, Tod) |
 | Spielstand | Format 5: `town` (Stufe je Gebäude), `stash` (Items der Lagertruhe) und `bossKills` (Siege je Boss). Alte Stände: alles Stufe 0, Truhe leer – nichts geht verloren |
 
-### 16.3 Jagdbuch (Bestiarium)
+### 16.3 Jagdbuch (Bestiarium) *(Schritt 11c, umgesetzt)*
+
+Alle Werte stehen in `src/data/bestiary.ts` und sind **Startwerte**. Was beim Einbau dazugekommen
+ist oder von mir festgelegt wurde, steht unten unter „So ist es gebaut".
 
 Das Jagdbuch zählt, wie viele Gegner jedes Typs man besiegt hat. Eine Elite zählt fünffach.
 Jeder Typ hat fünf Ränge:
@@ -1658,6 +1697,37 @@ eine **Bosse-Zeile** (feste Elites, Zwischenboss, Zonen-Boss, später Weltboss):
 | Passt zum Rest | Quests (12) brauchen dasselbe Ereignis „Gegner besiegt" – einmal bauen, zweimal nutzen. Der Kodex (20) übernimmt das Jagdbuch als ersten Reiter; seine eigenen Seiten bleiben ohne Bonus |
 | Aufwand | 1 Sitzung, klein bis mittel. Neu: `src/data/bestiary.ts`, Zähler beim Sieg, Fenster. Boni an vier Stellen (Schaden hin und zurück, Gold, Drop-Chance) und bei Leben / Angriffskraft der Figur |
 | Spielstand | Ein Format weiter: `bestiary` (Zähler je Typ, Siege je Boss). Alte Stände beginnen bei 0 – bisher wird nichts gezählt, **rückwirkend geht es nicht**. Das spricht dafür, früh damit anzufangen |
+
+**So ist es gebaut** *(Schritt 11c)*:
+
+| Was | Wie | Wo |
+|---|---|---|
+| Zählen | Jeder besiegte Gegner zählt +1 bei seinem Typ, eine Elite +5. Auf jeder Schwierigkeit, in jeder Zone, egal wie hoch die eigene Stufe ist (auch graue Gegner zählen). Gezählt wird beim Sieg – nicht, wenn ein Gegner an die Leine geht | `Bestiary.record` in `src/bestiary/Bestiary.ts`, ausgelöst von `Combat.onKill` |
+| Ränge | 10 / 50 / 150 / 350 / 750. Die Boni aller erreichten Ränge gelten zusammen. Eine Seite kann eigene Schwellen haben (`kills`), Grünwald nutzt die Standard-Liste | `BESTIARY_RANKS` |
+| +3 % Schaden | auf jeden Treffer gegen den Typ (Auto-Angriff und Skills), auch gegen seine Elites | `Combat.hitEnemy` |
+| 3 % weniger Schaden | auf jeden Treffer von diesem Typ, auch von seinen Elites und von der Explosion einer „explosiven" Elite. Wird mit Schildwall multipliziert | `Combat.hurtPlayer` |
+| +10 % Gold | auf das Gold dieses Gegners, nach Rang-Faktor und Schwierigkeits-Bonus | `GroundLoot.dropFrom` |
+| +10 % Drop-Chance | 6 % → 6,6 % bei normalen Gegnern. Elites lassen ohnehin immer etwas fallen – ihnen bringt der Rang nichts | `GroundLoot.dropFrom` |
+| Sammelseite | Eine Seite „Grünwald" mit den 8 Typen aus Grünwald und Spinnenhöhle. Bronze / Silber / Gold = alle Typen auf Rang 2 / 3 / 5. Die Stufen gelten zusammen: Gold heißt insgesamt +2 % Leben und +2 % Angriffskraft | `BESTIARY_PAGES`, `PAGE_TIERS` |
+| Leben und Angriffskraft | Prozent auf den Wert aus Stufe und Ausrüstung (Kriegsschrei rechnet danach obendrauf). Stehen im Charakterfenster schon eingerechnet | `Player.setBestiaryBonus` |
+| Bosse-Zeile | Brutmutter und Räuberhauptmann. 1 Sieg = Name, Bild, Fundort · 5 Siege = Werte und Eigenschaften · 20 Siege = Stern und goldener Eintrag. Kein Bonus | `BOSS_STEPS`, `bosses` der Seite |
+| Feste Elites | Die Brutmutter zählt doppelt: als Sieg in der Bosse-Zeile und als Elite ihres Typs (+5 Waldspinne). Der Räuberhauptmann (Rang Boss) zählt nur in der Bosse-Zeile; gegen Bosse gibt es keine Typ-Boni | `Enemy.bossId` |
+| Fenster | Taste `J` oder der Buch-Knopf in der Leiste oben rechts; `J`, `Esc` und × schließen es. Sitzt links wie Händler, Dorfausbau und Lagertruhe – offen ist immer nur eines davon. Ein Reiter je Seite (mit ihrer Stufe), darunter die drei Stufen der Seite, dann je Typ eine Karte: Bild, Name, Rang, Balken mit Zähler bis zum nächsten Rang, aktive Boni (grün), nächster Rang (grau). Ganz unten die Summe aller Seiten | `src/ui/BestiaryWindow.ts`, `index.html`, `hud.css` |
+| Unbekannte Gegner | Noch nie besiegt: nur der Umriss und „???". Ab dem ersten Sieg der Name, ab Rang 1 Werte und Fundorte | `BestiaryWindow.typeCard` |
+| Werte und Fundorte | kommen von selbst aus den Karten aller Zonen: in welcher Zone der Typ auf welchen Stufen steht, dazu Leben, Angriff und Rüstung auf diesen Stufen (ohne Schwierigkeit) | `src/bestiary/fieldGuide.ts` |
+| Meldung | Ein neuer Rang und eine neue Stufe der Seite stehen 7 Sekunden goldgelb in der Beute-Liste unten links | `Bestiary.onMessage`, `Hud.logLine` |
+| Prüfung beim Start | Steht in einer Karte ein Gegnertyp (oder eine feste Elite), der auf keiner Seite vorkommt, bricht das Spiel mit einer klaren Meldung ab – so wird bei einer neuen Zone keine Seite vergessen | `buildFieldGuide` |
+| Spielstand | Format 6: `bestiary` = `kills` (Typ → Zähler) und `bosses` (Schlüssel → Siege). Alte Stände beginnen bei 0 | `src/save/saveGame.ts` |
+| Test | Vorlage „Stufe 10 – Jagdbuch" im Menü „Spielstände" (Abschnitt 11) | `src/data/testSaves.ts` |
+
+- **Abweichung vom Plan:** Die Seite einer neuen Zone kommt nicht ganz von selbst – ihre Typen
+  stehen als Liste in `src/data/bestiary.ts` (so lässt sich die Reihenfolge im Fenster und die
+  Zuordnung „Spinnenhöhle gehört zu Grünwald" festlegen). Die Prüfung beim Start meldet, wenn
+  etwas fehlt.
+- **Boss-Siege zählen zweimal getrennt:** `bossKills` (11b, fürs Rathaus) und `bestiary.bosses`
+  (fürs Jagdbuch). Das Jagdbuch beginnt bei 0, auch wenn der Räuberhauptmann schon besiegt war.
+- Im Testlauf (`?stufe`, `?elite` …) wird gezählt, aber wie alles andere nie gespeichert.
+  `?elite=1` füllt das Buch fünfmal so schnell.
 
 ### 16.4 Meisterschaft (Skills und Waffen leveln durch Benutzung)
 
@@ -1716,7 +1786,7 @@ und Zweihandschwert) hat Stufe 0–20. Sie steigt mit jedem Schlag, den man mit 
 | Schritt | Was | Warum dort |
 |---|---|---|
 | **11b** ✅ | Dorfausbau | Umgesetzt. **Vor den Quests.** Antwortet direkt auf dein Feedback „Gold hat zu wenig Verwendung", braucht nichts, was es noch nicht gibt, und Stufe 1–2 lassen sich schon in Grünwald testen. Das Kopfgeld-Brett dockt in Meilenstein 12 an |
-| **11c** | Jagdbuch | **Vor den Quests.** Gezählt wird erst ab dem Einbau – je früher, desto weniger geht verloren. Das Ereignis „Gegner besiegt" brauchen die Quests danach ohnehin |
+| **11c** ✅ | Jagdbuch | Umgesetzt. **Vor den Quests.** Gezählt wird erst ab dem Einbau – je früher, desto weniger geht verloren. Das Ereignis „Gegner besiegt" brauchen die Quests danach ohnehin |
 | 12, 13, 14 | Quests, Orkhügel, Talentbaum | wie geplant |
 | **14b** | Skill-Meisterschaft, Übungsplatz | **Nicht vor Meilenstein 12**, sondern direkt nach dem Talentbaum (Gründe in 16.4, Punkt 1 und 2) |
 | 15 | Loot-Vielfalt, vielleicht **plus Waffen-Meisterschaft** | die Waffen unterscheiden sich erst hier; ob es die Waffen-Meisterschaft gibt, ist offen |
@@ -1738,11 +1808,12 @@ Buchstaben (wie 5b, 6b, 10b). Mehraufwand: 3–4 Sitzungen.
 | 5 | **Rathaus-Stufen an die Zonen-Bosse koppeln?** Dann geht in Grünwald nur Stufe 1–2 | ja *(mein Vorschlag übernommen, umgesetzt)* |
 | 6 | **Sichtbarer Ausbau:** reicht Schild mit Fahne am Haus, oder soll sich das Dorf wirklich verändern? | Schild mit Fahne *(mein Vorschlag übernommen, umgesetzt)* |
 | 7 | **Lagertruhe pro Spielstand** oder eine für alle Slots? | pro Spielstand *(mein Vorschlag übernommen, umgesetzt)* |
-| 8 | **Jagdbuch mit Boni** oder reines Sammeln wie der Kodex? Und: Gold-Seite Grünwald kostet 15–18 Stunden – zu viel? | **mit kleinen Boni, kommt in 11c** *(Entschieden)*; die Schwellen bleiben Startwert |
+| 8 | **Jagdbuch mit Boni** oder reines Sammeln wie der Kodex? Und: Gold-Seite Grünwald kostet 15–18 Stunden – zu viel? | **mit kleinen Boni** *(Entschieden, umgesetzt in 11c)*; die Schwellen bleiben Startwert |
 | 9 | **Waffen-Meisterschaft je Waffenart** – gewollt? Alternativen: eine einzige Meisterschaft „Waffen", oder nur Skills | **offen – du entscheidest später** |
-| 10 | **Zählt das Jagdbuch auf jeder Schwierigkeit?** | ja, immer *(mein Vorschlag übernommen, gilt für 11c)* |
+| 10 | **Zählt das Jagdbuch auf jeder Schwierigkeit?** | ja, immer *(mein Vorschlag übernommen, umgesetzt in 11c)* |
 | 11 | **Aus 10b:** Aufwachen im Dorf mit vollem Leben lassen? | **Nein: halbes Leben** *(Entschieden, umgesetzt in 11b – `reviveHpFraction` in `src/data/regen.ts`)* |
 | 12 | **Aus 10b:** „… der Erholung" und Lebensraub wirken weiter im Kampf und sind jetzt viel mehr wert. Bremsen? | erst spielen, dann entscheiden *(mein Vorschlag übernommen, nichts geändert)* |
 
 Dazugekommen in Schritt 11b *(von dir vorgegeben)*: Die Obergrenze für Heiltränke ist weg
-(Abschnitt 7b). Neue Startwerte zum Prüfen stehen in Abschnitt 14, Punkt 18.
+(Abschnitt 7b). Neue Startwerte zum Prüfen stehen in Abschnitt 14, Punkt 18 (Dorfausbau) und
+Punkt 19 (Jagdbuch).

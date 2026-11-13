@@ -46,6 +46,8 @@ export class Player extends Actor {
   private gear: Stats = emptyStats();
   /** Dieselben Werte, aber die Attribute sind schon in Angriffskraft, Leben und Krit-Chance umgerechnet. */
   private bonus: Stats = emptyStats();
+  /** Leben und Angriffskraft aus den Sammelseiten des Jagdbuchs (0.01 = +1 %), siehe setBestiaryBonus. */
+  private bestiaryBonus = { maxHp: 0, attackPower: 0 };
 
   private sinceCombatMs = COMBAT_TIMEOUT_MS;
   /** Zeit, seit zuletzt ein Gegner die Figur verfolgt hat – solange gibt es keine Regeneration. */
@@ -81,9 +83,9 @@ export class Player extends Actor {
     return this.sinceCombatMs < COMBAT_TIMEOUT_MS;
   }
 
-  /** Angriffskraft aus Stufe und Ausrüstung, inklusive laufender Buffs. */
+  /** Angriffskraft aus Stufe, Ausrüstung und Jagdbuch, inklusive laufender Buffs. */
   get attackPower(): number {
-    const base = warriorStat('attackPower', this.level) + this.bonus.attackPower;
+    const base = (warriorStat('attackPower', this.level) + this.bonus.attackPower) * (1 + this.bestiaryBonus.attackPower);
     return base * (1 + this.buffs.reduce((sum, buff) => sum + buff.attackBonus, 0));
   }
 
@@ -169,6 +171,12 @@ export class Player extends Actor {
     this.gear = stats;
     this.bonus = withAttributesApplied(stats);
     this.weapon.setFrame(weaponFrame ?? SWING_WEAPON_FRAME);
+    this.refreshMaxHp();
+  }
+
+  /** Übernimmt die Boni der Sammelseiten des Jagdbuchs (src/data/bestiary.ts): Anteile, 0.01 = +1 %. */
+  setBestiaryBonus(bonus: { maxHp: number; attackPower: number }): void {
+    this.bestiaryBonus = { ...bonus };
     this.refreshMaxHp();
   }
 
@@ -391,9 +399,9 @@ export class Player extends Actor {
     this.stillMs = moving ? 0 : this.stillMs + deltaMs;
   }
 
-  /** Maximales Leben aus Stufe und Ausrüstung. Das aktuelle Leben bleibt, höchstens bis zum neuen Maximum. */
+  /** Maximales Leben aus Stufe, Ausrüstung und Jagdbuch. Das aktuelle Leben bleibt, höchstens bis zum neuen Maximum. */
   private refreshMaxHp(): void {
-    this.maxHp = Math.round(warriorStat('maxHp', this.level) + this.bonus.maxHp);
+    this.maxHp = Math.round((warriorStat('maxHp', this.level) + this.bonus.maxHp) * (1 + this.bestiaryBonus.maxHp));
     if (this.alive) this.hp = Math.min(this.hp, this.maxHp);
   }
 

@@ -5,7 +5,7 @@
  * umbenannt wird) – und in src/save/saveGame.ts unter MIGRATIONS eintragen, wie ein
  * alter Spielstand ins neue Format kommt.
  */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 /** So viele normale Spielstand-Slots gibt es. Dazu kommt immer ein eigener Slot für Test-Spielstände. */
 export const SLOT_COUNT = 3;

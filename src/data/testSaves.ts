@@ -23,6 +23,8 @@ export interface TestSaveDef {
   town?: Partial<TownLevels>;
   /** Diese Bosse gelten als schon besiegt (Gegnertyp aus src/data/enemies.ts) – das schaltet Rathaus-Stufen frei. */
   bossKills?: string[];
+  /** Jagdbuch: besiegte Gegner je Typ und Siege je Boss (src/data/bestiary.ts). Ohne Angabe: leer. */
+  bestiary?: { kills?: Record<string, number>; bosses?: Record<string, number> };
 }
 
 export const TEST_SAVES: TestSaveDef[] = [
@@ -74,5 +76,21 @@ export const TEST_SAVES: TestSaveDef[] = [
     equipped: { weapon: 'rare', shield: 'uncommon', helmet: 'uncommon', chest: 'rare', gloves: 'uncommon', boots: 'uncommon' },
     bag: ['common', 'uncommon', 'uncommon', 'rare', 'epic'],
     bossKills: ['raeuberhauptmann'],
+  },
+  {
+    // Zum Ausprobieren des Jagdbuchs: Jeder Rang kommt vor, Ratte, Wolf und Fledermaus stehen
+    // einen Gegner vor dem nächsten Rang. Die Seite Grünwald ist Bronze – Silber fehlt nur die Fledermaus.
+    label: 'Stufe 10 – Jagdbuch',
+    name: 'Test Jagdbuch',
+    level: 10,
+    gold: 800,
+    potions: 10,
+    equipped: { weapon: 'rare', shield: 'uncommon', helmet: 'uncommon', chest: 'rare', gloves: 'uncommon', boots: 'uncommon' },
+    bag: ['common', 'uncommon', 'rare'],
+    bossKills: ['raeuberhauptmann'],
+    bestiary: {
+      kills: { ratte: 749, spinne: 760, wolf: 349, wildschwein: 200, fledermaus: 149, wegelagerer: 400, goblin: 150, schleuderer: 155 },
+      bosses: { brutmutter: 5, raeuberhauptmann: 1 },
+    },
   },
 ];

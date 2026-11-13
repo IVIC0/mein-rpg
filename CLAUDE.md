@@ -26,6 +26,8 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
      (jeweils die Werte ohne Dorfausbau)
    - `src/data/town.ts` – Dorfausbau: Gebäude, Kosten, was jede Stufe bringt (Kontor, Alchemistin, Gasthaus,
      Lagerhaus), welcher Boss welche Rathaus-Stufe freischaltet, Baumeister, Lagertruhe, Fahnenfarben
+   - `src/data/bestiary.ts` – Jagdbuch: Ränge je Gegnertyp (Schwellen, Boni), Elite-Gewicht, Stufen der
+     Sammelseiten (Leben, Angriffskraft), welche Typen und Bosse auf welcher Seite stehen
    - `src/data/difficulty.ts` – Schwierigkeit: Grenzen der Regler, die vier Knöpfe, Belohnung (EP und Gold)
    - `src/data/minimap.ts` – Minimap: Größe, Ausschnitt, Farben der Punkte
    - `src/data/save.ts` – Speichern: Format-Nummer, Anzahl Slots, Auto-Save-Abstände, Namenslänge
@@ -58,7 +60,8 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 - Zonen: Zu sehen ist immer genau eine. `enterZone` / `leaveZone` in `src/scenes/WorldScene.ts` bauen sie
   aus ihrer Karte auf und räumen sie weg; Figur, HUD, Inventar und Kampf bleiben bestehen. Was ein
   besonderer Ort (POI) im Spiel tut, steht dort in `buildPoi` (Art → Verhalten). Eine neue Zone braucht
-  einen Bauplan (`tools/zones/`), einen Eintrag in `src/data/zones.ts` und `npm run assets` – Code nur,
+  einen Bauplan (`tools/zones/`), einen Eintrag in `src/data/zones.ts`, ihre Gegnertypen auf einer Seite
+  des Jagdbuchs (`src/data/bestiary.ts`) und `npm run assets` – Code nur,
   wenn sie etwas Neues *kann* (neue Gelände-Art in `tools/lib/terrain-*.mjs`, neue POI-Art).
 - Bilder: Figuren nennen ihr Bild beim Namen (`src/data/sprites.ts`). Neue Figuren aus den Packs kommen
   über `tools/lib/creatures.mjs` nach `public/assets/sprites/creatures.png`. Item-, Skill- und
@@ -66,7 +69,7 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 - Loot: Items sind einfache Daten (`Item` in `src/items/generator.ts`), damit sie sich später speichern lassen.
 - Sprache: Texte im Spiel, Kommentare und Doku auf Deutsch.
 - UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster, Minimap) ist HTML/CSS über dem Canvas:
-  `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/Nameplates.ts`,
+  `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/BestiaryWindow.ts`, `src/ui/Nameplates.ts`,
   `src/ui/Minimap.ts`.
 - Einstellungen des Spielers liegen in einem Objekt (`Settings` in `src/ui/settings.ts`, dort auch
   Standardwerte und Regler-Grenzen). Sie sind global (Browser), nicht Teil des Spielstands.
@@ -87,6 +90,11 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
   ihn aus `town.effects` – nicht direkt aus `shop.ts` / `regen.ts`. Gebäude geben nur Komfort,
   nie Kampfwerte. Lagertruhe: `src/items/Stash.ts`, `src/ui/StashWindow.ts` (Rechtsklick im
   Inventar lagert ein). `Combat.onKill` meldet jeden besiegten Gegner (Boss-Siege fürs Rathaus).
+- Jagdbuch: Regeln in `src/bestiary/Bestiary.ts` (zählen, Rang, `bonusAgainst` = Boni gegen einen
+  Gegnertyp, `pageBonus` = Leben und Angriffskraft aus den Sammelseiten), Fenster in
+  `src/ui/BestiaryWindow.ts` (Taste `J`). Gezählt wird über `Combat.onKill`. Bilder und Fundorte
+  holt `src/bestiary/fieldGuide.ts` aus den Karten; dort wird auch geprüft, dass jeder Gegnertyp
+  einer Karte auf einer Seite steht – eine neue Zone braucht also einen Eintrag in `BESTIARY_PAGES`.
 - Name: Das Spiel heißt „Rogoi Offline" (`GAME_TITLE` in `src/config.ts`). Repo-Name, `name` in
   `package.json`, `base` in `vite.config.ts`, die Schlüssel im Browser-Speicher (`mein-rpg.…`) und
   das Kennzeichen `app: 'mein-rpg'` im Spielstand bleiben, wie sie sind – sonst bricht die

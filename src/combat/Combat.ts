@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { Bestiary } from '../bestiary/Bestiary';
 import { MELEE_APPROACH, MELEE_RANGE, PLAYER_RESPAWN_MS } from '../config';
 import { TRAIT_VALUES } from '../data/elites';
 import { DEATH_XP_LOSS, xpForKill } from '../data/progression';
@@ -35,7 +36,7 @@ export class Combat {
   /** Wird bei wichtigen Ereignissen aufgerufen (Stufenaufstieg, Tod, Aufwachen, Boss besiegt) – daran hängt das Speichern. */
   onSaveEvent: () => void = () => {};
 
-  /** Wird für jeden besiegten Gegner aufgerufen (setzt WorldScene) – z. B. zählt das Dorf daran die Boss-Siege. */
+  /** Wird für jeden besiegten Gegner aufgerufen (setzt WorldScene) – daran zählen das Dorf die Boss-Siege und das Jagdbuch alle Gegner. */
   onKill: (enemy: Enemy) => void = () => {};
 
   /**
@@ -65,6 +66,8 @@ export class Combat {
     private readonly loot: GroundLoot,
     /** Der Dorfausbau: Das Gasthaus senkt den Gold-Verlust beim Tod. */
     private readonly town: Town,
+    /** Das Jagdbuch: kleine Boni auf Schaden gegen einen Gegnertyp und von ihm. */
+    private readonly bestiary: Bestiary,
   ) {
     this.ring = scene.add.image(0, 0, 'target-ring').setDepth(6).setVisible(false);
   }
@@ -239,7 +242,9 @@ export class Combat {
 
   private hitEnemy(enemy: Enemy, multiplier: number): void {
     const player = this.player;
-    const hit = rollHit(player.attackPower, enemy.armor, multiplier, player.critChance, player.critMultiplier);
+    // Jagdbuch: mehr Schaden gegen einen Gegnertyp, den die Figur schon gut kennt.
+    const known = 1 + this.bestiary.bonusAgainst(enemy.type).damageDealt;
+    const hit = rollHit(player.attackPower, enemy.armor, multiplier * known, player.critChance, player.critMultiplier);
     player.enterCombat();
     // Lebensraub zählt nur den Schaden, der wirklich ankommt (nicht mehr, als der Gegner noch Leben hat).
     const stolen = Math.min(hit.amount, enemy.hp) * player.lifeSteal;
@@ -254,7 +259,7 @@ export class Combat {
       this.grantXp(enemy);
       this.loot.dropFrom(enemy);
       this.onKill(enemy);
-      if (enemy.hasTrait('explosiv')) this.explode(enemy.pos.x, enemy.pos.y, enemy.baseAttackPower);
+      if (enemy.hasTrait('explosiv')) this.explode(enemy.pos.x, enemy.pos.y, enemy.baseAttackPower, enemy.type);
       if (enemy.timed) this.onSaveEvent(); // Boss oder benannte Elite: der Respawn-Timer gehört in den Spielstand
     }
 
@@ -305,7 +310,7 @@ export class Combat {
   private readonly enemyStrikes = (enemy: Enemy): void => {
     const player = this.player;
     if (!player.alive) return;
-    const amount = this.hurtPlayer(enemy.attackPower);
+    const amount = this.hurtPlayer(enemy.attackPower, enemy.type);
 
     // Vampirische Elites heilen sich um einen Teil des Schadens.
     if (enemy.hasTrait('vampirisch') && enemy.hp < enemy.maxHp) {
@@ -321,11 +326,15 @@ export class Combat {
     }
   };
 
-  /** Ein Treffer mit `attackPower` auf die Figur (ihre Rüstung und Buffs zählen). Gibt den Schaden zurück. */
-  private hurtPlayer(attackPower: number): number {
+  /**
+   * Ein Treffer mit `attackPower` auf die Figur (ihre Rüstung und Buffs zählen). Gibt den Schaden zurück.
+   * `type` = Gegnertyp des Angreifers: Kennt ihn das Jagdbuch gut genug, kommt etwas weniger an.
+   */
+  private hurtPlayer(attackPower: number, type: string): number {
     const player = this.player;
     const hit = rollHit(attackPower, player.armor);
-    const amount = Math.max(1, Math.round(hit.amount * player.damageTakenFactor));
+    const known = 1 - this.bestiary.bonusAgainst(type).damageTaken;
+    const amount = Math.max(1, Math.round(hit.amount * player.damageTakenFactor * known));
     player.takeDamage(amount);
     this.floaters.spawn(player.pos.x, player.pos.y - 16, `${amount}`, 'hurt');
     if (!player.alive) this.killPlayer();
@@ -336,7 +345,7 @@ export class Combat {
    * "Explosiv": an der Stelle (x, y) wächst ein roter Kreis als Warnung. Ist er voll,
    * knallt es – wer dann noch darin steht, kassiert den Treffer. Weglaufen lohnt sich.
    */
-  private explode(x: number, y: number, attackPower: number): void {
+  private explode(x: number, y: number, attackPower: number, type: string): void {
     const { delayMs, radius, attackFactor } = TRAIT_VALUES.explosiv;
     const warning = this.scene.add.circle(x, y, radius, 0xff4a2a, 0.3).setStrokeStyle(1, 0xff4a2a, 0.9).setDepth(6).setScale(0.15);
     this.effects.add(warning);
@@ -350,7 +359,7 @@ export class Combat {
         this.effects.add(blast);
         this.scene.tweens.add({ targets: blast, alpha: 0, scale: 1.3, duration: 250, onComplete: () => this.removeEffect(blast) });
         const player = this.player;
-        if (player.alive && player.distanceTo({ x, y }) <= radius) this.hurtPlayer(attackPower * attackFactor);
+        if (player.alive && player.distanceTo({ x, y }) <= radius) this.hurtPlayer(attackPower * attackFactor, type);
       },
     });
   }

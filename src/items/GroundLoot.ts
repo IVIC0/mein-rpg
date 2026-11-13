@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { Bestiary } from '../bestiary/Bestiary';
 import { RARITIES } from '../data/items';
 import { DROP_TABLES, GOLD_DROP, GOLD_RANK_FACTOR, LOOT_DESPAWN_MS, LOOT_PICKUP_DELAY_MS, LOOT_PICKUP_RADIUS, LOOT_SCATTER } from '../data/loot';
 import type { Enemy } from '../entities/Enemy';
@@ -58,6 +59,8 @@ export class GroundLoot {
     private readonly inventory: Inventory,
     private readonly hud: Hud,
     private readonly floaters: FloatingText,
+    /** Das Jagdbuch: mehr Gold und höhere Drop-Chance bei Gegnertypen mit hohem Rang. */
+    private readonly bestiary: Bestiary,
   ) {}
 
   /** Alle Items am Boden für den Spielstand – die der aktuellen Zone und die der anderen. */
@@ -95,12 +98,13 @@ export class GroundLoot {
   dropFrom(enemy: Enemy): void {
     // rewardFactor = Zuschlag für die Schwierigkeit (src/data/difficulty.ts).
     const base = (Phaser.Math.FloatBetween(GOLD_DROP.min, GOLD_DROP.max) + GOLD_DROP.perLevel * enemy.level) * GOLD_RANK_FACTOR[enemy.rank];
-    const gold = Math.round(base * enemy.rewardFactor);
+    const known = this.bestiary.bonusAgainst(enemy.type);
+    const gold = Math.round(base * enemy.rewardFactor * (1 + known.gold));
     this.inventory.addGold(gold);
     this.floaters.spawn(enemy.pos.x, enemy.pos.y - 4, `+${gold} Gold`, 'gold');
 
     // Drop-Chance und Seltenheit hängen vom Rang des Gegners ab (normal, Elite, Boss).
-    if (Math.random() < DROP_TABLES[enemy.rank].itemChance) {
+    if (Math.random() < DROP_TABLES[enemy.rank].itemChance * (1 + known.dropChance)) {
       this.place(generateItem(enemy.level, rollRarity(enemy.rank)), enemy.pos.x, enemy.pos.y);
     }
   }

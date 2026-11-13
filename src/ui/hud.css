@@ -1619,6 +1619,194 @@
   gap: 4px;
 }
 
+/* ---------------------------------------------------------------- Jagdbuch */
+
+#bestiary {
+  width: 680px;
+  max-width: calc(100vw - 20px);
+}
+
+#bestiary-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+/* Die drei Stufen der Sammelseite nebeneinander. */
+#bestiary-page {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.bestiary-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 7px;
+  font-size: 11px;
+  color: #8a8a80;
+  background: #1a1e19;
+  border: 1px solid #0c0f0c;
+  border-radius: 3px;
+}
+
+.bestiary-tier b {
+  font-size: 12px;
+}
+
+.bestiary-tier i {
+  font-style: normal;
+}
+
+/* Erreichte Stufe: Rand und Name in ihrer Farbe, der Bonus grün. */
+.bestiary-tier.reached.tier-1 {
+  border-color: #c98a4b;
+}
+
+.bestiary-tier.reached.tier-1 b {
+  color: #e0a468;
+}
+
+.bestiary-tier.reached.tier-2 {
+  border-color: #b9c2c9;
+}
+
+.bestiary-tier.reached.tier-2 b {
+  color: #dfe6ea;
+}
+
+.bestiary-tier.reached.tier-3 {
+  border-color: #ffd34d;
+}
+
+.bestiary-tier.reached.tier-3 b {
+  color: #ffd34d;
+}
+
+.bestiary-tier.reached i {
+  color: #8fe89a;
+}
+
+/* Die Gegnertypen: zwei Karten pro Zeile. */
+#bestiary-list,
+#bestiary-bosses {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.bestiary-card {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 7px;
+  background: #1a1e19;
+  border: 1px solid #0c0f0c;
+  border-radius: 3px;
+}
+
+/* Höchster Rang (oder Stern bei einem Boss): goldener Eintrag. */
+.bestiary-card.master {
+  border-color: #ffd34d;
+  background: #2a281a;
+}
+
+.bestiary-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+/* Noch nie besiegt: nur der Umriss. */
+.bestiary-card.unknown .bestiary-icon {
+  filter: brightness(0);
+  opacity: 0.6;
+}
+
+.bestiary-info {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.bestiary-name {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.bestiary-name span {
+  font-size: 11px;
+  color: #c9bf9f;
+  white-space: nowrap;
+}
+
+.bestiary-card.master .bestiary-name span {
+  color: #ffd34d;
+}
+
+/* Balken bis zum nächsten Rang, der Zähler steht mittig darauf. */
+.bestiary-bar {
+  position: relative;
+  height: 12px;
+  margin: 3px 0;
+  background: #0c0f0c;
+  border: 1px solid #0c0f0c;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bestiary-bar div {
+  height: 100%;
+  background: #7a5a2a;
+}
+
+.bestiary-card.master .bestiary-bar div {
+  background: #a8862a;
+}
+
+.bestiary-bar span {
+  position: absolute;
+  inset: 0;
+  font-size: 10px;
+  line-height: 12px;
+  text-align: center;
+  text-shadow: 0 1px 0 #000;
+}
+
+.bestiary-facts {
+  color: #a9a999;
+}
+
+.bestiary-bonus {
+  color: #8fe89a;
+}
+
+.bestiary-next {
+  color: #8a8a80;
+}
+
+.bestiary-heading {
+  margin: 8px 0 4px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.bestiary-heading span {
+  font-size: 11px;
+  font-weight: normal;
+  color: #8a8a80;
+}
+
+#bestiary-total {
+  color: #c9bf9f;
+}
+
 /* Schilder der Gebäude im Dorf (Name und Stufe an der Fahne): etwas kleiner und blasser als die der Figuren. */
 .nameplate-building {
   font-size: 10px;

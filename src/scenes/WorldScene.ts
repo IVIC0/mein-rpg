@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { Bestiary } from '../bestiary/Bestiary';
+import { buildFieldGuide } from '../bestiary/fieldGuide';
 import { Combat } from '../combat/Combat';
 import { BODY_RADIUS, HOLD_DELAY_MS, TILE, zoomForViewport } from '../config';
 import { DEFAULT_DIFFICULTY, type Difficulty } from '../data/difficulty';
@@ -26,6 +28,7 @@ import { Stash } from '../items/Stash';
 import { cleanName, type SaveGame } from '../save/saveGame';
 import { readTestParams, session, writeSlot } from '../save/slots';
 import { Town } from '../town/Town';
+import { BestiaryWindow } from '../ui/BestiaryWindow';
 import { FloatingText } from '../ui/FloatingText';
 import { Hud } from '../ui/Hud';
 import { HudLayout } from '../ui/HudLayout';
@@ -42,6 +45,9 @@ import { byId } from '../ui/dom';
 import { Grid, type Point } from '../world/Grid';
 import type { Interactable } from '../world/Interactable';
 import { findWaypoints } from '../world/pathfinding';
+
+/** Farbe der Jagdbuch-Meldungen in der Beute-Liste (neuer Rang, neue Stufe einer Sammelseite). */
+const BESTIARY_MESSAGE_COLOR = '#ffd34d';
 
 /** Längere Aussetzer (z. B. Tab im Hintergrund) zählen höchstens so viel (Millisekunden). */
 const MAX_FRAME_MS = 100;
@@ -71,7 +77,7 @@ const SOLID_POIS = ['haendler', 'truhe', 'baumeister', 'lagertruhe'];
  *
  * Oben rechts zeigt die Minimap Gelände, Gegner, Händler, Truhen und Übergänge (src/ui/Minimap.ts).
  *
- * Skills lösen von selbst aus (siehe Combat). I oder C öffnet Charakter & Inventar.
+ * Skills lösen von selbst aus (siehe Combat). I oder C öffnet Charakter & Inventar, J das Jagdbuch.
  * Esc schließt das Fenster (wenn es nicht angepinnt ist) bzw. hebt die Zielauswahl auf.
  *
  * Speichern: Beim Start wird der Spielstand aus `session.save` übernommen (applySave).
@@ -98,6 +104,9 @@ export class WorldScene extends Phaser.Scene {
   private townWindow!: TownWindow;
   private stash!: Stash;
   private stashWindow!: StashWindow;
+  /** Das Jagdbuch (besiegte Gegner je Typ, Ränge, Boni) – steht im Spielstand. */
+  private bestiary!: Bestiary;
+  private bestiaryWindow!: BestiaryWindow;
   private minimap!: Minimap;
 
   // ---- Die aktuelle Zone (alles hier baut enterZone neu auf) ----
@@ -221,15 +230,28 @@ export class WorldScene extends Phaser.Scene {
       this.requestSave();
     };
 
-    const loot = new GroundLoot(this, inventory, hud, this.floaters);
+    // Jagdbuch: Fenster neu zeichnen und speichern, wenn ein Gegner gezählt wurde; die Boni der
+    // Sammelseiten (Leben, Angriffskraft) bekommt die Figur; ein neuer Rang gibt eine Meldung in der Beute-Liste.
+    this.bestiary = new Bestiary();
+    this.bestiaryWindow = new BestiaryWindow(this.bestiary, buildFieldGuide(this), () => this.closeSideWindows());
+    this.bestiary.onChange = () => {
+      this.bestiaryWindow.render();
+      this.requestSave();
+    };
+    this.bestiary.onPageBonusChange = () => this.player.setBestiaryBonus(this.bestiary.pageBonus);
+    this.bestiary.onMessage = (text) => hud.logLine(text, BESTIARY_MESSAGE_COLOR);
+
+    const loot = new GroundLoot(this, inventory, hud, this.floaters, this.bestiary);
     this.loot = loot;
     loot.onChange = () => this.requestSave();
 
-    this.combat = new Combat(this, this.player, hud, this.floaters, inventory, loot, this.town);
+    this.combat = new Combat(this, this.player, hud, this.floaters, inventory, loot, this.town, this.bestiary);
     this.combat.onSaveEvent = () => this.requestSave();
-    // Jeder Sieg über einen Boss zählt fürs Rathaus (TOWN_HALL_BOSSES in src/data/town.ts).
+    // Jeder Sieg über einen Boss zählt fürs Rathaus (TOWN_HALL_BOSSES in src/data/town.ts),
+    // jeder besiegte Gegner fürs Jagdbuch.
     this.combat.onKill = (enemy) => {
       if (enemy.rank === 'boss') this.town.recordBossKill(enemy.type);
+      this.bestiary.record(enemy);
     };
     this.combat.respawnPoint = () => this.respawnPoint();
 
@@ -274,19 +296,21 @@ export class WorldScene extends Phaser.Scene {
     this.game.events.on(Phaser.Core.Events.BLUR, this.cancelPress, this);
 
     this.input.keyboard?.on('keydown-ESC', () => {
-      // Esc beendet erst den Bearbeitungsmodus, schließt dann die Einstellungen, dann das Inventar
-      // (außer es ist angepinnt), sonst hebt es das Ziel auf.
+      // Esc beendet erst den Bearbeitungsmodus, schließt dann die Einstellungen, dann die Fenster links
+      // (Händler, Dorfausbau, Lagertruhe, Jagdbuch), dann das Inventar (außer es ist angepinnt), sonst hebt es das Ziel auf.
       if (this.hudLayout.editing) this.hudLayout.setEditing(false);
       else if (this.saveMenu.isOpen) this.saveMenu.close();
       else if (this.settings.isOpen) this.settings.close();
       else if (this.shopWindow.isOpen) this.shopWindow.close();
       else if (this.townWindow.isOpen) this.townWindow.close();
       else if (this.stashWindow.isOpen) this.stashWindow.close();
+      else if (this.bestiaryWindow.isOpen) this.bestiaryWindow.close();
       else if (this.inventoryWindow.isOpen && !this.inventoryWindow.pinned) this.inventoryWindow.close();
       else this.combat.clearTarget();
     });
     this.input.keyboard?.on('keydown-I', () => this.inventoryWindow.toggle());
     this.input.keyboard?.on('keydown-C', () => this.inventoryWindow.toggle());
+    this.input.keyboard?.on('keydown-J', () => this.bestiaryWindow.toggle());
     this.input.keyboard?.on('keydown-Q', () => this.drinkPotion());
 
     // Schadenszahlen erst nach dem Zeichnen platzieren: dann steht die Kamera für diesen Frame fest.
@@ -475,7 +499,7 @@ export class WorldScene extends Phaser.Scene {
         const named = NAMED_ELITES[poi.name];
         const def = named ? ENEMIES[named.enemy] : undefined;
         if (!named || !def) throw new Error(`Benannte Elite "${poi.name}" fehlt in src/data/elites.ts.`);
-        const fixed = { name: named.name, traits: named.traits, respawnMs: NAMED_ELITE_RESPAWN_MS };
+        const fixed = { id: poi.name, name: named.name, traits: named.traits, respawnMs: NAMED_ELITE_RESPAWN_MS };
         this.addEnemy(new Enemy(this, named.enemy, def, named.level, x, y, fixed), poi.name);
       },
     };
@@ -561,16 +585,22 @@ export class WorldScene extends Phaser.Scene {
 
   /**
    * Öffnet das Fenster des Händlers, des Baumeisters oder der Lagertruhe. Die drei sitzen am
-   * selben Platz links im Bild – offen ist immer nur eines.
+   * selben Platz links im Bild wie das Jagdbuch – offen ist immer nur eines.
    */
   private openWindow(which: 'shop' | 'town' | 'stash'): void {
-    if (which !== 'shop') this.shopWindow.close();
-    if (which !== 'town') this.townWindow.close();
-    if (which !== 'stash') this.stashWindow.close();
+    this.closeSideWindows();
     if (which === 'shop') this.shopWindow.open();
     else if (which === 'town') this.townWindow.open();
     else if (this.stash.size > 0) this.stashWindow.open();
     else this.hud.flash(`Die Lagertruhe ist verschlossen – baue beim ${BUILDER.name} das ${BUILDINGS.lagerhaus.name}`);
+  }
+
+  /** Schließt alle Fenster, die links im Bild sitzen: Händler, Dorfausbau, Lagertruhe und Jagdbuch. */
+  private closeSideWindows(): void {
+    this.shopWindow.close();
+    this.townWindow.close();
+    this.stashWindow.close();
+    this.bestiaryWindow.close();
   }
 
   /**
@@ -675,7 +705,7 @@ export class WorldScene extends Phaser.Scene {
 
   /**
    * Übernimmt einen Spielstand: Inventar, Ausrüstung, Gold, Tränke, Stufe, EP, Leben, Händler,
-   * Dorfausbau, Lagertruhe, Items am Boden und die Zeiten von Bossen und Truhen. Die Schwierigkeit übernimmt create
+   * Dorfausbau, Lagertruhe, Jagdbuch, Items am Boden und die Zeiten von Bossen und Truhen. Die Schwierigkeit übernimmt create
    * schon vorher, Zone und Position danach (enterZone).
    */
   private applySave(save: SaveGame): void {
@@ -690,6 +720,8 @@ export class WorldScene extends Phaser.Scene {
     this.chestRefillAt = { ...save.chests };
     // Erst die Ausrüstung (setzt über onChange die Werte der Figur), dann Stufe und Leben.
     this.inventory.load(save.bag, save.equipped, save.gold);
+    // Das Jagdbuch vor Stufe und Leben: Seine Sammelseiten erhöhen das maximale Leben.
+    this.bestiary.load(save.bestiary);
     this.player.restore(save.character.level, save.character.xp, save.character.hp);
   }
 
@@ -717,6 +749,7 @@ export class WorldScene extends Phaser.Scene {
       town: { ...this.town.levels },
       stash: this.stash.toData(),
       bossKills: { ...this.town.bossKills },
+      bestiary: this.bestiary.toData(),
       difficulty: { ...this.difficulty },
       respawnAt: stillRunning(this.respawnAt),
       chests: stillRunning(this.chestRefillAt),

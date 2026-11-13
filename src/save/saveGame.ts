@@ -2,6 +2,7 @@
 // Daten geprüft und – bei altem Format – ins aktuelle Format gebracht werden.
 // Wo die Spielstände liegen (Slots im Browser), steht in src/save/slots.ts.
 
+import type { BestiaryData } from '../bestiary/Bestiary';
 import { GAME_TITLE } from '../config';
 import { AFFIXES, EQUIP_SLOTS, ITEM_BASES, RARITIES, type EquipSlot } from '../data/items';
 import { DEFAULT_DIFFICULTY, cleanDifficultyValue, type Difficulty } from '../data/difficulty';
@@ -62,6 +63,8 @@ export interface SaveGame {
   stash: (Item | null)[];
   /** Besiegte Bosse: Gegnertyp → Anzahl der Siege. Daran hängen die Rathaus-Stufen. */
   bossKills: Record<string, number>;
+  /** Jagdbuch: besiegte Gegner je Typ und Siege je Boss. Ränge und Boni werden beim Laden daraus berechnet (src/data/bestiary.ts). */
+  bestiary: BestiaryData;
   /** Schwierigkeit dieses Spielstands (Regler in den Einstellungen, Werte in src/data/difficulty.ts). */
   difficulty: Difficulty;
   /**
@@ -111,6 +114,9 @@ const MIGRATIONS: Record<number, (old: Plain) => Plain> = {
   // Lagertruhe (Start: leer) und die Liste besiegter Bosse (Start: leer – bisher wurde nicht
   // mitgezählt). Alles füllt normalize() unten. Tränke haben keine Obergrenze mehr.
   4: (old) => ({ ...old, version: 5 }),
+  // Format 5 → 6 (Schritt 11c): Neu ist das Jagdbuch (Zähler je Gegnertyp, Siege je Boss).
+  // Bisher wurde nicht mitgezählt – alte Spielstände beginnen bei 0. Das füllt normalize() unten.
+  5: (old) => ({ ...old, version: 6 }),
 };
 
 /** Ein frischer Spielstand: Stufe 1, leeres Inventar, am Startpunkt. */
@@ -135,6 +141,7 @@ export function newSave(name: string): SaveGame {
     town: startLevels(),
     stash: [],
     bossKills: {},
+    bestiary: { kills: {}, bosses: {} },
     difficulty: { ...DEFAULT_DIFFICULTY },
     respawnAt: {},
     chests: {},
@@ -150,6 +157,8 @@ export function testSave(def: TestSaveDef): SaveGame {
   // Dorfausbau der Vorlage: Stufen einzelner Gebäude und schon besiegte Bosse.
   Object.assign(save.town, def.town ?? {});
   for (const boss of def.bossKills ?? []) save.bossKills[boss] = 1;
+  // Jagdbuch der Vorlage: Zähler je Gegnertyp und Siege je Boss.
+  save.bestiary = { kills: { ...def.bestiary?.kills }, bosses: { ...def.bestiary?.bosses } };
   for (const slot of EQUIP_SLOTS) {
     const rarity = def.equipped[slot.id];
     if (rarity) save.equipped[slot.id] = generateItem(save.character.level, rarity, slot.accepts);
@@ -260,6 +269,10 @@ function normalize(data: Plain): SaveGame {
   const bossKills: Record<string, number> = {};
   for (const [type, count] of Object.entries(cleanTimes(data.bossKills))) bossKills[type] = Math.max(0, Math.floor(count));
 
+  // Jagdbuch: Fehlt es (alter Spielstand), beginnen alle Zähler bei 0.
+  const storedBestiary = isPlain(data.bestiary) ? data.bestiary : {};
+  const bestiary: BestiaryData = { kills: cleanCounts(storedBestiary.kills), bosses: cleanCounts(storedBestiary.bosses) };
+
   const respawnAt = cleanTimes(data.respawnAt);
   const chests = cleanTimes(data.chests);
 
@@ -287,6 +300,7 @@ function normalize(data: Plain): SaveGame {
     town,
     stash,
     bossKills,
+    bestiary,
     difficulty,
     respawnAt,
     chests,
@@ -300,6 +314,15 @@ function cleanTimes(raw: unknown): Record<string, number> {
     for (const [key, value] of Object.entries(raw)) if (isNumber(value)) times[key] = value;
   }
   return times;
+}
+
+/** Liest eine Liste "Schlüssel → Zähler": nur ganze Zahlen ab 1 bleiben. */
+function cleanCounts(raw: unknown): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const [key, value] of Object.entries(cleanTimes(raw))) {
+    if (value >= 1) counts[key] = Math.floor(value);
+  }
+  return counts;
 }
 
 /** Prüft ein gespeichertes Item. Passt es nicht mehr zum Spiel (z. B. unbekannter Wert), fällt es weg. */
