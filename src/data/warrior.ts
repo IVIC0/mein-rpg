@@ -15,8 +15,7 @@ export const WARRIOR = {
   critMultiplier: 1.5,
   /** Zeit zwischen zwei Auto-Angriffen in Millisekunden. */
   attackIntervalMs: 1800,
-  /** Lebensregeneration außerhalb des Kampfes: Anteil des Maximums pro Sekunde. */
-  hpRegenIdle: 0.05,
+  // Die passive Lebensregeneration steht in src/data/regen.ts.
 };
 
 export type SkillId = 'wuchtschlag' | 'rundumschlag' | 'kriegsschrei' | 'schildwall';

@@ -163,14 +163,17 @@ Oben rechts unter der Knopf-Leiste. Alle Zahlen und Farben sind **Startwerte** v
   ihrer Abklingzeit. *(Entschieden, umgesetzt)*
   - Mana-Balken, Manakosten und Manatrank sind gestrichen. Mana kommt eventuell später
     als Ressource des Magiers zurück.
-  - Außerhalb des Kampfes kommen 5 % des Lebens pro Sekunde zurück. „Im Kampf" heißt:
-    der letzte Treffer (ausgeteilt oder kassiert) ist höchstens 5 Sekunden her.
+  - „Im Kampf" heißt: der letzte Treffer (ausgeteilt oder kassiert) ist höchstens 5 Sekunden her.
+  - **Passive Regeneration** *(seit Schritt 10b gebremst, Abschnitt 4b)*: im Kampf und kurz
+    danach keine, dann langsam – beim Rasten (Stehen) schneller als im Laufen. Der schnelle
+    Heilweg ist der Heiltrank.
 - **Tod:** Respawn in der Stadt mit kleinem Gold-/EP-Verlust, kein Itemverlust. *(Entschieden)*
   - Umgesetzt: Die Figur bleibt 3 Sekunden liegen und wacht dann mit vollem Leben im Dorf auf.
   - EP-Abzug *(Umgesetzt)*: 5 % der EP, die die aktuelle Stufe braucht – höchstens so viel,
     wie man in der Stufe schon gesammelt hat, also nie Stufenverlust. Der Todes-Bildschirm
     zeigt den Verlust an.
-  - Gold-Abzug *(Umgesetzt)*: 5 % des Goldes. Items gehen nie verloren.
+  - Gold-Abzug *(Umgesetzt)*: 10 % des Goldes *(Startwert seit Schritt 10b, vorher 5 %)*. Items
+    gehen nie verloren.
 - **Gegner-Verhalten** *(Umgesetzt)*:
   - Aggro: Ein Gegner greift an, wenn die Figur in seinem Radius steht (3–4,5 Kacheln je
     nach Typ) und kein Hindernis die Sicht versperrt – oder wenn er getroffen wird.
@@ -211,6 +214,90 @@ Oben rechts unter der Knopf-Leiste. Alle Zahlen und Farben sind **Startwerte** v
 Alle Zahlen sind Startwerte fürs Balancing und stehen in `src/config.ts`,
 `src/data/warrior.ts`, `src/data/enemies.ts`, `src/data/elites.ts` und `src/data/progression.ts`
 (Loot: `src/data/items.ts`, `src/data/loot.ts`, `src/data/stats.ts`).
+
+## 4b. Balancing-Fixes *(Schritt 10b, umgesetzt)*
+
+Auslöser war dein Test auf Stufe 1–3: (1) Zwischen zwei Gegnern heilt man gratis auf voll, Tränke
+braucht niemand; (2) Gold kommt zu leicht und hat zu wenig Verwendung; (3) Items fallen zu oft.
+Von dir vorgegeben *(Entschieden)*: Regeneration bremsen statt abschaffen (im Kampf und kurz
+danach keine, dann langsam, Rasten schneller als Laufen, Richtwert 2–3 Minuten bis voll); Gegner
+heilen weiter voll, wenn man sie abhängt; Tränke bleiben der schnelle Heilweg; ein blaues Item
+vom Händler soll auf Stufe 1–5 spürbar Spielzeit kosten. **Alle Zahlen unten sind Startwerte von
+mir** – jede steht in genau einer Datei und lässt sich dort nachstellen. Der Spielstand bleibt
+Format 4, alte Stände laden unverändert.
+
+**1. Regeneration** (`src/data/regen.ts`)
+
+| | Alt | Neu *(Startwert)* | Stellschraube |
+|---|---|---|---|
+| Sperre nach dem letzten Treffer | 5 s | **8 s** (5 s „im Kampf" + 3 s danach) | `delayMs` |
+| … und solange ein Gegner die Figur verfolgt | – | keine Regeneration, auch ohne Treffer | – |
+| Im Laufen | 5 % pro Sekunde = voll in 20 s | voll in **180 s** (0,56 % pro Sekunde) | `walkingFullSeconds` |
+| Im Stehen (Rasten) | wie Laufen | voll in **120 s** (0,83 % pro Sekunde), gilt nach 1,5 s Stillstand | `restingFullSeconds`, `restAfterMs` |
+
+- Stufe 5 (192 Leben): Rasten bringt 1,6 Leben pro Sekunde, Laufen 1,1. Vorher 9,6.
+- Im Spielerrahmen steht unter den Balken „Erholung" (Laufen) bzw. „Rasten", solange Leben
+  zurückkommt – so sieht man, dass Stehenbleiben hilft und wann die Sperre vorbei ist.
+- Unverändert: Stufenaufstieg und Aufwachen im Dorf füllen das Leben, Lebensraub und der Affix
+  „… der Erholung" (Leben pro Sekunde von der Ausrüstung) wirken weiter auch im Kampf. Gegner
+  heilen voll, wenn sie zurücklaufen.
+- Ein Heiltrank (40 %) spart damit rund 48 Sekunden Rasten.
+
+**2. Gold** (`src/data/loot.ts`, `src/data/shop.ts`, `src/data/progression.ts`, `src/data/pois.ts`)
+
+| | Alt | Neu *(Startwert)* | Wo |
+|---|---|---|---|
+| Gold je normalem Gegner | 1–4 + 1 × Stufe: Stufe 1 = 2–5, Stufe 5 = 6–9, Stufe 10 = 11–14 | 1–3 + 0,5 × Stufe: Stufe 1 = **2–3**, Stufe 5 = **4–5**, Stufe 10 = **6–8** | `GOLD_DROP` |
+| Elite / Boss | ×3 / ×10 | unverändert | `GOLD_RANK_FACTOR` |
+| Gold aus Truhen | (10 + 5 × Stufe) ± 20 %: Stufe 6 = 32–48 | (6 + 3 × Stufe) ± 20 %: Stufe 6 = **19–29** | `CHEST.gold` |
+| Preis-Faktor Gewöhnlich / Ungewöhnlich / Selten | 1 / 2,5 / 6 | 1 / **3** / **10** | `PRICE.rarityFactor` |
+| Preis-Faktor Episch / Legendär / Mythisch | 15 / 40 / 100 | **25** / **60** / **150** | `PRICE.rarityFactor` |
+| Blaues Item kaufen, Itemlevel 1 / 5 / 10 | 96 / 240 / 420 | **160** / **400** / **700** | – |
+| Verkaufserlös | 20 % des Werts | **10 %** | `PRICE.sellFraction` |
+| Verkauf Itemlevel 5: weiß / grün / blau / lila | 8 / 20 / 48 / 120 | **4** / **12** / **40** / **100** | – |
+| Heiltrank | 10 + 4 × Stufe: 14 / 30 / 50 Gold (Stufe 1 / 5 / 10) | 6 + 2 × Stufe: **8** / **16** / **26** Gold | `POTION` |
+| Gold-Verlust beim Tod | 5 % | **10 %** | `DEATH_GOLD_LOSS` |
+| EP-Verlust beim Tod | 5 % der Stufe | unverändert | `DEATH_XP_LOSS` |
+
+- **Was ein blaues Item jetzt kostet** (gerechnet mit 3 Gegnern pro Minute, 5 % Elites):
+
+  | Stufe | Einkommen alt (Gold pro Minute, ohne / mit Verkauf aller Beute) | Einkommen neu | Blaues Item alt | Blaues Item neu |
+  |---|---|---|---|---|
+  | 1 | 12 / 18 | 8 / 11 | 5–8 Minuten | **14–19 Minuten** |
+  | 3 | 18 / 29 | 12 / 17 | 6–9 Minuten | **17–24 Minuten** |
+  | 5 | 25 / 41 | 15 / 22 | 6–10 Minuten | **18–27 Minuten** |
+  | 10 | 41 / 69 | 23 / 36 | 6–10 Minuten | **20–30 Minuten** |
+
+  Zum Vergleich: Der Aufstieg von Stufe 5 auf 6 dauert rund 17 Minuten. Bis Stufe 5 kommen aus
+  Gegnern zusammen rund 320 Gold (vorher 510) – das erste blaue Item vom Händler (400 Gold auf
+  Itemlevel 5) gibt es also erst um Stufe 5–6, und nur, wenn man dafür spart.
+- **Tränke** sind in Gegnern gerechnet etwas billiger geworden (rund 3,5 statt 4 Gegner je Trank),
+  weil man sie jetzt braucht. Sie sind damit die laufende Gold-Ausgabe.
+- **Tod:** Aufwachen im Dorf bleibt mit vollem Leben. Damit Sterben kein billiger Heilweg wird,
+  kostet es doppelt so viel Gold; der EP-Verlust bleibt, weil der Weg zurück schon Zeit kostet.
+- Händler-Sortiment (60 / 32 / 8 %), Lieferzeit, Rückkauf zum Verkaufspreis: unverändert.
+- Die große Gold-Verwendung fehlt weiter – dafür ist der Stadtausbau geplant (Abschnitt 16.2).
+
+**3. Drops** (`src/data/loot.ts`, Truhen in `src/data/pois.ts`)
+
+| | Alt | Neu *(Startwert)* |
+|---|---|---|
+| Drop-Chance normaler Gegner | 10 % | **6 %** |
+| Anteile normal (weiß / grün / blau / lila / orange / rot) | 50 / 32 / 13 / 4 / 0,9 / 0,1 | **60 / 29 / 8,5 / 2,1 / 0,36 / 0,04** |
+| Ein Item auf … normale Gegner: irgendeins / blau / lila / orange | 10 / 77 / 250 / 1 111 | **17 / 196 / 794 / 4 630** |
+| Elite (immer ein Item): grün / blau / lila / orange / rot | 45 / 37 / 14 / 3,6 / 0,4 | **58 / 31 / 9 / 1,8 / 0,2** |
+| Boss (immer ein Item): blau / lila / orange / rot | 55 / 34 / 10 / 1 | **65 / 28 / 6,4 / 0,6** |
+| Truhe: grün / blau / lila / orange / rot | 55 / 32 / 10,5 / 2,3 / 0,2 | **64 / 28 / 7 / 0,9 / 0,1** |
+
+- Auf dem Weg zu Stufe 10 (rund 500 Gegner, davon etwa 25 Elites): von normalen Gegnern rund
+  **29 Items** statt 48 (17 weiß, 8 grün, 2–3 blau, 0–1 lila; vorher 24 / 15 / 6 / 2). Dazu wie
+  bisher 25 Items von Elites, jetzt mit 8 blauen und 2 lila statt 9 und 3–4.
+- Geprüft: Elites sind die halbe Beute. Die 5 % Elite-Chance und „Elite lässt immer ein Item
+  fallen" *(Entschieden)* habe ich nicht angefasst, nur ihre Seltenheiten etwas gesenkt. Ist es
+  auf Stufe 1–3 danach immer noch zu viel, ist die Elite-Chance (`ELITE_CHANCE` in
+  `src/data/elites.ts`) die nächste Stellschraube.
+- Die Tabellen gelten für alle Stufen (es gibt erst Grünwald). Eigene Tabellen je Zone sind
+  möglich, sobald Zone 2 kommt.
 
 ## 5. Klassen
 
@@ -313,25 +400,25 @@ Seltenheiten *(Farben entschieden, Zahlen Vorschlag – Startwerte fürs Balanci
 | Legendär | Orange | 4 |
 | Mythisch | Rot | 5 |
 
-**Drop-Tabelle je Gegnerrang** *(Schritt 5b; `DROP_TABLES` in `src/data/loot.ts`)*: erst wird
+**Drop-Tabelle je Gegnerrang** *(Schritt 5b, Werte seit Schritt 10b gesenkt – alt und neu
+nebeneinander in Abschnitt 4b; `DROP_TABLES` in `src/data/loot.ts`)*: erst wird
 gewürfelt, ob ein Item fällt, dann die Seltenheit.
 
 | | Normal | Elite | Boss |
 |---|---|---|---|
-| **Drop-Chance** | **10 %** | **100 %** | **100 %** |
-| Gewöhnlich | 50 % | – | – |
-| Ungewöhnlich | 32 % | 45 % | – |
-| Selten | 13 % | 37 % | 55 % |
-| Episch | 4 % | 14 % | 34 % |
-| Legendär | 0,9 % | 3,6 % | 10 % |
-| Mythisch | 0,1 % | 0,4 % | 1 % |
+| **Drop-Chance** | **6 %** | **100 %** | **100 %** |
+| Gewöhnlich | 60 % | – | – |
+| Ungewöhnlich | 29 % | 58 % | – |
+| Selten | 8,5 % | 31 % | 65 % |
+| Episch | 2,1 % | 9 % | 28 % |
+| Legendär | 0,36 % | 1,8 % | 6,4 % |
+| Mythisch | 0,04 % | 0,2 % | 0,6 % |
 
-- Normaler Gegner, im Schnitt ein Item auf so viele Gegner: irgendeins 10 · Selten 77 ·
-  Episch 250 · Legendär 1 111 · Mythisch 10 000. Auf dem Weg zu Stufe 10 (rund 500 Gegner)
-  sind das etwa 50 Items: 25 weiße, 16 grüne, 6–7 blaue, 2 lila.
-- Vorher (30 %, Anteile 60 / 28 / 9 / 2,5 / 0,45 / 0,05) waren 88 % aller Drops weiß oder grün.
-  Bei nur noch 10 % Drop-Chance wäre das zu viel Ausschuss, deshalb sind die Anteile leicht
-  nach oben verschoben (jetzt 82 %).
+- Normaler Gegner, im Schnitt ein Item auf so viele Gegner: irgendeins 17 · Selten 196 ·
+  Episch 794 · Legendär 4 630 · Mythisch 41 667. Auf dem Weg zu Stufe 10 (rund 500 Gegner)
+  sind das etwa 29 Items von normalen Gegnern: 17 weiße, 8 grüne, 2–3 blaue, 0–1 lila.
+- Verlauf: erst 30 % (Anteile 60 / 28 / 9 / 2,5 / 0,45 / 0,05), seit 5b 10 % (50 / 32 / 13 / 4 /
+  0,9 / 0,1), seit 10b 6 % – dein Test auf Stufe 1–3 fand auch 10 % noch zu häufig.
 - Elite und Boss nutzen ihre Spalten seit Meilenstein 6 (siehe Abschnitt 8): sie lassen immer
   genau ein Item fallen und geben mehr Gold (Elite ×3, Boss ×10 – *Startwert*).
 
@@ -349,8 +436,9 @@ Weitere Regeln *(Vorschlag)*:
 
 ### Loot in V1 *(Umgesetzt, Zahlen sind Startwerte fürs Balancing)*
 
-- **Drops:** Jeder besiegte Gegner gibt Gold (Stufe 1: 2–5, Stufe 10: 11–14) und lässt mit
-  10 % Chance ein Item fallen (Elite/Boss: siehe Drop-Tabelle oben). Itemlevel = Stufe des
+- **Drops:** Jeder besiegte Gegner gibt Gold (Stufe 1: 2–3, Stufe 10: 6–8 – seit Schritt 10b,
+  vorher 2–5 und 11–14) und lässt mit
+  6 % Chance ein Item fallen (Elite/Boss: siehe Drop-Tabelle oben). Itemlevel = Stufe des
   Gegners. Die Seltenheit wird nach der Drop-Tabelle gewürfelt.
 - **Aufheben:** Das Item liegt mit einem Schein in der Farbe seiner Seltenheit am Boden
   (ab Selten zusätzlich ein Lichtstrahl). Läuft die Figur darüber, wandert es ins Inventar;
@@ -433,20 +521,22 @@ Verkaufen ab Episch, Sortiment und Gold im Spielstand. Der Heiltrank stand schon
   bleibt auch bei neuer Ware erhalten. Am Reiter steht die Anzahl, z. B. „Rückkauf (3)". Größe
   der Liste: `BUYBACK` in `src/data/shop.ts`.
 
-**Preise** – abgeleitet aus Itemlevel und Seltenheit:
-Wert = (10 + 6 × Itemlevel) × Faktor der Seltenheit. Kaufen kostet den Wert, Verkaufen bringt 20 %.
+**Preise** – abgeleitet aus Itemlevel und Seltenheit *(Faktoren und Erlös seit Schritt 10b neu,
+alte Werte in Abschnitt 4b)*:
+Wert = (10 + 6 × Itemlevel) × Faktor der Seltenheit. Kaufen kostet den Wert, Verkaufen bringt 10 %.
 
 | Seltenheit | Faktor | Kauf Itemlevel 1 | Kauf Itemlevel 5 | Kauf Itemlevel 10 | Verkauf Itemlevel 10 |
 |---|---|---|---|---|---|
-| Gewöhnlich | 1 | 16 | 40 | 70 | 14 |
-| Ungewöhnlich | 2,5 | 40 | 100 | 175 | 35 |
-| Selten | 6 | 96 | 240 | 420 | 84 |
-| Episch | 15 | – | – | – | 210 |
-| Legendär | 40 | – | – | – | 560 |
-| Mythisch | 100 | – | – | – | 1 400 |
+| Gewöhnlich | 1 | 16 | 40 | 70 | 7 |
+| Ungewöhnlich | 3 | 48 | 120 | 210 | 21 |
+| Selten | 10 | 160 | 400 | 700 | 70 |
+| Episch | 25 | – | – | – | 175 |
+| Legendär | 60 | – | – | – | 420 |
+| Mythisch | 150 | – | – | – | 1 050 |
 
-Zum Einordnen: Ein normaler Gegner gibt auf Stufe 5 rund 7, auf Stufe 10 rund 12 Gold. Ein
-blaues Item kostet also etwa 30–35 Gegner; als Beute fällt eins im Schnitt alle 77 Gegner.
+Zum Einordnen: Ein normaler Gegner gibt auf Stufe 5 rund 4–5, auf Stufe 10 rund 7 Gold. Ein
+blaues Item kostet also etwa 90–100 Gegner (rund 20–30 Minuten, Rechnung in Abschnitt 4b); als
+Beute fällt eins im Schnitt alle 196 normalen Gegner.
 
 **Sortiment:** 8 gewürfelte Items auf der Stufe der Figur (Itemlevel = ihre Stufe zum Zeitpunkt
 der Lieferung), jede Art gleich oft. Seltenheit: 60 % Gewöhnlich, 32 % Ungewöhnlich, 8 % Selten –
@@ -456,8 +546,8 @@ Die Uhr läuft in echter Zeit weiter, auch wenn das Spiel zu ist (wie beim Boss)
 Lieferzeitpunkt stehen im Spielstand, also pro Slot.
 
 **Heiltrank:** heilt 40 % des maximalen Lebens, 30 Sekunden Abklingzeit, höchstens 5 im Gepäck
-(sie belegen keinen Inventar-Platz). Preis = 10 + 4 × Stufe der Figur (Stufe 1: 14, Stufe 5: 30,
-Stufe 10: 50 Gold). Der Händler hat immer welche. Getrunken wird mit `Q` oder per Mausklick auf
+(sie belegen keinen Inventar-Platz). Preis = 6 + 2 × Stufe der Figur (Stufe 1: 8, Stufe 5: 16,
+Stufe 10: 26 Gold – seit Schritt 10b, vorher 14 / 30 / 50). Der Händler hat immer welche. Getrunken wird mit `Q` oder per Mausklick auf
 das Trank-Feld *(Klick seit Meilenstein 11)*. Der Trank steht als Feld mit Anzahl und
 Abklingzeit am Ende der Skill-Leiste; er ist das Einzige dort, das man selbst auslöst (`Q`).
 Die Abklingzeit wird nicht gespeichert.
@@ -613,7 +703,7 @@ Abklingzeiten bleiben, wie sie sind.
 
 | Art | Was passiert | Werte *(Startwerte)* |
 |---|---|---|
-| Truhe | Anklicken: Gold in den Beutel, 1–2 Items fallen davor auf den Boden. Danach steht sie offen und ist leer | füllt sich nach **30 Minuten** (echte Zeit, läuft auch bei geschlossenem Spiel). Gold = (10 + 5 × Stufe der Truhe) × 0,8–1,2. Seltenheiten: 55 % ungewöhnlich, 32 % selten, 10,5 % episch, 2,3 % legendär, 0,2 % mythisch – nie gewöhnlich, knapp unter einer Elite. Öffnen ab 26 Pixel Abstand |
+| Truhe | Anklicken: Gold in den Beutel, 1–2 Items fallen davor auf den Boden. Danach steht sie offen und ist leer | füllt sich nach **30 Minuten** (echte Zeit, läuft auch bei geschlossenem Spiel). Gold = (6 + 3 × Stufe der Truhe) × 0,8–1,2. Seltenheiten: 64 % ungewöhnlich, 28 % selten, 7 % episch, 0,9 % legendär, 0,1 % mythisch – nie gewöhnlich, knapp unter einer Elite *(Gold und Seltenheiten seit Schritt 10b gesenkt, Abschnitt 4b)*. Öffnen ab 26 Pixel Abstand |
 | Fester Elite-Platz | Hier steht immer dieselbe benannte Elite mit festen Eigenschaften; Beute und EP wie jede Elite | Respawn **10 Minuten** (steht im Spielstand, läuft weiter wie beim Boss) |
 | Übergang (Höhle) | Wechsel in eine andere Zone | Umkreis 9 Pixel |
 | Lager | Zaun mit Tor, darin eine dichte Gegnergruppe und eine Truhe. Gegner sehen nicht durch den Zaun – sie greifen erst an, wenn man durchs Tor kommt | – |
@@ -779,7 +869,8 @@ derselbe Text wie im Browser). „Importieren …" legt eine Datei in den **erst
 Slot und lädt sie nicht von selbst. Sind alle Slots belegt, gibt es eine Meldung – ein Import
 überschreibt nie etwas. *(Startwert)*
 
-**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **4**. Ändert sich der Aufbau,
+**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **4** (Schritt 10b hat nur
+Balancing-Werte geändert – das Format ist geblieben, alte Stände laden unverändert). Ändert sich der Aufbau,
 wird sie erhöht und in `MIGRATIONS` (`src/save/saveGame.ts`) eingetragen, wie ein alter Stand ins
 neue Format kommt.
 - Format 1 (Meilenstein 7) → 2 (Meilenstein 8): Die Einstellungen fallen aus dem Spielstand;
@@ -835,8 +926,10 @@ Endlos-Turm, Weltbosse, Sound. (Der Räuberhauptmann ist ein fester Zonen-Boss, 
 Der Talentbaum ist das Erste nach V1 – bei nur 10 Leveln und 9 Punkten trägt er noch
 nicht, und er hängt an Skills und Balancing, die erst nach V1 stehen.
 
-Meilenstein 10 (Minimap, Rückkauf, Schwierigkeit) und Meilenstein 11 (Zonen-Fundament,
-Grünwald-Ergänzung, Abschnitt 9b) sind umgesetzt ✅ – siehe Tabelle in 15.7.
+Meilenstein 10 (Minimap, Rückkauf, Schwierigkeit), Meilenstein 11 (Zonen-Fundament,
+Grünwald-Ergänzung, Abschnitt 9b) und Schritt 10b (Balancing-Fixes, Abschnitt 4b) sind
+umgesetzt ✅ – siehe Tabelle in 15.7. Die zweite Fortschrittsachse (Dorfausbau, Jagdbuch,
+Meisterschaft) ist in Abschnitt 16 geplant.
 
 **Reihenfolge nach V1:** steht jetzt als Meilensteine 10–20 in Abschnitt 15.7 (ersetzt die
 frühere Kurzliste Talentbaum → Quests → Aufwerten → Zone 2 → …).
@@ -874,10 +967,10 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
    Rüstung ist seit 5b abgeflacht; ob die Angriffskraft der Ausrüstung auch gebremst werden
    muss oder die Gegner nachziehen, muss das Spielen zeigen. Ohne Ausrüstung kassiert die
    Figur durch die neue Formel etwas mehr (Stufe 10: rund +12 %), Gegner ebenfalls (rund +7 %).
-7. Loot-Balancing: Drop-Tabellen (10 % bei normalen Gegnern), Gold pro Gegner, Wertespannen der Affixe und die
+7. Loot-Balancing: Drop-Tabellen (seit 10b 6 % bei normalen Gegnern), Gold pro Gegner, Wertespannen der Affixe und die
    Umrechnung der Attribute sind erste Schätzungen.
 8. Händler (Meilenstein 8), von mir gesetzte Startwerte zum Prüfen im Spiel (alle in
-   `src/data/shop.ts`): Preisformel und Faktoren, 20 % Erlös, 8 Regalplätze, 60/32/8 %
+   `src/data/shop.ts`): Preisformel und Faktoren, 10 % Erlös (seit 10b), 8 Regalplätze, 60/32/8 %
    Seltenheiten, neue Ware alle 10 Minuten, Trank (40 %, 30 s, höchstens 5, Preis).
    - Erledigt *(Umgesetzt, Meilenstein 10)*: Rückkauf der letzten 10 verkauften Items zum
      Verkaufspreis (Abschnitt 7b).
@@ -929,6 +1022,24 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
       „Ninja Adventure" haben kräftigere Umrisse.
     - Die vier ZIPs liegen weiter neben den entpackten Ordnern in `assets-src/` (doppelt, rund
       7 MB). Sie können weg, wenn du sie nicht mehr brauchst – gelöscht habe ich sie nicht.
+
+17. Schritt 10b, von mir gesetzte Startwerte zum Prüfen im Spiel (alle in Abschnitt 4b):
+    - Regeneration: 8 s Sperre, voll in 120 s (Rasten) bzw. 180 s (Laufen). Fühlt sich das
+      Rasten nach Warten an, sind `restingFullSeconds` oder der Trankpreis die Stellschrauben.
+    - Der Unterschied Rasten / Laufen ist mit 1,5-fach bewusst klein gehalten (dein Richtwert
+      2–3 Minuten). Soll Stehenbleiben deutlicher lohnen: z. B. 90 s und 240 s.
+    - „… der Erholung" (Leben pro Sekunde von der Ausrüstung) und Lebensraub sind unverändert
+      und wirken auch im Kampf. Gegenüber der gebremsten Regeneration sind sie jetzt viel mehr
+      wert: Ein einziges Teil mit 0,5 Leben pro Sekunde ist auf Stufe 1 so stark wie halbes
+      Rasten. Nicht angefasst – im Spiel beobachten.
+    - Aufwachen im Dorf mit vollem Leben: Sterben ist damit eine (teure) Heilung. Reichen
+      10 % Gold und 5 % EP als Preis?
+    - Gold: Einkommen rund −40 %, blaues Item rund dreimal so viel Spielzeit wie vorher.
+      Tränke 8 / 16 / 26 Gold. Truhen geben rund 40 % weniger Gold.
+    - Drops: 6 % statt 10 %, gute Seltenheiten seltener. Elite-Chance (5 %) unverändert.
+    - Die Test-Vorlagen (150 Gold auf Stufe 5, 1 500 auf Stufe 10) sind unverändert und damit
+      etwas reicher als eine echte Figur.
+    - Verfolgt irgendein Gegner die Figur, steht die Regeneration – auch wenn er nie trifft.
 
 ---
 
@@ -1076,6 +1187,8 @@ stark man ist, und das Aufwerten frisst Gold und Material aus beidem.
   zählt nicht als Crafting.
 - **Kodex:** ein Fenster, das festhält, was man schon geschafft hat – gefundene Legendär-Effekte
   und Set-Teile, besiegte Bosse und Weltbosse, Turm-Rekord. Reines Sammelziel, kein Bonus.
+  Das Jagdbuch (Abschnitt 16.3, geplant als Schritt 11c) kommt früher und wird später der erste
+  Reiter des Kodex.
 
 Bewusst nicht: Seasons, Paragon-Stufen, Dungeons (bleibt wie in Abschnitt 10 entschieden).
 
@@ -1198,23 +1311,30 @@ Von dir entschieden *(Entschieden)*: vier Knöpfe plus freie Regler, mehr EP und
 
 „Sitzung" = ein Arbeitsgang mit einem PR wie bisher. Die Schätzungen sind grob; dein Testen und
 das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter dem Meilenstein
-(Meilenstein 10 = 0.10.0, Meilenstein 11 = 0.11.0).
+(Meilenstein 10 = 0.10.0, Meilenstein 11 = 0.11.0); Zwischenschritte mit Buchstaben zählen die
+letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2 …). Die Schritte
+11b, 11c und 14b sind die zweite Fortschrittsachse aus Abschnitt 16 – sie sind **Vorschlag**, bis
+du die Fragen in 16.6 beantwortet hast. Die Nummern 12–20 bleiben, wie sie waren.
 
 | # | Meilenstein | Inhalt | Aufwand |
 |---|---|---|---|
 | 10 ✅ | Minimap, Rückkauf, Schwierigkeit | **Minimap** unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe (rot, Elite gold, Boss lila), Händler; HUD-Element mit Schalter, Größe, Deckkraft, verschiebbar. **Rückkauf:** eigener Reiter beim Händler mit den letzten 10 verkauften Items zum Verkaufspreis; die Liste steht im Spielstand, das älteste fällt raus. **Schwierigkeit** (15.6): zwei Regler plus vier Knöpfe, pro Spielstand, Bonus auf EP und Gold über 100 %. Spielstand Format 3 | 1–2 Sitzungen, klein bis mittel |
 | 11 ✅ | Zonen-Fundament | Umgesetzt (Abschnitt 9b). Umbau aus 15.5: Zonen, Karten-Bauer, Bilder-Verzeichnis, POI-Arten Truhe / fester Elite-Platz / Höhle, Zonenwechsel, Spielstand Format 4. Die hochgeladenen Packs einbinden (Figuren von 0x72 und Ninja Adventure neben Kenney, kein Umstellen der vorhandenen Figuren), `CREDITS.md` ergänzen. Grünwald darauf umgestellt und um Höhle, Lager, Truhen, Brutmutter, Fledermaus und Goblins ergänzt; Wolf und Wildschwein nur, wenn ein Pack sie hat – also Wildschwein und als Wolf-Ersatz Hyäne/Hund (15.8) | 2–3 Sitzungen, groß |
-| 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD (unter der Minimap), Kopfgeld-Brett, die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
+| 10b ✅ | Balancing-Fixes | Umgesetzt nach Meilenstein 11 (Abschnitt 4b): Regeneration gebremst (Sperre, Rasten), Gold-Drops, Händlerpreise, Trankpreis, Todesstrafe und Drop-Tabellen neu. Kein neues Spielstand-Format. Dazu der Plan für die zweite Fortschrittsachse (Abschnitt 16) | 1 Sitzung, klein |
+| 11b | Dorfausbau *(Vorschlag, 16.2)* | Baumeister im Dorf, Fenster „Dorfausbau", Rathaus, Kontor, Alchemistin, Gasthaus, Lagerhaus mit Lagertruhe; in Grünwald erreichbar sind Stufe 1–2 (Stufe 2 nach dem Räuberhauptmann). Spielstand Format 5 | 1–2 Sitzungen, mittel |
+| 11c | Jagdbuch *(Vorschlag, 16.3)* | Kills je Gegnertyp zählen, Ränge mit kleinen Boni, Sammelseite Grünwald, Bosse-Zeile, Fenster (`J`). Spielstand Format 6 | 1 Sitzung, klein bis mittel |
+| 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD (unter der Minimap), Kopfgeld-Brett (Anzahl der Kopfgelder hängt an der Rathaus-Stufe, 16.2), die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
 | 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, große Karte (`M`), Cap 20, neue Assets | 2–3 Sitzungen, groß |
 | 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
-| 15 | Loot-Vielfalt | Neue Affixe, Waffen-Unterschiede, zwei neue Waffen, 12 Legendär-Effekte | 1–2 Sitzungen, mittel |
+| 14b | Skill-Meisterschaft *(Vorschlag, 16.4)* | Skills steigen durch Auslösen (Stufe 0–10), Übungsplatz als Gebäude im Dorf. Erst hier, weil es vorher nichts zu wählen gibt und die Rechnung „Skill-Werte nach Talenten" aus Meilenstein 14 stammt | 1 Sitzung, mittel |
+| 15 | Loot-Vielfalt | Neue Affixe, Waffen-Unterschiede, zwei neue Waffen, 12 Legendär-Effekte. Dazu *(Vorschlag, 16.4)* die Waffen-Meisterschaft, weil sich die Waffen erst hier unterscheiden | 2 Sitzungen, mittel |
 | 16 | Zone 3: Nebelmoor | Zone, Fähigkeiten Beschwören / Gift / Teilen, Cap 30 | 1–2 Sitzungen, mittel |
-| 17 | Schmied | Aufwerten bis +10, Items zu Schmiedesteinen zerlegen | 1 Sitzung, mittel |
+| 17 | Schmied | Aufwerten bis +10, Items zu Schmiedesteinen zerlegen. Die Schmiede wird ein Gebäude im Dorfausbau (16.2) | 1 Sitzung, mittel |
 | 18 | Sets und Weltbosse | Die Sets der bis dahin fertigen Zonen (Grünwald, Orkhügel, Nebelmoor) als epische Items mit Zusatz „Set", je Zone ein Weltboss auf Zonen-Stufe mit Timer und Anzeige auf der Karte | 1–2 Sitzungen, mittel |
 | 19 | Zone 4: Aschenfeste | Zone, Fähigkeit Boden-Effekt, Boss mit Phasen, Weltboss und Set der Zone, Cap 40 | 1–2 Sitzungen, mittel |
-| 20 | Endgame | Endlos-Turm (Tod beendet den Lauf, Wiedereinstieg alle 5 Ebenen), Turm-Set, Kodex. Kein Hochschalten alter Zonen (15.3) | 2 Sitzungen, groß |
+| 20 | Endgame | Endlos-Turm (Tod beendet den Lauf, Wiedereinstieg alle 5 Ebenen), Turm-Set, Kodex (das Jagdbuch wird sein erster Reiter). Kein Hochschalten alter Zonen (15.3) | 2 Sitzungen, groß |
 
-Zusammen rund 15–23 Sitzungen. Der Talentbaum bleibt Meilenstein 14 *(Entschieden)*. Nach Meilenstein 13 gibt es etwa 11 Stunden Inhalt, nach 16 etwa
+Zusammen rund 19–28 Sitzungen (davon 4–5 für 10b und die zweite Fortschrittsachse). Der Talentbaum bleibt Meilenstein 14 *(Entschieden)*. Nach Meilenstein 13 gibt es etwa 11 Stunden Inhalt, nach 16 etwa
 25, nach 19 etwa 45 plus Endgame. Nicht im Plan und später: zweite Klasse, Sound, Nebel des
 Krieges, Lauf-Animation der eigenen Figur, einheitlicher Figuren-Stil (der Stilmix ist vorerst
 in Ordnung, 15.9 Frage 2), Cap über 40 mit Zone 5 und 6.
@@ -1293,6 +1413,251 @@ Was kein Pack löst:
 | 13 | Kopfgeld-Brett? | Ja | 15.2, Meilenstein 12 |
 | 14 | Wolf und Wildschwein? | Nur wenn ein Pack sie liefert. Wildschwein ist in Ninja Adventure, Wolf nicht – Ersatz Hyäne oder Hund | 15.2, 15.8, Meilenstein 11, Offener Punkt 3 |
 
-Derzeit ist keine Frage offen. Meilenstein 11 ist umgesetzt; nächster Schritt: Meilenstein 12
-(Quests). Was ich in Meilenstein 11 selbst festgelegt habe, steht als Startwert in Abschnitt 9b
-und im Offenen Punkt 16.
+Zu Abschnitt 15 ist keine Frage offen. Meilenstein 11 und Schritt 10b sind umgesetzt. Neue
+Fragen zur zweiten Fortschrittsachse stehen in Abschnitt 16.6; nächster Schritt nach deinen
+Antworten: 11b (Dorfausbau) – oder direkt Meilenstein 12 (Quests), falls du die Achse später
+willst. Was ich in Meilenstein 11 und 10b selbst festgelegt habe, steht als Startwert in den
+Abschnitten 9b und 4b und in den Offenen Punkten 16 und 17.
+
+---
+
+## 16. Zweite Fortschrittsachse *(Schritt 10b, Teil B – nur Planung, kein Code)*
+
+Dem Spiel fehlt neben der Stufe etwas, auf das man hinarbeitet. Drei Systeme sollen das ändern.
+Die Richtung (Stadtausbau als Gold-Sink, Jagdbuch, Meisterschaft durch Benutzung) ist von dir
+vorgegeben; **alle Gebäude, Stufen, Zahlen, Boni und die Reihenfolge sind Vorschläge von mir**
+und gelten erst, wenn du die Fragen in 16.6 beantwortet hast.
+
+### 16.1 Überblick und Grundregeln
+
+| System | Womit man es füllt | Was man bekommt | Wann |
+|---|---|---|---|
+| Dorfausbau | Gold | Komfort und Wirtschaft (Händler, Tränke, Rasten, Lager) – keine Kampfwerte | Schritt 11b |
+| Jagdbuch | besiegte Gegner je Typ | kleine Boni gegen den Typ, je Zone eine Sammelseite mit +1 % Leben / Angriffskraft | Schritt 11c |
+| Meisterschaft | Skills auslösen, mit einer Waffenart zuschlagen | der Skill bzw. die Waffenart wird bis zu 20 % / 10 % besser | Skills 14b, Waffen in 15 |
+
+- **Alles hat ein Ende.** „Keine Paragon-Stufen" ist entschieden (Abschnitt 10) – deshalb hat
+  jedes System feste Höchststufen statt endloser Stufen.
+- **Kleine Boni.** Alles zusammen bringt am Ende höchstens rund +8 % Leben, +8 % Angriffskraft
+  (Jagdbuch, vier Zonen), +10 % Waffenschaden und +20 % auf einzelne Skills (Meisterschaft). Das
+  wird beim Balancing der Zonen 3 und 4 mitgerechnet.
+- **Alles sind Daten** wie bisher: `src/data/town.ts`, `src/data/bestiary.ts`,
+  `src/data/mastery.ts`. Im Spielstand stehen nur Zähler und Stufen, die Boni werden daraus
+  berechnet – Werte lassen sich also später nachstellen, ohne Spielstände anzufassen.
+- **Pro Spielstand**, nicht global (wie Gold und Schwierigkeit).
+- **Zeitangaben** rechnen mit 3 Gegnern pro Minute und dem Gold-Einkommen aus Schritt 10b, wenn
+  man alle Beute verkauft: rund 1 300 Gold pro Stunde auf Stufe 5, 2 100 auf Stufe 10, 3 000 auf
+  15, 4 600 auf 25, 6 200 auf 35, 7 100 auf 40. Bis zum Cap (45 Stunden) sind das zusammen rund
+  217 000 Gold. Das ist die Obergrenze – Tränke, Händler-Käufe und später der Schmied gehen davon
+  ab, in Wirklichkeit dauert alles eher das Anderthalbfache.
+
+| System | Erste Belohnung | Nebenbei bis zum Cap | Alles fertig |
+|---|---|---|---|
+| Dorfausbau | erstes Gebäude für 150 Gold: nach rund 15 Minuten | Stufe 1–4 aller Gebäude: rund 16 Stunden Gold-Einkommen (etwa 40 % des Golds bis zum Cap) | 235 000 Gold = rund 37 Stunden Gold-Einkommen; mit Übungsplatz und Schmiede 314 000 = rund 50 Stunden |
+| Jagdbuch | Rang 1 nach 10 Gegnern: 3 Minuten | Bronze und Silber fast überall beim Leveln, in Grünwald rund 3 Stunden extra | alle vier Gold-Seiten: rund 35–50 Stunden extra |
+| Meisterschaft | Stufe 1 nach rund 30 Minuten | ein Skill auf Stufe 10 nach rund 28 Stunden, eine Waffenart auf Stufe 10 nach rund 11 Stunden | alle 8–10 Skills: rund 55–70 Stunden; eine Waffenart auf Stufe 20: rund 42 Stunden |
+
+### 16.2 Dorfausbau (Stadtausbau als Gold-Sink)
+
+Das Dorf in Grünwald ist der Hub (15.2). Dort steht ein **Baumeister**; bei ihm baut man mit Gold
+Gebäude aus. Jedes Gebäude hat Stufe 0–5, Stufe 0 heißt „noch nicht gebaut" (nur das Rathaus
+beginnt auf Stufe 1).
+
+**Gebäude und Boni**
+
+| Gebäude | Stufe 1 → 5 | Heute (ohne Ausbau) |
+|---|---|---|
+| **Rathaus** | begrenzt alle anderen Gebäude auf seine eigene Stufe. Stufe 1 steht von Anfang an (das Dorf gibt es ja schon), Stufe 2–5 brauchen den Sieg über den Zonen-Boss: Räuberhauptmann / Grommak / Lich Morvan / Azgar. Dazu ab Meilenstein 12: 1 / 1 / 2 / 2 / 3 Kopfgelder gleichzeitig am Kopfgeld-Brett | – |
+| **Kontor** (Händler) | Regal 9 / 10 / 11 / 12 / 14 Plätze · Anteil Selten 10 / 12 / 14 / 17 / 20 %, ab Stufe 4 dazu 2 % / 4 % Episch · neue Ware alle 9 / 8 / 7 / 6 / 5 Minuten · ab Stufe 3 Knopf „Neue Ware sofort" (kostet so viel wie ein grünes Item der eigenen Stufe – eine kleine Dauer-Ausgabe) | 8 Plätze, 8 % Selten, 10 Minuten |
+| **Alchemistin** | Tränke im Gepäck 6 / 7 / 8 / 9 / 10 · Heilung 42 / 44 / 46 / 48 / 50 % · Abklingzeit ab Stufe 3: 25 s, ab Stufe 5: 20 s | 5 Tränke, 40 %, 30 s |
+| **Gasthaus** | Rasten: voll in 110 / 100 / 90 / 80 / 70 s · Gold-Verlust beim Tod 9 / 8 / 7 / 6 / 5 % · im Dorf selbst heilt die Figur ab Stufe 1 in 15 s voll | 120 s, 10 % |
+| **Lagerhaus** | Lagertruhe im Dorf mit 20 / 40 / 60 / 80 / 100 Plätzen | nur 40 Plätze im Inventar |
+| **Übungsplatz** *(erst mit 14b baubar)* | Meisterschaft (16.4) wächst 10 / 20 / 30 / 40 / 50 % schneller; hier werden auch Talente zurückgesetzt | – |
+| **Schmiede** *(erst mit Meilenstein 17 baubar)* | höchste Aufwertung +2 / +4 / +6 / +8 / +10; Zerlegen ab Stufe 1 | – |
+
+Bewusst keine Gebäude für Angriffskraft, Leben oder EP: Gold soll Komfort kaufen, keine
+Kampfstärke – die kommt weiter aus Stufe, Beute und Talenten.
+
+**Kosten**
+
+| Stufe | Rathaus | jedes andere Gebäude | Rathaus-Stufe frei ab |
+|---|---|---|---|
+| 1 | – (steht schon) | 150 | sofort |
+| 2 | 1 500 | 800 | Räuberhauptmann besiegt (Stufe 10) |
+| 3 | 6 000 | 3 500 | Grommak besiegt (Stufe 20) |
+| 4 | 20 000 | 10 000 | Lich Morvan besiegt (Stufe 30) |
+| 5 | 50 000 | 25 000 | Azgar besiegt (Stufe 40) |
+| Summe | 77 500 | 39 450 | |
+
+**Zeitaufwand** – Rathaus (ab Stufe 2) plus die vier Gebäude vom Start (Kontor, Alchemistin, Gasthaus, Lagerhaus):
+
+| Stufe | Kosten zusammen | Man bezahlt sie in | Gold-Einkommen dort | Reine Gold-Spielzeit |
+|---|---|---|---|---|
+| 1 | 600 | Grünwald (Stufe 3–10) | 1 300 pro Stunde | 30 Minuten |
+| 2 | 4 700 | Orkhügel | 3 000 | 1,6 Stunden |
+| 3 | 20 000 | Nebelmoor | 4 600 | 4,3 Stunden |
+| 4 | 60 000 | Aschenfeste | 6 200 | 9,6 Stunden |
+| 5 | 150 000 | Endgame | 7 100 | 21 Stunden |
+| Summe | 235 300 | | | rund 37 Stunden |
+
+- Stufe 1–4 kosten zusammen 85 300 Gold – rund 40 % von allem, was man bis zum Cap verdient.
+  Stufe 5 ist das Endgame-Ziel.
+- Übungsplatz und Schmiede kosten je weitere 39 450 Gold; mit beiden sind es 314 200 Gold, rund
+  50 Stunden Gold-Einkommen.
+- Die 150 Gold für das erste Gebäude hat man auf Stufe 3 nach rund 15 Minuten zusammen – Gold
+  hat damit ab der ersten Viertelstunde ein Ziel.
+
+**Reihenfolge:** Der Spieler wählt frei, nur das Rathaus gibt den Takt vor. Empfohlen und im
+Fenster so sortiert: Alchemistin (Tränke sind seit 10b wichtig) → Gasthaus → Kontor →
+Lagerhaus, dann jeweils das Rathaus für die nächste Runde.
+
+**Im Spiel:** Baumeister am Dorfplatz (neue POI-Art, steht im Bauplan wie der Händler). Klick
+öffnet das Fenster „Dorfausbau": je Gebäude Stufe, was die nächste Stufe bringt, Preis, Knopf
+„Ausbauen". Ist etwas gesperrt, steht der Grund da („braucht Rathaus 3 – besiege Grommak").
+Zu sehen ist der Ausbau an einem Schild mit Fahne am jeweiligen Haus, das mit der Stufe wechselt
+(ein Bild über der Karte – die Karte selbst wird nicht umgebaut). Die Lagertruhe steht am
+Lagerhaus und öffnet ein Fenster neben dem Inventar.
+
+| | |
+|---|---|
+| Passt zu den Zonen | Jede Zone schaltet mit ihrem Boss eine Rathaus-Stufe frei – das Dorf wächst mit der Welt. Die Boni gelten überall, auch bei den Händlern der Außenposten. Portalsteine (Meilenstein 13) bringen einen zum Bauen zurück |
+| Passt zum Talentbaum | Keine Überschneidung: Das Dorf gibt keine Kampfwerte. „Talente zurücksetzen gegen Gold" zieht an den Übungsplatz |
+| Passt zum Rest | Kopfgeld-Brett (12) hängt am Rathaus, Schmied (17) wird ein Gebäude, das Gasthaus stellt an den Werten aus `src/data/regen.ts` |
+| Aufwand | 1–2 Sitzungen, mittel. Neu: `src/data/town.ts`, Baumeister, Fenster, Lagertruhe (das größte Einzelteil). Die Boni hängen an Stellen, die es schon gibt (Händler-Sortiment, Trank, Regeneration, Tod) |
+| Spielstand | Format 5: `town` (Stufe je Gebäude) und `stash` (Items der Lagertruhe). Alte Stände: alles Stufe 0, Truhe leer – nichts geht verloren |
+
+### 16.3 Jagdbuch (Bestiarium)
+
+Das Jagdbuch zählt, wie viele Gegner jedes Typs man besiegt hat. Eine Elite zählt fünffach.
+Jeder Typ hat fünf Ränge:
+
+| Rang | Besiegt | Belohnung |
+|---|---|---|
+| 1 Gesichtet | 10 | Eintrag: Bild, Werte (Leben, Angriff, Rüstung, Tempo), Fundorte |
+| 2 Bekannt | 50 | +3 % Schaden gegen diesen Typ |
+| 3 Erfahren | 150 | 3 % weniger Schaden von diesem Typ |
+| 4 Jäger | 350 | +10 % Gold von diesem Typ |
+| 5 Meisterjäger | 750 | +10 % Drop-Chance bei diesem Typ (6 % → 6,6 %), goldener Eintrag |
+
+**Sammelseite je Zone:** Jede Zone hat eine Seite mit allen ihren Gegnertypen (Grünwald samt
+Spinnenhöhle: 8, die neuen Zonen je 6). Die Seite selbst hat drei Stufen mit einem dauerhaften
+Bonus, der überall gilt:
+
+| Seite | Bedingung | Bonus |
+|---|---|---|
+| Bronze | alle Typen der Zone auf Rang 2 | +1 % Leben |
+| Silber | alle auf Rang 3 | +1 % Angriffskraft |
+| Gold | alle auf Rang 5 | noch einmal +1 % Leben und +1 % Angriffskraft |
+
+Mit vier Zonen also höchstens +8 % Leben und +8 % Angriffskraft. Unter den Typen steht je Seite
+eine **Bosse-Zeile** (feste Elites, Zwischenboss, Zonen-Boss, später Weltboss): 1 / 5 / 20 Siege
+= Eintrag / Werte und Fähigkeiten / Stern. Ohne Bonus, reines Sammeln.
+
+**Zeitaufwand** (im Schnitt 3 Gegner pro Minute beim Leveln, 5 in einer alten, leichten Zone):
+
+| Zone | Typen | Gegner beim normalen Leveln | Bronze (50 je Typ) | Silber (150 je Typ) | Gold (750 je Typ) |
+|---|---|---|---|---|---|
+| Grünwald | 8 | rund 500 | +0,5 Stunden | +2–3 Stunden | +15–18 Stunden |
+| Orkhügel | 6 | rund 1 400 | nebenbei | nebenbei | +10–17 Stunden |
+| Nebelmoor | 6 | rund 2 500 | nebenbei | nebenbei | +7–11 Stunden |
+| Aschenfeste | 6 | rund 3 600 | nebenbei | nebenbei | +3–5 Stunden |
+
+- „Nebenbei" stimmt nur, wenn sich die Gegner halbwegs gleich verteilen; ein seltener Typ braucht
+  gezielte Jagd. Alle Gold-Seiten zusammen: rund 35–50 Stunden.
+- Grünwald ist am teuersten, weil man dort am kürzesten levelt. Die Schwellen stehen als Liste in
+  der Datei und können je Zone verschieden sein.
+- Anzeige: Taste `J` und ein Knopf in der Leiste. Fenster mit einem Reiter je Zone; je Typ Bild,
+  Zähler, Balken bis zum nächsten Rang und die Boni. Ein neuer Rang gibt eine kleine Meldung.
+
+| | |
+|---|---|
+| Passt zu den Zonen | Jede neue Zone bringt ihre Seite von selbst mit (die Typen stehen im Bauplan). „Alte Zonen bleiben leicht" (15.3) bekommt damit einen Grund, zurückzukommen |
+| Passt zum Talentbaum | Die Typ-Boni gelten nur gegen einen Gegner, die Seiten-Boni sind flach und klein – beides konkurriert nicht mit Talent-Entscheidungen |
+| Passt zum Rest | Quests (12) brauchen dasselbe Ereignis „Gegner besiegt" – einmal bauen, zweimal nutzen. Der Kodex (20) übernimmt das Jagdbuch als ersten Reiter; seine eigenen Seiten bleiben ohne Bonus |
+| Aufwand | 1 Sitzung, klein bis mittel. Neu: `src/data/bestiary.ts`, Zähler beim Sieg, Fenster. Boni an vier Stellen (Schaden hin und zurück, Gold, Drop-Chance) und bei Leben / Angriffskraft der Figur |
+| Spielstand | Ein Format weiter: `bestiary` (Zähler je Typ, Siege je Boss). Alte Stände beginnen bei 0 – bisher wird nichts gezählt, **rückwirkend geht es nicht**. Das spricht dafür, früh damit anzufangen |
+
+### 16.4 Meisterschaft (Skills und Waffen leveln durch Benutzung)
+
+**Skill-Meisterschaft:** Jeder Skill hat Stufe 0–10. Er steigt, wenn er auslöst. Weil die Skills
+verschieden oft auslösen, hat jeder seine eigene Schwelle; Stufe n braucht n-mal den Grundwert,
+alle zehn Stufen zusammen das 55-Fache.
+
+| Skill | Löst aus (geschätzt, pro Spielstunde) | Grundwert | Bonus je Stufe | Auf Stufe 10 |
+|---|---|---|---|---|
+| Wuchtschlag | 200 | 100 | +4 Prozentpunkte Schaden | 220 % → 260 % |
+| Rundumschlag | 30 | 15 | +3 Prozentpunkte Schaden | 130 % → 160 % |
+| Kriegsschrei | 80 | 40 | +0,3 s Dauer | 10 s → 13 s |
+| Schildwall | 8 | 4 | −1,5 s Abklingzeit | 60 s → 45 s |
+
+- Zeit: Stufe 1 nach rund 30 Minuten, Stufe 5 nach 7–8 Stunden, Stufe 10 nach rund 28 Stunden –
+  jeweils nur, solange der Skill aktiv ist. Mit 8–10 Skills und 4 Plätzen (Meilenstein 14) sind
+  das für alle Skills rund 55–70 Stunden.
+- Die Auslöse-Zahlen sind geschätzt. Vor dem Einbau zähle ich sie eine Stunde im Spiel mit und
+  stelle die Grundwerte danach ein.
+
+**Waffen-Meisterschaft:** Jede Waffenart (Schwert, Axt, Dolch; ab Meilenstein 15 auch Streitkolben
+und Zweihandschwert) hat Stufe 0–20. Sie steigt mit jedem Schlag, den man mit dieser Art macht
+(rund 1 000 pro Spielstunde); Stufe n braucht 200 × n Schläge.
+
+| | |
+|---|---|
+| Je Stufe | +0,5 % Schaden mit dieser Waffenart (Stufe 20: +10 %) |
+| Stufe 10 und 20 | je ein kleiner Bonus, der zur Waffe passt (15.4). Dolch: +3 % Angriffstempo, dann +3 % Krit-Chance · Axt: +5 % Krit-Schaden, dann 5 % Rüstung ignorieren · Schwert: +2 % Krit-Chance, dann +3 % Schaden |
+| Zeit | Stufe 10 nach rund 11 Stunden, Stufe 20 nach rund 42 Stunden mit derselben Waffenart |
+
+**Was daran schwierig ist – ehrlich:**
+
+1. Skills lösen von selbst aus. Solange es nur vier Skills und drei gleiche Waffen gibt, füllt
+   sich die Meisterschaft bei jedem gleich – ein zweiter EP-Balken ohne Entscheidung. Erst mit der
+   Skill-Auswahl (Meilenstein 14) und unterschiedlichen Waffen (15) gibt es etwas zu wählen.
+   Deshalb plane ich sie **nicht** vor Meilenstein 12 ein.
+2. Der Talentbaum verbessert Skills ebenfalls (Abschnitt 6, entschieden). Trennung: **Talente
+   ändern, wie ein Skill wirkt** (neue Wirkung, große Schritte, Wahl), **Meisterschaft dreht nur an
+   einer Zahl** und endet bei rund +20 %. Beide laufen durch dieselbe Rechnung „Werte eines Skills
+   nach allen Boni", die mit dem Talentbaum entsteht – noch ein Grund für die Reihenfolge.
+3. Waffen-Meisterschaft bindet an eine Waffenart: Wer Schwerter gemeistert hat, freut sich weniger
+   über eine bessere Axt. Mit höchstens +10 % ist das gebremst, aber es bleibt (Frage 9).
+4. Mit Legendär-Effekten (z. B. „Schneller Schlag") und den neuen Affixen (z. B. „Wuchtig…")
+   stapeln sich die Boni auf einzelne Skills. Die Obergrenzen oben sind dafür klein gewählt.
+
+| | |
+|---|---|
+| Passt zu den Zonen | Neutral – wächst überall mit. Lohnt auch in alten Zonen, weil nur Auslösen und Treffen zählt |
+| Passt zum Talentbaum | Ergänzt ihn (siehe Punkt 2). Mit „mehr Skills als Plätze" wird ein gemeisterter Skill ein Grund, bei einem Build zu bleiben – oder ein Ziel, alle zu meistern |
+| Passt zum Rest | Der Übungsplatz im Dorf (16.2) beschleunigt sie – Gold fließt so auch hier hinein |
+| Aufwand | Skills: 1 Sitzung, mittel (nach Meilenstein 14). Waffen: eine halbe Sitzung zusätzlich in Meilenstein 15. Neu: `src/data/mastery.ts`, Zähler beim Auslösen und Treffen, Anzeige im Skill-Tooltip und ein Reiter im Charakterfenster |
+| Spielstand | Ein Format weiter: `mastery` (Zähler je Skill und je Waffenart – gespeichert werden die Zähler, nicht die Stufen). Alte Stände beginnen bei 0 |
+
+### 16.5 Reihenfolge
+
+| Schritt | Was | Warum dort |
+|---|---|---|
+| **11b** | Dorfausbau | **Vor den Quests.** Antwortet direkt auf dein Feedback „Gold hat zu wenig Verwendung", braucht nichts, was es noch nicht gibt, und Stufe 1–2 lassen sich schon in Grünwald testen. Das Kopfgeld-Brett dockt in Meilenstein 12 an |
+| **11c** | Jagdbuch | **Vor den Quests.** Gezählt wird erst ab dem Einbau – je früher, desto weniger geht verloren. Das Ereignis „Gegner besiegt" brauchen die Quests danach ohnehin |
+| 12, 13, 14 | Quests, Orkhügel, Talentbaum | wie geplant |
+| **14b** | Skill-Meisterschaft, Übungsplatz | **Nicht vor Meilenstein 12**, sondern direkt nach dem Talentbaum (Gründe in 16.4, Punkt 1 und 2) |
+| 15 | Loot-Vielfalt **plus Waffen-Meisterschaft** | die Waffen unterscheiden sich erst hier |
+| 17 | Schmied **als Gebäude** | Aufwerten war dort schon geplant |
+| 20 | Kodex | übernimmt das Jagdbuch als ersten Reiter |
+
+Du hattest „vor Meilenstein 11" geschrieben – der ist schon umgesetzt und gemergt (PR #15), also
+heißt es hier „vor Meilenstein 12". Die Nummern 12–20 bleiben; die neuen Schritte bekommen
+Buchstaben (wie 5b, 6b, 10b). Mehraufwand: 3–4 Sitzungen.
+
+### 16.6 Offene Fragen an dich
+
+| # | Frage | Mein Vorschlag |
+|---|---|---|
+| 1 | **Reihenfolge:** Dorfausbau (11b) und Jagdbuch (11c) vor den Quests – oder erst Quests? | 11b und 11c zuerst |
+| 2 | **Meisterschaft erst nach dem Talentbaum** (14b), Waffen in 15? Oder früher als reiner „Balken füllt sich"? | wie geplant, nicht früher |
+| 3 | **Dorf: nur Komfort** (Händler, Tränke, Rasten, Lager) oder auch Gebäude mit Kampfwerten? | nur Komfort |
+| 4 | **Kosten:** Stufe 1–4 fressen rund 40 % des Golds bis zum Cap, Stufe 5 rund 21 Stunden im Endgame. Passt die Größenordnung? | ja, als Startwert |
+| 5 | **Rathaus-Stufen an die Zonen-Bosse koppeln?** Dann geht in Grünwald nur Stufe 1–2 | ja |
+| 6 | **Sichtbarer Ausbau:** reicht Schild mit Fahne am Haus, oder soll sich das Dorf wirklich verändern (neue Häuser – deutlich mehr Aufwand, eigene Karten-Varianten)? | Schild mit Fahne |
+| 7 | **Lagertruhe pro Spielstand** oder eine für alle Slots (dann könnte man Items zwischen Figuren tauschen; braucht eigenen Speicher und eigenen Export)? | pro Spielstand |
+| 8 | **Jagdbuch mit Boni** (wie oben) oder reines Sammeln wie der Kodex? Und: Gold-Seite Grünwald kostet 15–18 Stunden in einer leichten Zone – zu viel? | mit Boni; Schwellen als Startwert lassen |
+| 9 | **Waffen-Meisterschaft je Waffenart** (bindet an Schwert, Axt …) – gewollt? Alternativen: eine einzige Meisterschaft „Waffen", oder nur Skills | je Waffenart, wegen der kleinen Boni vertretbar |
+| 10 | **Zählt das Jagdbuch auf jeder Schwierigkeit?** Auf „Leicht" geht es schneller | ja, immer – sonst wird es kompliziert |
+| 11 | **Aus 10b:** Aufwachen im Dorf mit vollem Leben lassen? Mit der langsamen Regeneration ist Sterben eine (teure) Heilung | lassen, im Spiel beobachten |
+| 12 | **Aus 10b:** „… der Erholung" und Lebensraub wirken weiter im Kampf und sind jetzt viel mehr wert. Bremsen? | erst spielen, dann entscheiden |
