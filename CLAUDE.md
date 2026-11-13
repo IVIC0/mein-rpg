@@ -26,13 +26,15 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
      (jeweils die Werte ohne Dorfausbau)
    - `src/data/town.ts` – Dorfausbau: Gebäude, Kosten, was jede Stufe bringt (Kontor, Alchemistin, Gasthaus,
      Lagerhaus), welcher Boss welche Rathaus-Stufe freischaltet, Baumeister, Lagertruhe, Fahnenfarben
-   - `src/data/bestiary.ts` – Jagdbuch: Ränge je Gegnertyp (Schwellen, Boni), Elite-Gewicht, Stufen der
+   - `src/data/bestiary.ts` – Jagdbuch: Ränge je Gegnertyp (Schwellen, Boni), Elite-Gewicht, ab wann schwache
+     Gegner weniger zählen (`TRIVIAL_KILLS`), Stufen der
      Sammelseiten (Leben, Angriffskraft), welche Typen und Bosse auf welcher Seite stehen
    - `src/data/difficulty.ts` – Schwierigkeit: Grenzen der Regler, die vier Knöpfe, Belohnung (EP und Gold)
    - `src/data/minimap.ts` – Minimap: Größe, Ausschnitt, Farben der Punkte
+   - `src/data/worldmap.ts` – große Karte: Größe, Zielmarker, Schrift der Ortsnamen (die Farben der Punkte kommen aus `minimap.ts`)
    - `src/data/save.ts` – Speichern: Format-Nummer, Anzahl Slots, Auto-Save-Abstände, Namenslänge
    - `src/data/testSaves.ts` – Vorlagen für Test-Spielstände
-   - `tools/zones/<zone>.mjs` – Bauplan je Zone: Lichtungen, Wege, Bauten, besondere Orte (`pois`:
+   - `tools/zones/<zone>.mjs` – Bauplan je Zone: Lichtungen (mit `label` = Ortsname auf der großen Karte), Wege, Bauten, besondere Orte (`pois`:
      Händler, Baumeister, Lagertruhe, Fahnen der Gebäude, Truhen mit Itemlevel, Übergänge, feste Elite-Plätze) und welche Gegner mit welcher
      Stufe wo stehen (`enemyGroups`); nach Änderungen `npm run assets`
 
@@ -42,7 +44,15 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    Nicht von selbst mit dem nächsten Schritt weitermachen.
 4. **GAME.md aktuell halten:** erledigte Schritte abhaken, Entscheidungen und neue
    Werte eintragen, Offene Punkte pflegen.
-5. **Effizient testen:** Build prüfen und ein kurzer Check reichen. Keine großen
+5. **Maus zuerst – gilt für alle neuen UI-Elemente** (seit Schritt 11d): Das Spiel wird in erster
+   Linie mit der Maus bedient, am Handy mit einem Finger. Die Tastatur ist nur ein Zusatz.
+   - Alles muss per Klick / Tippen erreichbar sein. Nichts darf **nur** über Tasten, Rechtsklick,
+     Umschalt+Klick oder Hover gehen (Tasten und Tooltips sind als Zusatz in Ordnung).
+   - Neue Fenster und HUD-Elemente passen sich an kleine Bildschirme an (Handy im Querformat, rund
+     570 × 320 Pixel) und laufen nicht über den Rand. Knöpfe groß genug zum Tippen (rund 30 Pixel).
+   - Vorbild ist die große Karte (`src/ui/WorldMap.ts`). Die älteren Fenster und das HUD halten die
+     Regel noch nicht ein – ihr Umbau ist ein eigener, späterer Meilenstein. Nicht nebenbei umbauen.
+6. **Effizient testen:** Build prüfen und ein kurzer Check reichen. Keine großen
    Testreihen und nicht viele Screenshots – das Spielgefühl testet der Nutzer selbst.
 
 ## Befehle
@@ -70,7 +80,7 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 - Sprache: Texte im Spiel, Kommentare und Doku auf Deutsch.
 - UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster, Minimap) ist HTML/CSS über dem Canvas:
   `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/BestiaryWindow.ts`, `src/ui/Nameplates.ts`,
-  `src/ui/Minimap.ts`.
+  `src/ui/Minimap.ts`, `src/ui/WorldMap.ts`.
 - Einstellungen des Spielers liegen in einem Objekt (`Settings` in `src/ui/settings.ts`, dort auch
   Standardwerte und Regler-Grenzen). Sie sind global (Browser), nicht Teil des Spielstands.
   Ausnahme: Die Schwierigkeit (`Difficulty` in `src/data/difficulty.ts`) steht im Spielstand (pro Slot); ihre Regler
@@ -90,6 +100,11 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
   ihn aus `town.effects` – nicht direkt aus `shop.ts` / `regen.ts`. Gebäude geben nur Komfort,
   nie Kampfwerte. Lagertruhe: `src/items/Stash.ts`, `src/ui/StashWindow.ts` (Rechtsklick im
   Inventar lagert ein). `Combat.onKill` meldet jeden besiegten Gegner (Boss-Siege fürs Rathaus).
+- Große Karte (Taste `M` oder Knopf in der Leiste): `src/ui/WorldMap.ts` zeichnet die ganze Zone aus
+  dem Gelände-Bild der Minimap, den Punkten aus `minimapMarks` und den Markern der Karte mit `label`.
+  Ein Klick meldet den Punkt an `autoWalkTo` in `src/scenes/WorldScene.ts` (Automatiklauf mit
+  Zielmarker; jeder Klick in die Welt beendet ihn). Eine neue Zone braucht dafür nichts außer `label`
+  im Bauplan.
 - Jagdbuch: Regeln in `src/bestiary/Bestiary.ts` (zählen, Rang, `bonusAgainst` = Boni gegen einen
   Gegnertyp, `pageBonus` = Leben und Angriffskraft aus den Sammelseiten), Fenster in
   `src/ui/BestiaryWindow.ts` (Taste `J`). Gezählt wird über `Combat.onKill`. Bilder und Fundorte

@@ -8,6 +8,7 @@ import { NAMED_ELITES, NAMED_ELITE_RESPAWN_MS } from '../data/elites';
 import { ENEMIES } from '../data/enemies';
 import { RARITIES } from '../data/items';
 import { MINIMAP } from '../data/minimap';
+import { WORLD_MAP } from '../data/worldmap';
 import { CHEST, PORTAL } from '../data/pois';
 import { AUTOSAVE_INTERVAL_MS, SAVE_DELAY_MS } from '../data/save';
 import { MERCHANT } from '../data/shop';
@@ -41,6 +42,7 @@ import { SettingsMenu } from '../ui/SettingsMenu';
 import { ShopWindow } from '../ui/ShopWindow';
 import { StashWindow } from '../ui/StashWindow';
 import { TownWindow } from '../ui/TownWindow';
+import { WorldMap, type MapLabel } from '../ui/WorldMap';
 import { byId } from '../ui/dom';
 import { Grid, type Point } from '../world/Grid';
 import type { Interactable } from '../world/Interactable';
@@ -76,6 +78,9 @@ const SOLID_POIS = ['haendler', 'truhe', 'baumeister', 'lagertruhe'];
  * Betritt die Figur einen Übergang (z. B. den Höhleneingang), wechselt die Zone.
  *
  * Oben rechts zeigt die Minimap Gelände, Gegner, Händler, Truhen und Übergänge (src/ui/Minimap.ts).
+ * M oder der Karten-Knopf öffnet die große Karte der Zone (src/ui/WorldMap.ts). Ein Klick darauf
+ * startet den Automatiklauf: Die Figur läuft mit Wegfindung dorthin (autoWalkTo), bis sie ankommt
+ * oder ein Klick in die Welt etwas anderes befiehlt.
  *
  * Skills lösen von selbst aus (siehe Combat). I oder C öffnet Charakter & Inventar, J das Jagdbuch.
  * Esc schließt das Fenster (wenn es nicht angepinnt ist) bzw. hebt die Zielauswahl auf.
@@ -108,6 +113,10 @@ export class WorldScene extends Phaser.Scene {
   private bestiary!: Bestiary;
   private bestiaryWindow!: BestiaryWindow;
   private minimap!: Minimap;
+  private worldMap!: WorldMap;
+  /** Ziel des Automatiklaufs (Klick auf die große Karte) in Welt-Pixeln; null = es läuft keiner. */
+  private autoGoal: Point | null = null;
+  private goalMarker!: Phaser.GameObjects.Image;
 
   // ---- Die aktuelle Zone (alles hier baut enterZone neu auf) ----
   private zoneId = START_ZONE;
@@ -215,8 +224,13 @@ export class WorldScene extends Phaser.Scene {
     // Einstellungen (ein Objekt: settings.values, gilt für alle Spielstände) und die Anordnung der HUD-Elemente.
     this.settings = new SettingsMenu();
     this.hudLayout = new HudLayout(this.settings.values, hud, () => this.settings.save());
+    this.worldMap = new WorldMap(this.settings.values);
+    this.worldMap.onWalk = (target) => this.autoWalkTo(target);
     this.settings.connect({
-      onChange: () => this.hudLayout.apply(),
+      onChange: () => {
+        this.hudLayout.apply();
+        this.worldMap.applySettings();
+      },
       onEditHud: () => this.hudLayout.setEditing(true),
       onResetWindows: () => this.inventoryWindow.resetLayout(),
       difficulty: this.difficulty,
@@ -251,7 +265,7 @@ export class WorldScene extends Phaser.Scene {
     // jeder besiegte Gegner fürs Jagdbuch.
     this.combat.onKill = (enemy) => {
       if (enemy.rank === 'boss') this.town.recordBossKill(enemy.type);
-      this.bestiary.record(enemy);
+      this.bestiary.record(enemy, this.player.level);
     };
     this.combat.respawnPoint = () => this.respawnPoint();
 
@@ -266,6 +280,7 @@ export class WorldScene extends Phaser.Scene {
 
     this.clickMarker = this.add.image(0, 0, 'click-marker').setOrigin(0).setDepth(5).setVisible(false);
     this.blockedMarker = this.add.image(0, 0, 'blocked-marker').setOrigin(0).setDepth(20).setVisible(false);
+    this.goalMarker = this.add.image(0, 0, 'goal-marker').setOrigin(0).setDepth(5).setVisible(false);
 
     // Die Kamera wird in update() selbst nachgeführt (siehe followPlayer). Phasers
     // eingebautes Runden ist aus, weil es auf ganze Welt-Pixel rundet – bei
@@ -296,11 +311,12 @@ export class WorldScene extends Phaser.Scene {
     this.game.events.on(Phaser.Core.Events.BLUR, this.cancelPress, this);
 
     this.input.keyboard?.on('keydown-ESC', () => {
-      // Esc beendet erst den Bearbeitungsmodus, schließt dann die Einstellungen, dann die Fenster links
+      // Esc beendet erst den Bearbeitungsmodus, schließt dann die Einstellungen, dann die große Karte, dann die Fenster links
       // (Händler, Dorfausbau, Lagertruhe, Jagdbuch), dann das Inventar (außer es ist angepinnt), sonst hebt es das Ziel auf.
       if (this.hudLayout.editing) this.hudLayout.setEditing(false);
       else if (this.saveMenu.isOpen) this.saveMenu.close();
       else if (this.settings.isOpen) this.settings.close();
+      else if (this.worldMap.isOpen) this.worldMap.close();
       else if (this.shopWindow.isOpen) this.shopWindow.close();
       else if (this.townWindow.isOpen) this.townWindow.close();
       else if (this.stashWindow.isOpen) this.stashWindow.close();
@@ -311,6 +327,7 @@ export class WorldScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-I', () => this.inventoryWindow.toggle());
     this.input.keyboard?.on('keydown-C', () => this.inventoryWindow.toggle());
     this.input.keyboard?.on('keydown-J', () => this.bestiaryWindow.toggle());
+    this.input.keyboard?.on('keydown-M', () => this.worldMap.toggle());
     this.input.keyboard?.on('keydown-Q', () => this.drinkPotion());
 
     // Schadenszahlen erst nach dem Zeichnen platzieren: dann steht die Kamera für diesen Frame fest.
@@ -346,10 +363,19 @@ export class WorldScene extends Phaser.Scene {
     } else {
       this.player.step(delta);
     }
+    // Automatiklauf: Ist der Weg zu Ende (angekommen) oder die Figur gestorben, verschwindet der Zielmarker.
+    if (this.autoGoal && (!this.player.alive || !this.player.hasPath)) this.endAutoWalk();
     // Steht die Figur auf einem Übergang, wechselt hier die Zone.
     this.checkPortals();
     this.followPlayer();
-    if (this.settings.values.hud.minimap.visible) this.minimap.render(this.player.pos, this.enemies, this.minimapMarks());
+    const showMinimap = this.settings.values.hud.minimap.visible;
+    if (showMinimap || this.worldMap.isOpen) {
+      const marks = this.minimapMarks();
+      // Auf der Minimap ist das Ziel des Automatiklaufs ein Punkt; die große Karte zeichnet es selbst als Ring.
+      const goalMark = this.autoGoal ? [{ pos: this.autoGoal, color: WORLD_MAP.goalColor, radius: WORLD_MAP.minimapGoalRadius }] : [];
+      if (showMinimap) this.minimap.render(this.player.pos, this.enemies, [...marks, ...goalMark]);
+      this.worldMap.render(this.player.pos, this.enemies, marks, this.autoGoal);
+    }
 
     // Über einem Gegner oder etwas Anklickbarem (Händler, Baumeister, Truhe, Eingang) wird der Mauszeiger zur Hand.
     const clickable = this.combat.enemyAt(cursor) !== null || this.interactables.some((thing) => thing.contains(cursor));
@@ -424,6 +450,13 @@ export class WorldScene extends Phaser.Scene {
 
     this.combat.setZone(this.grid, this.enemies);
     this.minimap.setMap(map, tileset);
+    // Die große Karte nimmt dasselbe Gelände-Bild; ihre Ortsnamen sind die Marker der Karte mit `label`.
+    const mapLabels: MapLabel[] = [];
+    for (const marker of map.getObjectLayer('Marker')?.objects ?? []) {
+      const text = textProperty(marker, 'label');
+      if (text && marker.x !== undefined && marker.y !== undefined) mapLabels.push({ pos: { x: marker.x, y: marker.y }, text });
+    }
+    this.worldMap.setZone(this.minimap.terrainPicture, `${zone.name} · Stufe ${zone.levels[0]}–${zone.levels[1]}`, mapLabels);
     this.loot.setZone(zoneId);
 
     // Die Figur an ihren Platz stellen – außer die Stelle ist inzwischen verbaut (Karte geändert).
@@ -513,6 +546,7 @@ export class WorldScene extends Phaser.Scene {
     if (!this.map) return;
     this.rememberTimes();
     this.cancelPress();
+    this.endAutoWalk();
     this.walkingTo = null;
     this.shopWindow.close();
     this.townWindow.close();
@@ -807,6 +841,8 @@ export class WorldScene extends Phaser.Scene {
     if (!pointer.leftButtonDown() || !this.player.alive) return;
     const world = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
 
+    // Jeder Klick in die Welt (laufen, halten, Gegner, Händler …) beendet den Automatiklauf.
+    this.endAutoWalk();
     this.walkingTo = null;
     const enemy = this.combat.enemyAt(world);
     if (enemy) {
@@ -870,6 +906,39 @@ export class WorldScene extends Phaser.Scene {
     this.player.walkAlong(waypoints);
     this.flashMarker(this.clickMarker, waypoints[waypoints.length - 1], 0, 450);
     return true;
+  }
+
+  /**
+   * Automatiklauf (Klick auf die große Karte): Die Figur läuft mit Wegfindung zu `target`.
+   * Ist die Stelle nicht begehbar oder abgeschnitten, geht es zur nächsten erreichbaren Stelle.
+   * Der Zielmarker bleibt in der Welt und auf der Karte, bis die Figur ankommt oder ein Klick
+   * in die Welt etwas anderes befiehlt (onPointerDown).
+   */
+  private autoWalkTo(target: Point): void {
+    if (!this.player.alive) return;
+    this.cancelPress();
+    this.endAutoWalk();
+    this.walkingTo = null;
+    const goal = this.grid.nearestReachable(this.player.pos, target);
+    const route = goal ? findWaypoints(this.grid, this.player.pos, goal) : null;
+    if (!route || route.length === 0) return;
+    this.combat.disengage(); // ab jetzt bestimmt die Karte den Weg, nicht mehr das Ziel
+    this.player.walkAlong(route);
+
+    const end = route[route.length - 1];
+    this.autoGoal = { x: end.x, y: end.y };
+    // Der Marker ist 9 × 9 Pixel groß (wie die anderen) und pulsiert, solange der Lauf dauert.
+    this.goalMarker.setPosition(Math.round(end.x) - 4, Math.round(end.y) - 4).setAlpha(1).setVisible(true);
+    this.tweens.add({ targets: this.goalMarker, alpha: 0.35, duration: 500, yoyo: true, repeat: -1 });
+    if (WORLD_MAP.closeOnClick) this.worldMap.close();
+  }
+
+  /** Beendet den Automatiklauf: Zielmarker weg. Die Figur selbst hält hier nicht an – das regelt, wer abbricht. */
+  private endAutoWalk(): void {
+    if (!this.autoGoal) return;
+    this.autoGoal = null;
+    this.tweens.killTweensOf(this.goalMarker);
+    this.goalMarker.setVisible(false);
   }
 
   /** Zeigt einen Marker an der Stelle `at`: erst `holdMs` voll sichtbar, dann in `fadeMs` ausblenden. */

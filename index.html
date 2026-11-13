@@ -91,12 +91,13 @@
       <!-- Minimap unter der Knopf-Leiste: Gelände, Figur, Gegner, Händler (zeichnet src/ui/Minimap.ts). -->
       <div id="minimap"><canvas id="minimap-canvas"></canvas></div>
 
-      <!-- Knopf-Leiste oben rechts. Neue Knöpfe (Talente, Karte …) kommen hier dazu. -->
+      <!-- Knopf-Leiste oben rechts. Neue Knöpfe (Talente …) kommen hier dazu. -->
       <div id="topbar">
         <button id="bag-button" class="topbar-button" type="button" title="Charakter &amp; Inventar (I)">
           <span class="sprite-icon topbar-icon"></span>
         </button>
         <button id="bestiary-button" class="topbar-button" type="button" title="Jagdbuch (J)">📖</button>
+        <button id="worldmap-button" class="topbar-button" type="button" title="Karte (M)">🗺️</button>
         <button id="saves-button" class="topbar-button" type="button" title="Spielstände">💾</button>
         <button id="settings-button" class="topbar-button" type="button" title="Einstellungen">⚙</button>
       </div>
@@ -246,6 +247,20 @@
           <span id="bestiary-total"></span>
         </div>
         <div class="window-help" id="bestiary-help"></div>
+      </div>
+
+      <!-- Große Karte der Zone (Taste M oder der Knopf in der Leiste). Zeichnet src/ui/WorldMap.ts.
+           Klick oder Tippen auf die Karte: Die Figur läuft dorthin. -->
+      <div id="worldmap" hidden>
+        <div class="window-title">
+          <span id="worldmap-title"></span>
+          <span class="window-buttons">
+            <button id="worldmap-close" type="button" title="Schließen (M oder Esc)">×</button>
+          </span>
+        </div>
+        <canvas id="worldmap-canvas"></canvas>
+        <!-- Erklärung der Punkte (füllt WorldMap.ts aus den Farben der Minimap). -->
+        <div id="worldmap-legend"></div>
       </div>
       <div id="item-tooltip" hidden></div>
 

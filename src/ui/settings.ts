@@ -44,6 +44,8 @@ export interface Settings {
   enemyPlates: PlateSettings & { showAll: boolean };
   /** Schwebende Zahlen und Texte (Schaden, Heilung, EP, Skill-Namen). */
   floaters: { visible: boolean; scale: number; opacity: number };
+  /** Die große Karte (Taste M): Größe und Deckkraft. Ein- und ausgeblendet wird sie mit M oder ihrem Knopf. */
+  worldMap: { scale: number; opacity: number };
 }
 
 /** Grenzen der Schieberegler. Die Deckkraft geht nie auf 0 – dafür gibt es "ausblenden". */
@@ -65,6 +67,7 @@ export const DEFAULT_SETTINGS: Settings = {
   playerPlate: { ...PLATE_DEFAULT },
   enemyPlates: { ...PLATE_DEFAULT, showAll: true },
   floaters: { visible: true, scale: 1, opacity: 1 },
+  worldMap: { scale: 1, opacity: 1 },
 };
 
 const STORAGE_KEY = 'einstellungen';

@@ -71,6 +71,31 @@ export class Grid {
     return true;
   }
 
+  /**
+   * Die Stelle, die `target` am nächsten liegt und von `from` aus zu Fuß erreichbar ist.
+   * Ist `target` selbst erreichbar, kommt genau dieser Punkt zurück – sonst die Mitte der
+   * nächsten erreichbaren Kachel (z. B. der Waldrand, wenn mitten in den Wald geklickt wurde).
+   * null, wenn `from` selbst auf keiner begehbaren Kachel steht.
+   */
+  nearestReachable(from: Point, target: Point): Point | null {
+    const region = this.regionAt(Grid.toTile(from.x), Grid.toTile(from.y));
+    if (region === -1) return null;
+    if (this.regionAt(Grid.toTile(target.x), Grid.toTile(target.y)) === region) return { x: target.x, y: target.y };
+    let best: Point | null = null;
+    let bestDistance = Infinity;
+    for (let ty = 0; ty < this.height; ty++) {
+      for (let tx = 0; tx < this.width; tx++) {
+        if (this.region[this.index(tx, ty)] !== region) continue;
+        const distance = Math.hypot(Grid.tileCenter(tx) - target.x, Grid.tileCenter(ty) - target.y);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = { x: Grid.tileCenter(tx), y: Grid.tileCenter(ty) };
+        }
+      }
+    }
+    return best;
+  }
+
   private labelRegions(): Int32Array {
     const region = new Int32Array(this.width * this.height).fill(-1);
     let next = 0;

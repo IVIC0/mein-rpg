@@ -24,7 +24,16 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 
 ## 2. Eingabe & Steuerung
 
-- **Gerät:** PC mit Maus + Tastatur. Kein Touch, kein Handy-Layout. *(Entschieden)*
+- **Gerät:** In erster Linie die **Maus** – und am Handy **ein Finger**. Die Tastatur ist nur ein
+  Zusatz. *(Entschieden in Schritt 11d; ersetzt „Kein Touch, kein Handy-Layout".)*
+  - Alles muss per Klick / Tippen erreichbar sein. Nichts darf **nur** über Tasten, Rechtsklick,
+    Umschalt+Klick oder Hover gehen.
+  - Neue Fenster und HUD-Elemente passen sich an kleine Bildschirme an (Handy im Querformat) und
+    laufen nicht über den Rand.
+  - Die Regel gilt für alles Neue ab Schritt 11d (zuerst für die große Karte, Abschnitt 2d). Die
+    bestehenden Fenster und das HUD halten sie noch nicht ein (z. B. Verkaufen per Rechtsklick,
+    Wegwerfen per Umschalt+Klick, Item-Tooltip nur beim Überfahren) – das Anpassen wird ein
+    eigener Meilenstein (noch ohne Nummer).
 - **Bewegung** mit der linken Maustaste *(Umgesetzt)*:
   - Klick auf begehbaren Boden = hinlaufen, mit Wegfindung um Hindernisse.
   - Klick auf eine nicht begehbare Stelle (Baum, Haus …) = keine Bewegung, dort
@@ -52,10 +61,11 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     Der Kampf läuft bei offenem Fenster immer weiter.
   - Position, Größe und Pin merkt sich der Browser (`localStorage`, getrennt vom Spielstand).
 - **Knopf-Leiste** oben rechts *(Umgesetzt)*: kleine Knöpfe für Inventar, Jagdbuch (Buch,
-  Abschnitt 16.3), Spielstände (Diskette, Abschnitt 11) und Einstellungen; weitere (Talente, Karte) kommen dort dazu. Was die
+  Abschnitt 16.3), große Karte (Abschnitt 2d), Spielstände (Diskette, Abschnitt 11) und Einstellungen; weitere (Talente) kommen dort dazu. Was die
   Einstellungen können, steht in Abschnitt 2b.
   `T` Talente kommt mit dem Talentbaum. *(Vorschlag)*
-- **Karte:** `M` große Karte. *(Entschieden, geplant – siehe Abschnitt 13)*
+- **Karte:** `M` oder der Karten-Knopf in der Leiste öffnet und schließt die große Karte; ein
+  Klick darauf lässt die Figur dorthin laufen. *(Umgesetzt, Schritt 11d – Abschnitt 2d)*
 - **Tränke:** `Q` trinkt einen Heiltrank. *(Umgesetzt, Abschnitt 7b)* Einen Manatrank gibt es nicht.
   Seit Meilenstein 11 geht das auch per **Mausklick** auf das Trank-Feld der Skill-Leiste
   *(Entschieden, umgesetzt)*. Es ist das einzige Feld der Leiste, das man anklickt (Mauszeiger wird
@@ -78,7 +88,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   |---|---|---|
   | Über meiner Figur | Name, Stufe, Leben | Größe, Deckkraft |
   | Über Gegnern | Name (mit Elite-Eigenschaften), Stufe, Leben; „bei allen Gegnern" (aus = nur Ziel, Angreifer, Verletzte) | Größe, Deckkraft |
-  | HUD-Elemente | Spielerrahmen, Zielrahmen, Skill-Leiste, Beute-Liste, Minimap, Schwebende Zahlen (Schaden, Heilung, EP, Skill-Namen) | je Element Größe, Deckkraft |
+  | HUD-Elemente | Spielerrahmen, Zielrahmen, Skill-Leiste, Beute-Liste, Minimap, Schwebende Zahlen (Schaden, Heilung, EP, Skill-Namen); dazu die große Karte ohne Häkchen (Abschnitt 2d) | je Element Größe, Deckkraft |
   | Schwierigkeit *(seit Meilenstein 10, gehört zum Spielstand – Abschnitt 15.6)* | vier Knöpfe Leicht / Normal / Schwer / Brutal | Gegnerleben, Gegnerschaden |
 
 - **Bearbeitungsmodus** („HUD verschieben …"): Spielerrahmen, Zielrahmen, Skill-Leiste,
@@ -123,6 +133,47 @@ Oben rechts unter der Knopf-Leiste. Alle Zahlen und Farben sind **Startwerte** v
   verschieben (Abschnitt 2b). Ausgeblendet wird sie auch nicht mehr gezeichnet.
 - Die Menüs „Einstellungen" und „Spielstände" klappen an derselben Stelle auf und verdecken sie,
   solange sie offen sind.
+
+## 2d. Große Karte *(Schritt 11d, umgesetzt)*
+
+Vorgegeben von dir: Taste `M`, `Esc` und ein Knopf in der Leiste; Gelände, eigene Position, Gegner,
+Händler, Baumeister und besondere Orte in den Farben der Minimap; Klick = hinlaufen mit Wegfindung,
+Zielmarker auf der Karte und im Spiel, bei nicht begehbarer Stelle zur nächsten erreichbaren;
+Abbruch durch jeden neuen Klick; datengetrieben; kein Nebel des Krieges; Größe und Deckkraft in den
+Einstellungen. **Alles andere hier habe ich mir ausgedacht: Startwerte** (`src/data/worldmap.ts`).
+
+- **Öffnen und schließen:** `M` oder der Karten-Knopf oben rechts; zu geht sie mit `M`, `Esc`, dem
+  Knopf oder dem × im Fenster. Das Spiel läuft weiter. Die Karte sitzt in der Bildmitte und ist
+  nicht verschiebbar *(Startwert)*.
+- **Zu sehen** ist die ganze aktuelle Zone: Gelände (dasselbe Bild wie bei der Minimap), eigene
+  Figur (weißer Punkt mit Ring), alle Gegner (rot, Elite gold, Boss lila), Händler, Baumeister,
+  Lagertruhe, Truhen (leer: grau), Übergänge. Besiegte Gegner fehlen, bis sie wieder erscheinen.
+  Die Farben sind die der Minimap (`src/data/minimap.ts`), die Punkte 1,3-mal so groß. Unter der
+  Karte steht eine Zeile, die die Farben erklärt *(von mir ergänzt – ohne Hover braucht es das)*.
+- **Ortsnamen** *(von mir ergänzt)*: Dorf, Pilzhain, Große Lichtung, Ostlichtung, Südlichtung,
+  Westlichtung, Wolfshang, Eichenhain, Wachposten, Goblin-Lager, Ruine; in der Höhle Eingang,
+  Fledermaushalle, Netzkammer, Tropfgang, Brutkammer. Sie stehen als `label` im Bauplan der Zone
+  (an Lichtungen, Lagern und benannten Punkten).
+- **Automatiklauf:** Klick oder Tippen auf die Karte = die Figur läuft mit der vorhandenen
+  Wegfindung dorthin. Ist die Stelle nicht begehbar (Wald, Haus, Fels), geht es zur nächsten
+  erreichbaren Kachel. Das Ziel ist auf der Karte ein gelber Ring, im Spiel eine gelbe, pulsierende
+  Raute, auf der Minimap ein gelber Punkt – bis die Figur ankommt.
+  - **Abbruch:** jeder Klick in die Welt (laufen, gedrückt halten, Gegner angreifen, Händler,
+    Truhe …), ein neuer Klick auf die Karte (neues Ziel), der Tod und ein Zonenwechsel. Einen
+    Lauf per Tastatur gibt es im Spiel nicht – käme er dazu, bricht er genauso ab.
+  - Die Karte **bleibt nach dem Klick offen** *(Startwert; `closeOnClick` schaltet das um)*.
+  - Wird die Figur unterwegs angegriffen, läuft sie weiter und schlägt nur zu, solange der Gegner
+    in Reichweite ist (wie beim normalen Klick-Laufen). Sie bleibt nicht von selbst stehen.
+  - Ein Klick auf einen Übergang (z. B. den Höhleneingang) führt hinein – die Figur betritt ihn ja.
+- **Größe:** Bei 100 % füllt das Fenster 80 % des Bildschirms; der Regler „Größe" (60–200 %)
+  rechnet darauf, ab 125 % ist der Bildschirm voll – größer wird sie nie. Ist das Bild niedriger
+  als 500 Pixel (Handy quer), nutzt sie immer den ganzen Platz, und unter 420 Pixeln Höhe fällt die
+  Erklär-Zeile weg. **Deckkraft** 20–100 % wie bei den anderen Elementen. Ein Häkchen zum
+  Ausblenden hat sie nicht (dafür gibt es `M`).
+- **Datengetrieben:** Gelände, Punkte und Ortsnamen kommen aus der Karte der Zone. Eine neue Zone
+  bekommt ihre große Karte von selbst; für Ortsnamen trägt man `label` im Bauplan ein.
+- **Wo:** `src/ui/WorldMap.ts` (zeichnen, Größe, Klick), `autoWalkTo` in
+  `src/scenes/WorldScene.ts`, `nearestReachable` in `src/world/Grid.ts`.
 
 ## 3. Perspektive & Grafik
 
@@ -975,6 +1026,7 @@ Meilenstein 10 (Minimap, Rückkauf, Schwierigkeit), Meilenstein 11 (Zonen-Fundam
 Grünwald-Ergänzung, Abschnitt 9b) und Schritt 10b (Balancing-Fixes, Abschnitt 4b) sind
 umgesetzt ✅ – siehe Tabelle in 15.7. Von der zweiten Fortschrittsachse (Abschnitt 16) ist der
 Dorfausbau (Schritt 11b) und das Jagdbuch (Schritt 11c) umgesetzt ✅; die Meisterschaft ist geplant.
+Schritt 11d (große Karte, Abschnitt 2d, und die Regel „Maus zuerst", Abschnitt 2) ist umgesetzt ✅.
 
 **Reihenfolge nach V1:** steht jetzt als Meilensteine 10–20 in Abschnitt 15.7 (ersetzt die
 frühere Kurzliste Talentbaum → Quests → Aufwerten → Zone 2 → …).
@@ -986,7 +1038,7 @@ Von dir gewünscht. *(Entschieden)*
 | Feature | Wann | Inhalt |
 |---|---|---|
 | Minimap ✅ | Meilenstein 10, umgesetzt (Abschnitt 2c) | Kleine Übersichtskarte oben rechts im Bild, unter der Knopf-Leiste: Gelände, eigene Position, Gegner in der Nähe, Händler. HUD-Element wie die anderen (ausblenden, Größe, Deckkraft, verschieben – Abschnitt 2b) |
-| Große Karte | Meilenstein 13 (mit Zone 2) | Taste `M` öffnet und schließt die Karte der ganzen Zone |
+| Große Karte ✅ | Schritt 11d, umgesetzt (Abschnitt 2d) – vorgezogen aus Meilenstein 13 | Taste `M` oder Knopf öffnet und schließt die Karte der ganzen Zone; Klick = hinlaufen |
 | Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
 | Mehr Skills als Plätze | Meilenstein 14, zusammen mit dem Talentbaum | Mit der Zeit 8–10 Skills pro Klasse freischalten, aber nur 4 aktive Plätze. Die Auswahl ist der Build. |
 | Legendäre Items mit einzigartigen Effekten | Meilenstein 15 (Liste in Abschnitt 15.4) | Legendäre Items verändern Skills, z. B. „Rundumschlag hinterlässt Feuerspur". |
@@ -1113,9 +1165,7 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
     alle in `src/data/bestiary.ts`):
     - Schwellen 10 / 50 / 150 / 350 / 750, Elite zählt fünffach, die Boni je Rang (3 % / 3 % /
       10 % / 10 %) und die Seiten-Boni (+1 % je Stufe, Gold zweimal).
-    - **Graue Gegner zählen mit.** Auf Stufe 10 lassen sich Ratten in Sekunden farmen – die
-      Gold-Seite Grünwald geht damit schneller als die geplanten 15–18 Stunden. Stört das, wäre
-      „triviale Gegner zählen nicht" oder „nur halb" die Stellschraube (noch nicht eingebaut).
+    - Erledigt *(Schritt 11d)*: Schwache Gegner zählen nur noch halb (Punkt 20).
     - Die Fledermaus gibt es nur in der Spinnenhöhle (9 Stück) – sie ist der Typ, der die Seite
       Grünwald am längsten aufhält. Kurz raus und wieder rein füllt die Höhle auf (Punkt 16).
     - Die Brutmutter zählt als Boss-Sieg **und** als +5 Waldspinne. Der Räuberhauptmann zählt nur
@@ -1130,6 +1180,22 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
       Bildhöhe bekommt es einen Rollbalken. Im Zielrahmen steht der Rang des Gegners noch nicht.
     - Boni im Fenster sind auf den Typ bezogen; ob ein Bonus gerade wirkt, sieht man im Kampf
       nur an den Zahlen (3 % sind klein).
+
+20. Schritt 11d, von mir gesetzte Startwerte zum Prüfen im Spiel:
+    - Große Karte (Abschnitt 2d, `src/data/worldmap.ts`): 80 % des Bildschirms bei Größe 100 %,
+      Punkte 1,3-fach, Ortsnamen und ihre Schrift, Erklär-Zeile, Aussehen der Zielmarker.
+    - Die Karte bleibt nach dem Klick offen und liegt mitten im Bild – man sieht die Figur dann
+      nur auf der Karte laufen. Lieber von selbst schließen? (`closeOnClick`)
+    - Wird die Figur beim Automatiklauf angegriffen, läuft sie weiter. Lieber stehen bleiben und
+      kämpfen?
+    - Am Handy verdeckt die Karte die Knopf-Leiste zum Teil; zu geht sie dort über ihr ×.
+    - **Jagdbuch:** Gegner, die 5 oder mehr Stufen unter der Figur liegen, zählen nur halb
+      (`TRIVIAL_KILLS` in `src/data/bestiary.ts`: `levelLead: 5`, `weight: 0.5`; `weight: 0` =
+      gar nicht). Grau angezeigt wird ein Gegner schon ab 3 Stufen Vorsprung – die Schwelle ist
+      bewusst höher, sonst zählte auf Stufe 10 fast ganz Grünwald nur halb. Auf Stufe 10 trifft es
+      alles bis Stufe 5: alle Ratten und Wölfe, dazu die schwächeren Spinnen, Wildschweine,
+      Fledermäuse und Goblins. Die Gold-Seite Grünwald dauert damit länger als die 15–18 Stunden.
+    - Halbe Zähler stehen mit Komma im Buch („12,5 / 50"). Alte Spielstände bleiben, wie sie sind.
 
 ---
 
@@ -1402,7 +1468,7 @@ Von dir entschieden *(Entschieden)*: vier Knöpfe plus freie Regler, mehr EP und
 „Sitzung" = ein Arbeitsgang mit einem PR wie bisher. Die Schätzungen sind grob; dein Testen und
 das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter dem Meilenstein
 (Meilenstein 10 = 0.10.0, Meilenstein 11 = 0.11.0); Zwischenschritte mit Buchstaben zählen die
-letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2, 11c = 0.11.3 …). Die Schritte
+letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2, 11c = 0.11.3, 11d = 0.11.4 …). Die Schritte
 11b, 11c und 14b sind die zweite Fortschrittsachse aus Abschnitt 16 – seit deinen Antworten in
 16.6 *(Entschieden)*; offen ist nur die Waffen-Meisterschaft. Die Nummern 12–20 bleiben, wie sie waren.
 
@@ -1413,8 +1479,9 @@ letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2,
 | 10b ✅ | Balancing-Fixes | Umgesetzt nach Meilenstein 11 (Abschnitt 4b): Regeneration gebremst (Sperre, Rasten), Gold-Drops, Händlerpreise, Trankpreis, Todesstrafe und Drop-Tabellen neu. Kein neues Spielstand-Format. Dazu der Plan für die zweite Fortschrittsachse (Abschnitt 16) | 1 Sitzung, klein |
 | 11b ✅ | Dorfausbau (16.2) | Umgesetzt. Baumeister im Dorf, Fenster „Dorfausbau", Rathaus, Kontor, Alchemistin, Gasthaus, Lagerhaus mit Lagertruhe, Fahnen an den Häusern; in Grünwald erreichbar sind Stufe 1–2 (Stufe 2 nach dem Räuberhauptmann). Dazu: Trank-Obergrenze entfernt, Aufwachen nach dem Tod mit halbem Leben. Spielstand Format 5 | 1 Sitzung, mittel |
 | 11c ✅ | Jagdbuch (16.3) | Umgesetzt. Besiegte Gegner je Typ zählen (Elite fünffach), fünf Ränge mit kleinen Boni gegen den Typ, Sammelseite Grünwald (Bronze / Silber / Gold: Leben und Angriffskraft), Bosse-Zeile, Fenster mit Taste `J` und Knopf in der Leiste, Meldung bei neuem Rang. Spielstand Format 6 | 1 Sitzung, klein bis mittel |
+| 11d ✅ | Große Karte, Regel „Maus zuerst" | Umgesetzt (Abschnitt 2d). **Große Karte** mit `M` und Knopf, vorgezogen aus Meilenstein 13: ganze Zone, Punkte wie auf der Minimap, Ortsnamen aus dem Bauplan, Klick = Automatiklauf mit Zielmarker, Größe und Deckkraft in den Einstellungen. **Regel für alle neuen UI-Elemente:** Maus / ein Finger zuerst, alles per Klick erreichbar, passt auf kleine Bildschirme (Abschnitt 2, `CLAUDE.md`). **Jagdbuch:** schwache Gegner zählen nur halb. Kein neues Spielstand-Format. *Startwerte von mir:* alles in `src/data/worldmap.ts`, Ortsnamen, Erklär-Zeile, „Karte bleibt offen", Schwelle 5 Stufen / halb | 1 Sitzung, klein bis mittel |
 | 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD (unter der Minimap), Kopfgeld-Brett (Anzahl der Kopfgelder hängt an der Rathaus-Stufe, 16.2), die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
-| 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, große Karte (`M`), Cap 20, neue Assets | 2–3 Sitzungen, groß |
+| 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, Cap 20, neue Assets (die große Karte gibt es seit 11d; die neue Zone bekommt sie von selbst) | 2–3 Sitzungen, groß |
 | 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
 | 14b | Skill-Meisterschaft (16.4) | Skills steigen durch Auslösen (Stufe 0–10), Übungsplatz als Gebäude im Dorf. Erst hier, weil es vorher nichts zu wählen gibt und die Rechnung „Skill-Werte nach Talenten" aus Meilenstein 14 stammt | 1 Sitzung, mittel |
 | 15 | Loot-Vielfalt | Neue Affixe, Waffen-Unterschiede, zwei neue Waffen, 12 Legendär-Effekte. Dazu vielleicht die Waffen-Meisterschaft (16.4) – *offen, du entscheidest später* | 2 Sitzungen, mittel |
@@ -1702,7 +1769,7 @@ eine **Bosse-Zeile** (feste Elites, Zwischenboss, Zonen-Boss, später Weltboss):
 
 | Was | Wie | Wo |
 |---|---|---|
-| Zählen | Jeder besiegte Gegner zählt +1 bei seinem Typ, eine Elite +5. Auf jeder Schwierigkeit, in jeder Zone, egal wie hoch die eigene Stufe ist (auch graue Gegner zählen). Gezählt wird beim Sieg – nicht, wenn ein Gegner an die Leine geht | `Bestiary.record` in `src/bestiary/Bestiary.ts`, ausgelöst von `Combat.onKill` |
+| Zählen | Jeder besiegte Gegner zählt +1 bei seinem Typ, eine Elite +5. Auf jeder Schwierigkeit, in jeder Zone. **Seit Schritt 11d** *(Startwert)*: Liegt die Figur 5 oder mehr Stufen über dem Gegner, zählt er nur halb (+0,5, Elite +2,5). Gezählt wird beim Sieg – nicht, wenn ein Gegner an die Leine geht | `Bestiary.record` in `src/bestiary/Bestiary.ts`, ausgelöst von `Combat.onKill`; Schwelle `TRIVIAL_KILLS` |
 | Ränge | 10 / 50 / 150 / 350 / 750. Die Boni aller erreichten Ränge gelten zusammen. Eine Seite kann eigene Schwellen haben (`kills`), Grünwald nutzt die Standard-Liste | `BESTIARY_RANKS` |
 | +3 % Schaden | auf jeden Treffer gegen den Typ (Auto-Angriff und Skills), auch gegen seine Elites | `Combat.hitEnemy` |
 | 3 % weniger Schaden | auf jeden Treffer von diesem Typ, auch von seinen Elites und von der Explosion einer „explosiven" Elite. Wird mit Schildwall multipliziert | `Combat.hurtPlayer` |

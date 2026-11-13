@@ -3,6 +3,7 @@ import {
   BESTIARY_RANKS,
   ELITE_KILL_WEIGHT,
   PAGE_TIERS,
+  TRIVIAL_KILLS,
   noTypeBonus,
   pageOfType,
   rankKills,
@@ -15,7 +16,7 @@ import type { Enemy } from '../entities/Enemy';
 
 /** Das Jagdbuch, so wie es im Spielstand steht: nur Zähler. */
 export interface BestiaryData {
-  /** Gegnertyp → besiegte Gegner (eine Elite zählt mehrfach, siehe ELITE_KILL_WEIGHT). */
+  /** Gegnertyp → besiegte Gegner (eine Elite zählt mehrfach, ein schwacher Gegner nur zum Teil – also auch halbe Zahlen). */
   kills: Record<string, number>;
   /** Boss oder feste Elite → Anzahl der Siege (für die Bosse-Zeile). */
   bosses: Record<string, number>;
@@ -74,8 +75,9 @@ export class Bestiary {
    * - Normaler Gegner: +1 bei seinem Typ. Elite: +5 (ELITE_KILL_WEIGHT).
    * - Feste Elite (z. B. die Brutmutter): zählt als Elite ihres Typs und dazu in der Bosse-Zeile.
    * - Boss: zählt nur in der Bosse-Zeile.
+   * - Liegt die Figur (`playerLevel`) weit über dem Gegner, zählt er nur zum Teil (TRIVIAL_KILLS).
    */
-  record(enemy: Enemy): void {
+  record(enemy: Enemy, playerLevel: number): void {
     const bossId = enemy.bossId;
     if (bossId) this.bosses[bossId] = (this.bosses[bossId] ?? 0) + 1;
 
@@ -84,7 +86,9 @@ export class Bestiary {
       const page = pageOfType(type);
       const rankBefore = this.progress(type).rank;
       const tierBefore = page ? this.pageTier(page) : 0;
-      this.kills[type] = (this.kills[type] ?? 0) + (enemy.rank === 'elite' ? ELITE_KILL_WEIGHT : 1);
+      const weak = playerLevel - enemy.level >= TRIVIAL_KILLS.levelLead;
+      const count = (enemy.rank === 'elite' ? ELITE_KILL_WEIGHT : 1) * (weak ? TRIVIAL_KILLS.weight : 1);
+      this.kills[type] = (this.kills[type] ?? 0) + count;
 
       const rank = this.progress(type).rank;
       if (rank > rankBefore) {

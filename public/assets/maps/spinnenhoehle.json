@@ -225,7 +225,14 @@
      "height": 0,
      "point": true,
      "rotation": 0,
-     "visible": true
+     "visible": true,
+     "properties": [
+      {
+       "name": "label",
+       "type": "string",
+       "value": "Eingang"
+      }
+     ]
     },
     {
      "id": 3,
@@ -237,7 +244,14 @@
      "height": 0,
      "point": true,
      "rotation": 0,
-     "visible": true
+     "visible": true,
+     "properties": [
+      {
+       "name": "label",
+       "type": "string",
+       "value": "Fledermaushalle"
+      }
+     ]
     },
     {
      "id": 4,
@@ -249,7 +263,14 @@
      "height": 0,
      "point": true,
      "rotation": 0,
-     "visible": true
+     "visible": true,
+     "properties": [
+      {
+       "name": "label",
+       "type": "string",
+       "value": "Netzkammer"
+      }
+     ]
     },
     {
      "id": 5,
@@ -261,7 +282,14 @@
      "height": 0,
      "point": true,
      "rotation": 0,
-     "visible": true
+     "visible": true,
+     "properties": [
+      {
+       "name": "label",
+       "type": "string",
+       "value": "Tropfgang"
+      }
+     ]
     },
     {
      "id": 6,
@@ -273,7 +301,14 @@
      "height": 0,
      "point": true,
      "rotation": 0,
-     "visible": true
+     "visible": true,
+     "properties": [
+      {
+       "name": "label",
+       "type": "string",
+       "value": "Brutkammer"
+      }
+     ]
     }
    ]
   },

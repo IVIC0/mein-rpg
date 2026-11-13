@@ -178,7 +178,10 @@ function buildZone(plan) {
   const markers = [
     { name: 'spawn', type: 'spawn', x: plan.spawn.x, y: plan.spawn.y },
     ...(plan.markers ?? []).map((marker) => ({ ...marker, type: 'ankunft' })),
-    ...plan.clearings.filter((c) => c.marker).map((c) => ({ name: c.marker, type: 'gebiet', x: Math.round(c.cx), y: Math.round(c.cy) })),
+    // `label` = Ortsname auf der großen Karte (src/ui/WorldMap.ts).
+    ...plan.clearings.filter((c) => c.marker).map((c) => ({ name: c.marker, type: 'gebiet', x: Math.round(c.cx), y: Math.round(c.cy), ...(c.label ? { label: c.label } : {}) })),
+    // Lager mit Ortsnamen bekommen ebenfalls einen Punkt (in ihrer Mitte).
+    ...(plan.structures ?? []).filter((s) => s.type === 'lager' && s.label).map((s) => ({ name: s.marker, type: 'gebiet', x: Math.round(s.x + (s.width - 1) / 2), y: Math.round(s.y + (s.height - 1) / 2), label: s.label })),
   ].map(toPoint);
   const poiPoints = (plan.pois ?? []).map(toPoint);
   const enemyPoints = enemySpawns.map(toPoint);

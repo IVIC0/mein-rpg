@@ -56,6 +56,18 @@ export class BootScene extends Phaser.Scene {
       '.##...##.',
       '...###...',
     ]);
+    // Ziel des Automatiklaufs (Klick auf die große Karte): gelbe Raute mit dunklem Rand.
+    pixelTexture(this, 'goal-marker', { '#': '#ffd34d', o: '#3a2a08' }, [
+      '....o....',
+      '...o#o...',
+      '..o###o..',
+      '.o##o##o.',
+      'o##o.o##o',
+      '.o##o##o.',
+      '..o###o..',
+      '...o#o...',
+      '....o....',
+    ]);
     // Rotes X für Klicks auf nicht begehbare Stellen, mit dunklem Rand,
     // damit es auch auf roten Dächern und Herbstbäumen zu sehen ist.
     pixelTexture(this, 'blocked-marker', { '#': '#f0383c', o: '#3a1016' }, [

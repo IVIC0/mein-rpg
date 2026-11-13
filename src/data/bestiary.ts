@@ -7,6 +7,15 @@
 /** Eine besiegte Elite zählt so viel wie so viele normale Gegner ihres Typs. */
 export const ELITE_KILL_WEIGHT = 5;
 
+/**
+ * Schwache Gegner zählen weniger, damit sich z. B. Ratten auf Stufe 10 nicht in Sekunden farmen lassen.
+ * - `levelLead`: Liegt die Figur mindestens so viele Stufen über dem Gegner, gilt er als schwach.
+ *   (Grau angezeigt wird ein Gegner schon ab 3 Stufen Vorsprung – siehe isTrivial in progression.ts.)
+ * - `weight`: So viel zählt ein schwacher Gegner (0.5 = halb, 0 = gar nicht, 1 = voll wie früher).
+ * Gilt auch für Elites (5 × 0,5 = 2,5). Siege über Bosse und feste Elites in der Bosse-Zeile zählen immer voll.
+ */
+export const TRIVIAL_KILLS = { levelLead: 5, weight: 0.5 };
+
 /** Was ein Rang gegen den Gegnertyp bringt. Alle Angaben sind Anteile (0.03 = 3 %). */
 export interface TypeBonus {
   /** Mehr Schaden gegen diesen Typ. */
