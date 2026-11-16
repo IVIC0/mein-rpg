@@ -87,6 +87,14 @@ export const TOWN_HALL_BOSSES: Record<number, { enemy: string; name: string; whe
   5: { enemy: 'azgar', name: 'Azgar', where: 'Aschenfeste – die Zone gibt es noch nicht' },
 };
 
+/**
+ * Rathaus: so viele Kopfgelder hängen gleichzeitig am Kopfgeld-Brett (Stufe 1 bis 5).
+ * Was ein Kopfgeld ist und bringt, steht in src/data/quests.ts.
+ */
+export const TOWN_HALL_BOUNTIES = [1, 1, 2, 2, 3];
+/** So viele Kopfgelder hängen höchstens aus. */
+export const BOUNTY_SLOTS_MAX = Math.max(...TOWN_HALL_BOUNTIES);
+
 /** Kontor: verbessert den Händler (Werte ohne Ausbau: SHOP_STOCK in src/data/shop.ts). */
 export const KONTOR = {
   /** Plätze im Regal. */
@@ -176,6 +184,9 @@ export interface TownEffects {
   // Lagerhaus
   /** Plätze der Lagertruhe; 0 = es gibt noch keine. */
   stashSize: number;
+  // Rathaus
+  /** So viele Kopfgelder hängen gleichzeitig am Kopfgeld-Brett. */
+  bountySlots: number;
 }
 
 /** Die Stufen, mit denen ein neues Spiel beginnt. */
@@ -192,7 +203,7 @@ function atLevel<T>(list: T[], level: number, base: T): T {
 
 /** Rechnet aus den Stufen der Gebäude aus, was das Dorf bringt. */
 export function townEffects(levels: TownLevels): TownEffects {
-  const { kontor, alchemistin, gasthaus, lagerhaus } = levels;
+  const { kontor, alchemistin, gasthaus, lagerhaus, rathaus } = levels;
   return {
     stockSize: atLevel(KONTOR.stockSize, kontor, SHOP_STOCK.size),
     stockRareShare: atLevel(KONTOR.rareShare, kontor, SHOP_STOCK.rarityWeights.rare ?? 0),
@@ -206,5 +217,6 @@ export function townEffects(levels: TownLevels): TownEffects {
     deathGoldLoss: atLevel(INN.deathGoldLoss, gasthaus, DEATH_GOLD_LOSS),
     townFullSeconds: gasthaus >= 1 ? INN.townFullSeconds : null,
     stashSize: atLevel(WAREHOUSE.stashSize, lagerhaus, 0),
+    bountySlots: atLevel(TOWN_HALL_BOUNTIES, rathaus, TOWN_HALL_BOUNTIES[0]),
   };
 }

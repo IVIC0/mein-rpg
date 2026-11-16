@@ -8,9 +8,12 @@ import { AFFIXES, EQUIP_SLOTS, ITEM_BASES, RARITIES, type EquipSlot } from '../d
 import { DEFAULT_DIFFICULTY, cleanDifficultyValue, type Difficulty } from '../data/difficulty';
 import { INVENTORY_SIZE } from '../data/loot';
 import { MAX_LEVEL } from '../data/progression';
+import { NAMED_ELITES } from '../data/elites';
+import { ENEMIES } from '../data/enemies';
+import { QUESTS, type QuestGoal } from '../data/quests';
 import { NAME_MAX_LENGTH, SAVE_VERSION } from '../data/save';
 import { BUYBACK } from '../data/shop';
-import { BUILDING_IDS, MAX_BUILDING_LEVEL, STASH_MAX, STOCK_MAX, startLevels, type TownLevels } from '../data/town';
+import { BOUNTY_SLOTS_MAX, BUILDING_IDS, MAX_BUILDING_LEVEL, STASH_MAX, STOCK_MAX, startLevels, type TownLevels } from '../data/town';
 import { START_ZONE, ZONES } from '../data/zones';
 import { STATS, type StatId } from '../data/stats';
 import type { TestSaveDef } from '../data/testSaves';
@@ -18,6 +21,7 @@ import { WARRIOR } from '../data/warrior';
 import { generateItem, type Item, type RolledAffix, type RolledValue } from '../items/generator';
 import type { GroundItem } from '../items/GroundLoot';
 import type { ShopData } from '../items/Shop';
+import { emptyQuestData, goalNeeded, type BountyData, type QuestData } from '../quests/QuestLog';
 
 /**
  * Daran erkennt das Spiel beim Import, dass eine Datei wirklich ein Spielstand von ihm ist.
@@ -65,6 +69,8 @@ export interface SaveGame {
   bossKills: Record<string, number>;
   /** Jagdbuch: besiegte Gegner je Typ und Siege je Boss. Ränge und Boni werden beim Laden daraus berechnet (src/data/bestiary.ts). */
   bestiary: BestiaryData;
+  /** Quests: Stand je angenommener Quest und die Kopfgelder am Brett (src/data/quests.ts). */
+  quests: QuestData;
   /** Schwierigkeit dieses Spielstands (Regler in den Einstellungen, Werte in src/data/difficulty.ts). */
   difficulty: Difficulty;
   /**
@@ -117,6 +123,9 @@ const MIGRATIONS: Record<number, (old: Plain) => Plain> = {
   // Format 5 → 6 (Schritt 11c): Neu ist das Jagdbuch (Zähler je Gegnertyp, Siege je Boss).
   // Bisher wurde nicht mitgezählt – alte Spielstände beginnen bei 0. Das füllt normalize() unten.
   5: (old) => ({ ...old, version: 6 }),
+  // Format 6 → 7 (Meilenstein 12): Neu sind die Quests (Start: nichts angenommen, das
+  // Kopfgeld-Brett würfelt beim ersten Laden frische Kopfgelder). Das füllt normalize() unten.
+  6: (old) => ({ ...old, version: 7 }),
 };
 
 /** Ein frischer Spielstand: Stufe 1, leeres Inventar, am Startpunkt. */
@@ -142,6 +151,7 @@ export function newSave(name: string): SaveGame {
     stash: [],
     bossKills: {},
     bestiary: { kills: {}, bosses: {} },
+    quests: emptyQuestData(),
     difficulty: { ...DEFAULT_DIFFICULTY },
     respawnAt: {},
     chests: {},
@@ -159,6 +169,10 @@ export function testSave(def: TestSaveDef): SaveGame {
   for (const boss of def.bossKills ?? []) save.bossKills[boss] = 1;
   // Jagdbuch der Vorlage: Zähler je Gegnertyp und Siege je Boss.
   save.bestiary = { kills: { ...def.bestiary?.kills }, bosses: { ...def.bestiary?.bosses } };
+  // Quests der Vorlage: Stand einzelner Quests (was fehlt, gilt als nicht angenommen).
+  for (const [key, state] of Object.entries(def.quests ?? {})) {
+    save.quests.quests[key] = { progress: state.progress ?? 0, done: state.done ?? false, tracked: true, taken: state.taken ?? [] };
+  }
   for (const slot of EQUIP_SLOTS) {
     const rarity = def.equipped[slot.id];
     if (rarity) save.equipped[slot.id] = generateItem(save.character.level, rarity, slot.accepts);
@@ -275,6 +289,7 @@ function normalize(data: Plain): SaveGame {
 
   const respawnAt = cleanTimes(data.respawnAt);
   const chests = cleanTimes(data.chests);
+  const quests = cleanQuests(data.quests);
 
   return {
     app: APP_ID,
@@ -301,10 +316,60 @@ function normalize(data: Plain): SaveGame {
     stash,
     bossKills,
     bestiary,
+    quests,
     difficulty,
     respawnAt,
     chests,
   };
+}
+
+/**
+ * Quests: Fehlen sie (alter Spielstand), ist nichts angenommen und das Brett leer.
+ * Quests, die es nicht mehr gibt, fallen weg; ein Kopfgeld auf ein Ziel, das es nicht mehr gibt, ebenso.
+ */
+function cleanQuests(raw: unknown): QuestData {
+  const data = emptyQuestData();
+  if (!isPlain(raw)) return data;
+  const stored = isPlain(raw.quests) ? raw.quests : {};
+  for (const [key, def] of Object.entries(QUESTS)) {
+    const state = stored[key];
+    if (!isPlain(state)) continue;
+    data.quests[key] = {
+      progress: clampInt(state.progress, 0, goalNeeded(def.goal), 0),
+      done: state.done === true,
+      tracked: state.tracked !== false,
+      taken: Array.isArray(state.taken) ? (state.taken as unknown[]).filter((name): name is string => typeof name === 'string') : [],
+    };
+  }
+
+  const board = isPlain(raw.board) ? raw.board : {};
+  data.board.rotateAt = isNumber(board.rotateAt) ? board.rotateAt : 0;
+  for (const entry of Array.isArray(board.slots) ? (board.slots as unknown[]).slice(0, BOUNTY_SLOTS_MAX) : []) {
+    const goal = isPlain(entry) ? cleanBountyGoal(entry.goal) : null;
+    const reward = isPlain(entry) && isPlain(entry.reward) ? entry.reward : null;
+    if (!isPlain(entry) || !goal || !reward) continue;
+    const status: BountyData['status'] = entry.status === 'active' || entry.status === 'done' ? entry.status : 'offered';
+    data.board.slots.push({
+      // Die Nummern werden beim Laden neu vergeben – so bleiben sie eindeutig.
+      id: data.board.nextId++,
+      goal,
+      level: clampInt(entry.level, 1, 999, 1),
+      reward: { xp: clampInt(reward.xp, 0, Number.MAX_SAFE_INTEGER, 0), gold: clampInt(reward.gold, 0, Number.MAX_SAFE_INTEGER, 0) },
+      status,
+      progress: clampInt(entry.progress, 0, goalNeeded(goal), 0),
+      tracked: entry.tracked !== false,
+    });
+  }
+  return data;
+}
+
+/** Das Ziel eines Kopfgelds: Töten, Elite oder Boss – und nur, wenn es den Gegner noch gibt. */
+function cleanBountyGoal(raw: unknown): QuestGoal | null {
+  if (!isPlain(raw)) return null;
+  if (raw.type === 'kill' && typeof raw.enemy === 'string' && raw.enemy in ENEMIES) return { type: 'kill', enemy: raw.enemy, count: clampInt(raw.count, 1, 9999, 1) };
+  if (raw.type === 'boss' && typeof raw.enemy === 'string' && raw.enemy in ENEMIES) return { type: 'boss', enemy: raw.enemy };
+  if (raw.type === 'elite' && typeof raw.elite === 'string' && raw.elite in NAMED_ELITES) return { type: 'elite', elite: raw.elite };
+  return null;
 }
 
 /** Liest eine Liste "Schlüssel → Zahl" (Zeitpunkte, Zähler); alles, was keine Zahl ist, fällt weg. */

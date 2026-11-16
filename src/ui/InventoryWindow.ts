@@ -6,6 +6,7 @@ import { rarityById, type Item } from '../items/generator';
 import type { Inventory } from '../items/Inventory';
 import type { Shop } from '../items/Shop';
 import type { Stash } from '../items/Stash';
+import { bindTip } from './tip';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
 import type { ItemTooltip } from './ItemTooltip';
@@ -284,15 +285,19 @@ export class InventoryWindow {
       event.preventDefault(); // kein Browser-Menü
       this.onRightClick(cell);
     });
-    box.addEventListener('mouseenter', () => {
-      this.hovered = cell;
-      this.showTooltip();
-    });
-    box.addEventListener('mouseleave', () => {
-      this.clearConfirm();
-      if (this.hovered === cell) this.hovered = null;
-      this.tooltip.hide();
-    });
+    // Tooltip: mit der Maus beim Überfahren, mit dem Finger nach dem Antippen (src/ui/tip.ts).
+    bindTip(
+      box,
+      () => {
+        this.hovered = cell;
+        this.showTooltip();
+      },
+      () => {
+        this.clearConfirm();
+        if (this.hovered === cell) this.hovered = null;
+        this.tooltip.hide();
+      },
+    );
     parent.appendChild(box);
     this.cells.push(cell);
   }

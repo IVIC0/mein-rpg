@@ -25,17 +25,21 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/shop.ts` – Händler: Preisformel, Sortiment (Größe, Seltenheiten, Lieferzeit), Rückkauf (Größe der Liste), Heiltrank
      (jeweils die Werte ohne Dorfausbau)
    - `src/data/town.ts` – Dorfausbau: Gebäude, Kosten, was jede Stufe bringt (Kontor, Alchemistin, Gasthaus,
-     Lagerhaus), welcher Boss welche Rathaus-Stufe freischaltet, Baumeister, Lagertruhe, Fahnenfarben
+     Lagerhaus; Rathaus: Anzahl der Kopfgelder), welcher Boss welche Rathaus-Stufe freischaltet, Baumeister, Lagertruhe, Fahnenfarben
    - `src/data/bestiary.ts` – Jagdbuch: Ränge je Gegnertyp (Schwellen, Boni), Elite-Gewicht, ab wann schwache
      Gegner weniger zählen (`TRIVIAL_KILLS`), Stufen der
      Sammelseiten (Leben, Angriffskraft), welche Typen und Bosse auf welcher Seite stehen
+   - `src/data/quests.ts` – Quests: je Quest Auftraggeber, Stufe, Ziel (fünf Arten) und Belohnung; Kopfgeld-Brett
+     (Wechselzeit, Belohnungsformel, Auswahl `BOUNTY_POOL`); Quest-Zähler und Farbe der Karten-Ringe (`QUEST_UI`)
+   - `src/data/npcs.ts` – Questgeber (Name, Bild), Kopfgeld-Brett, Gesprächs-Reichweite
    - `src/data/difficulty.ts` – Schwierigkeit: Grenzen der Regler, die vier Knöpfe, Belohnung (EP und Gold)
    - `src/data/minimap.ts` – Minimap: Größe, Ausschnitt, Farben der Punkte
    - `src/data/worldmap.ts` – große Karte: Größe, Zielmarker, Schrift der Ortsnamen (die Farben der Punkte kommen aus `minimap.ts`)
    - `src/data/save.ts` – Speichern: Format-Nummer, Anzahl Slots, Auto-Save-Abstände, Namenslänge
    - `src/data/testSaves.ts` – Vorlagen für Test-Spielstände
    - `tools/zones/<zone>.mjs` – Bauplan je Zone: Lichtungen (mit `label` = Ortsname auf der großen Karte), Wege, Bauten, besondere Orte (`pois`:
-     Händler, Baumeister, Lagertruhe, Fahnen der Gebäude, Truhen mit Itemlevel, Übergänge, feste Elite-Plätze) und welche Gegner mit welcher
+     Händler, Baumeister, Lagertruhe, Fahnen der Gebäude, Truhen mit Itemlevel, Übergänge, feste Elite-Plätze,
+     Questgeber `npc`, `kopfgeldbrett`, Quest-Kisten `questkiste`) und welche Gegner mit welcher
      Stufe wo stehen (`enemyGroups`); nach Änderungen `npm run assets`
 
    Neue Werte kommen in die passende Datei oder in eine neue Datei unter `src/data/`.
@@ -50,7 +54,7 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
      Umschalt+Klick oder Hover gehen (Tasten und Tooltips sind als Zusatz in Ordnung).
    - Neue Fenster und HUD-Elemente passen sich an kleine Bildschirme an (Handy im Querformat, rund
      570 × 320 Pixel) und laufen nicht über den Rand. Knöpfe groß genug zum Tippen (rund 30 Pixel).
-   - Vorbild ist die große Karte (`src/ui/WorldMap.ts`). Die älteren Fenster und das HUD halten die
+   - Vorbild sind die große Karte (`src/ui/WorldMap.ts`) und das Questfenster (`src/ui/QuestWindow.ts`). Die älteren Fenster und das HUD halten die
      Regel noch nicht ein – ihr Umbau ist ein eigener, späterer Meilenstein. Nicht nebenbei umbauen.
 6. **Effizient testen:** Build prüfen und ein kurzer Check reichen. Keine großen
    Testreihen und nicht viele Screenshots – das Spielgefühl testet der Nutzer selbst.
@@ -80,7 +84,7 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 - Sprache: Texte im Spiel, Kommentare und Doku auf Deutsch.
 - UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster, Minimap) ist HTML/CSS über dem Canvas:
   `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/BestiaryWindow.ts`, `src/ui/Nameplates.ts`,
-  `src/ui/Minimap.ts`, `src/ui/WorldMap.ts`.
+  `src/ui/Minimap.ts`, `src/ui/WorldMap.ts`, `src/ui/QuestWindow.ts`, `src/ui/QuestTracker.ts`.
 - Einstellungen des Spielers liegen in einem Objekt (`Settings` in `src/ui/settings.ts`, dort auch
   Standardwerte und Regler-Grenzen). Sie sind global (Browser), nicht Teil des Spielstands.
   Ausnahme: Die Schwierigkeit (`Difficulty` in `src/data/difficulty.ts`) steht im Spielstand (pro Slot); ihre Regler
@@ -110,6 +114,16 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
   `src/ui/BestiaryWindow.ts` (Taste `J`). Gezählt wird über `Combat.onKill`. Bilder und Fundorte
   holt `src/bestiary/fieldGuide.ts` aus den Karten; dort wird auch geprüft, dass jeder Gegnertyp
   einer Karte auf einer Seite steht – eine neue Zone braucht also einen Eintrag in `BESTIARY_PAGES`.
+- Quests: Regeln in `src/quests/QuestLog.ts` (annehmen, mitzählen, abgeben, Kopfgeld-Brett; `entries()` liefert
+  jede Quest fertig aufbereitet), Fenster in `src/ui/QuestWindow.ts` (Questlog mit Taste `L`, Gespräch mit einem
+  Questgeber, Kopfgeld-Brett), Zähler unter der Minimap in `src/ui/QuestTracker.ts`. Gezählt wird über
+  `Combat.onKill`; die Belohnung zahlt `payReward` in `src/scenes/WorldScene.ts` aus. Wo ein Ziel liegt, liest
+  `src/quests/questIndex.ts` aus den Karten (und prüft dabei `quests.ts`); daraus macht `questMarks` die Ringe
+  auf Minimap und großer Karte. Eine neue Quest ist ein Eintrag in `QUESTS` (plus NPC im Bauplan, falls neu) –
+  Code nur für eine neue Quest-Art (`QuestGoal`).
+- Tooltips hängen immer über `bindTip` (`src/ui/tip.ts`) an ihrem Element, nie über `:hover` oder
+  `mouseenter`: Mit der Maus zeigen sie sich beim Überfahren, am Handy nach dem Antippen – und verschwinden
+  dort von selbst (kurze Zeit oder Tippen woanders).
 - Name: Das Spiel heißt „Rogoi Offline" (`GAME_TITLE` in `src/config.ts`). Repo-Name, `name` in
   `package.json`, `base` in `vite.config.ts`, die Schlüssel im Browser-Speicher (`mein-rpg.…`) und
   das Kennzeichen `app: 'mein-rpg'` im Spielstand bleiben, wie sie sind – sonst bricht die

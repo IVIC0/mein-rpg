@@ -21,6 +21,9 @@ export const MINIMAP = {
   builderRadius: 3,
   stashColor: '#c9a06a',
   stashRadius: 2.5,
+  /** Questgeber und das Kopfgeld-Brett. Die Farbe der Quest-Ringe steht in src/data/quests.ts (QUEST_UI). */
+  npcColor: '#f6f1a8',
+  npcRadius: 3,
   /** Truhen: gefüllt gold-braun, leer grau. */
   chestColor: '#e89a2e',
   chestEmptyColor: '#77705f',

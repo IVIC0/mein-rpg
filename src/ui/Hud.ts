@@ -2,6 +2,7 @@ import { RANKS, traitName } from '../data/elites';
 import { isTrivial } from '../data/progression';
 import { POTION } from '../data/shop';
 import { WARRIOR, type SkillDef, type SkillId } from '../data/warrior';
+import { bindTip } from './tip';
 import { byId, iconPosition } from './dom';
 import { describeEffect, describeTrigger } from './skillText';
 import type { Enemy } from '../entities/Enemy';
@@ -95,6 +96,7 @@ export class Hud {
           <em>Verfügbar ab Stufe ${skill.unlockLevel}.</em>
         </span>`;
       bar.appendChild(box);
+      bindSkillTip(box);
       this.slots.push({
         skill,
         box,
@@ -121,6 +123,7 @@ export class Hud {
         Gibt es beim Händler im Dorf.
       </span>`;
     bar.appendChild(box);
+    bindSkillTip(box);
     // Klick auf das Feld trinkt den Trank. Im Bearbeitungsmodus wird die Leiste gezogen – dann nicht.
     box.addEventListener('click', () => {
       if (!this.editing) this.onPotionClick();
@@ -282,6 +285,18 @@ export class Hud {
     if (goldLost > 0) losses.push(`${goldLost} Gold`);
     this.deathLoss.textContent = losses.length > 0 ? `Du verlierst ${losses.join(' und ')}.` : '';
   }
+}
+
+/**
+ * Tooltip eines Feldes der Skill-Leiste: Die Klasse "tip-open" blendet ihn ein (hud.css).
+ * Mit der Maus beim Überfahren, mit dem Finger nach dem Antippen – dann verschwindet er von selbst.
+ */
+function bindSkillTip(box: HTMLElement): void {
+  bindTip(
+    box,
+    () => box.classList.add('tip-open'),
+    () => box.classList.remove('tip-open'),
+  );
 }
 
 // Die Helfer schreiben nur, wenn sich der Wert geändert hat – das spart dem Browser Arbeit.

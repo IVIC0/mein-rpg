@@ -11,6 +11,7 @@ export const HUD_ITEMS = [
   { id: 'skillbar', elementId: 'skillbar', label: 'Skill-Leiste' },
   { id: 'loot', elementId: 'loot-log', label: 'Beute-Liste' },
   { id: 'minimap', elementId: 'minimap', label: 'Minimap' },
+  { id: 'quests', elementId: 'quest-tracker', label: 'Quest-Zähler' },
 ] as const;
 
 export type HudItemId = (typeof HUD_ITEMS)[number]['id'];
@@ -63,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
     skillbar: { ...HUD_ITEM_DEFAULT },
     loot: { ...HUD_ITEM_DEFAULT },
     minimap: { ...HUD_ITEM_DEFAULT },
+    quests: { ...HUD_ITEM_DEFAULT },
   },
   playerPlate: { ...PLATE_DEFAULT },
   enemyPlates: { ...PLATE_DEFAULT, showAll: true },

@@ -8,6 +8,8 @@ import { NAMED_ELITES, NAMED_ELITE_RESPAWN_MS } from '../data/elites';
 import { ENEMIES } from '../data/enemies';
 import { RARITIES } from '../data/items';
 import { MINIMAP } from '../data/minimap';
+import { BOUNTY_BOARD, NPCS, NPC_TALK } from '../data/npcs';
+import { QUEST_UI } from '../data/quests';
 import { WORLD_MAP } from '../data/worldmap';
 import { CHEST, PORTAL } from '../data/pois';
 import { AUTOSAVE_INTERVAL_MS, SAVE_DELAY_MS } from '../data/save';
@@ -21,11 +23,14 @@ import { Enemy } from '../entities/Enemy';
 import { Fixture } from '../entities/Fixture';
 import { Player } from '../entities/Player';
 import { Portal } from '../entities/Portal';
-import { generateItem, rollRarityFrom } from '../items/generator';
+import { QuestCrate } from '../entities/QuestCrate';
+import { generateItem, rarityById, rollRarityFrom } from '../items/generator';
 import { GroundLoot } from '../items/GroundLoot';
 import { Inventory } from '../items/Inventory';
 import { Shop } from '../items/Shop';
 import { Stash } from '../items/Stash';
+import { QuestLog, type QuestEntry } from '../quests/QuestLog';
+import { QuestIndex } from '../quests/questIndex';
 import { cleanName, type SaveGame } from '../save/saveGame';
 import { readTestParams, session, writeSlot } from '../save/slots';
 import { Town } from '../town/Town';
@@ -37,6 +42,8 @@ import { InventoryWindow } from '../ui/InventoryWindow';
 import { ItemTooltip } from '../ui/ItemTooltip';
 import { Minimap, type MinimapMark } from '../ui/Minimap';
 import { Nameplates } from '../ui/Nameplates';
+import { QuestTracker } from '../ui/QuestTracker';
+import { QuestWindow } from '../ui/QuestWindow';
 import { SaveMenu } from '../ui/SaveMenu';
 import { SettingsMenu } from '../ui/SettingsMenu';
 import { ShopWindow } from '../ui/ShopWindow';
@@ -55,7 +62,7 @@ const BESTIARY_MESSAGE_COLOR = '#ffd34d';
 const MAX_FRAME_MS = 100;
 
 /** POI-Arten, auf deren Kachel etwas Festes steht – sie ist ein Hindernis (wie SOLID_POIS in tools/build-map.mjs). */
-const SOLID_POIS = ['haendler', 'truhe', 'baumeister', 'lagertruhe'];
+const SOLID_POIS = ['haendler', 'truhe', 'baumeister', 'lagertruhe', 'npc', 'kopfgeldbrett'];
 
 /**
  * Die Spielwelt: Karte, Spielfigur, Gegner, Kamera und Steuerung.
@@ -81,6 +88,10 @@ const SOLID_POIS = ['haendler', 'truhe', 'baumeister', 'lagertruhe'];
  * M oder der Karten-Knopf öffnet die große Karte der Zone (src/ui/WorldMap.ts). Ein Klick darauf
  * startet den Automatiklauf: Die Figur läuft mit Wegfindung dorthin (autoWalkTo), bis sie ankommt
  * oder ein Klick in die Welt etwas anderes befiehlt.
+ *
+ * Quests (src/quests/QuestLog.ts): Klick auf einen Questgeber oder das Kopfgeld-Brett öffnet das
+ * Questfenster, L das Questlog. Laufende Quests stehen im Zähler unter der Minimap; ihre Ziele
+ * sind auf Minimap und großer Karte mit einem Ring markiert (questMarks).
  *
  * Skills lösen von selbst aus (siehe Combat). I oder C öffnet Charakter & Inventar, J das Jagdbuch.
  * Esc schließt das Fenster (wenn es nicht angepinnt ist) bzw. hebt die Zielauswahl auf.
@@ -112,6 +123,15 @@ export class WorldScene extends Phaser.Scene {
   /** Das Jagdbuch (besiegte Gegner je Typ, Ränge, Boni) – steht im Spielstand. */
   private bestiary!: Bestiary;
   private bestiaryWindow!: BestiaryWindow;
+  /** Quests und Kopfgelder (Stand im Spielstand), ihr Fenster und der Zähler unter der Minimap. */
+  private quests!: QuestLog;
+  private questIndex!: QuestIndex;
+  private questWindow!: QuestWindow;
+  private questTracker!: QuestTracker;
+  /** Die laufenden Quests – gemerkt, damit sie nicht jeden Frame neu zusammengestellt werden (onQuestChange). */
+  private runningQuests: QuestEntry[] = [];
+  /** Stufe der Figur beim letzten Frame: Steigt sie, können neue Quests frei werden. */
+  private lastLevel = 0;
   private minimap!: Minimap;
   private worldMap!: WorldMap;
   /** Ziel des Automatiklaufs (Klick auf die große Karte) in Welt-Pixeln; null = es läuft keiner. */
@@ -130,6 +150,13 @@ export class WorldScene extends Phaser.Scene {
   private flags: { building: BuildingId; image: Phaser.GameObjects.Image; label: HTMLElement | null }[] = [];
   private chests: Chest[] = [];
   private portals: Portal[] = [];
+  /**
+   * Questgeber und Kopfgeld-Brett der Zone (Schlüssel = NPC bzw. BOUNTY_BOARD.id).
+   * `sign` = Zeichen über dem Kopf: "!" hat eine Quest, "?" Quest abgeben, leer = nichts.
+   */
+  private readonly givers = new Map<string, { fixture: Fixture; name: string; closeRange: number; label: HTMLElement | null; sign: string }>();
+  /** Kisten für Sammel-Quests – zu sehen nur, solange ihre Quest läuft. */
+  private crates: QuestCrate[] = [];
   /** Alles Anklickbare der Zone: Händler, Truhen, Übergänge. */
   private interactables: Interactable[] = [];
   /** Die Schilder der Orte dieser Zone (sammelt buildPoi, zeigt enterZone an). */
@@ -266,8 +293,23 @@ export class WorldScene extends Phaser.Scene {
     this.combat.onKill = (enemy) => {
       if (enemy.rank === 'boss') this.town.recordBossKill(enemy.type);
       this.bestiary.record(enemy, this.player.level);
+      this.quests.recordKill(enemy);
     };
     this.combat.respawnPoint = () => this.respawnPoint();
+
+    // Quests: Regeln, Fenster und Zähler. Das Verzeichnis liest aus den Karten, wo die Ziele liegen
+    // (und prüft dabei src/data/quests.ts). Meldungen stehen in der Beute-Liste.
+    this.questIndex = new QuestIndex(this);
+    this.quests = new QuestLog(this.town, () => this.player.level);
+    this.questWindow = new QuestWindow(this.quests, () => this.closeSideWindows());
+    this.questTracker = new QuestTracker();
+    this.questTracker.onOpen = () => {
+      if (!this.hudLayout.editing) this.questWindow.open(null);
+    };
+    this.quests.onChange = () => this.onQuestChange();
+    this.quests.onMessage = (text) => hud.logLine(text, QUEST_UI.markColor);
+    this.quests.onCollect = (text) => this.floaters.spawn(this.player.pos.x, this.player.pos.y - 26, text, 'loot', QUEST_UI.markColor);
+    this.quests.onReward = (entry) => this.payReward(entry);
 
     this.applySave(save);
     this.showName(save.name);
@@ -321,12 +363,14 @@ export class WorldScene extends Phaser.Scene {
       else if (this.townWindow.isOpen) this.townWindow.close();
       else if (this.stashWindow.isOpen) this.stashWindow.close();
       else if (this.bestiaryWindow.isOpen) this.bestiaryWindow.close();
+      else if (this.questWindow.isOpen) this.questWindow.close();
       else if (this.inventoryWindow.isOpen && !this.inventoryWindow.pinned) this.inventoryWindow.close();
       else this.combat.clearTarget();
     });
     this.input.keyboard?.on('keydown-I', () => this.inventoryWindow.toggle());
     this.input.keyboard?.on('keydown-C', () => this.inventoryWindow.toggle());
     this.input.keyboard?.on('keydown-J', () => this.bestiaryWindow.toggle());
+    this.input.keyboard?.on('keydown-L', () => this.questWindow.toggleLog());
     this.input.keyboard?.on('keydown-M', () => this.worldMap.toggle());
     this.input.keyboard?.on('keydown-Q', () => this.drinkPotion());
 
@@ -365,6 +409,13 @@ export class WorldScene extends Phaser.Scene {
     }
     // Automatiklauf: Ist der Weg zu Ende (angekommen) oder die Figur gestorben, verschwindet der Zielmarker.
     if (this.autoGoal && (!this.player.alive || !this.player.hasPath)) this.endAutoWalk();
+    // Quests: Kopfgeld-Brett aktuell halten, Erkunden-Ziele prüfen; nach einem Stufenaufstieg können neue Quests frei sein.
+    this.quests.tick();
+    this.checkExplore();
+    if (this.player.level !== this.lastLevel) {
+      this.lastLevel = this.player.level;
+      this.onQuestChange();
+    }
     // Steht die Figur auf einem Übergang, wechselt hier die Zone.
     this.checkPortals();
     this.followPlayer();
@@ -441,6 +492,9 @@ export class WorldScene extends Phaser.Scene {
       flag.label.classList.add('nameplate-building');
     }
     this.refreshFlags();
+    // Questgeber und Kopfgeld-Brett: Ihr Schild bekommt bei Bedarf ein "!" oder "?" (refreshQuestWorld).
+    for (const giver of this.givers.values()) giver.label = this.nameplates.addLabel(giver.fixture.pos.x, giver.fixture.pos.y, giver.name);
+    this.refreshQuestWorld();
 
     // Ein besiegter Boss (oder eine benannte Elite) bleibt weg, bis seine Zeit um ist. Die Uhr lief weiter, während das Spiel zu war.
     for (const [key, enemy] of this.timedEnemies) {
@@ -527,6 +581,25 @@ export class WorldScene extends Phaser.Scene {
         // Das Schild sitzt über dem Eingang, also eine Kachel über der Stelle, die man betritt.
         this.labels.push({ x, y: y - TILE, text: textProperty(poi, 'label') || ZONES[portal.to].name });
       },
+      npc: () => {
+        // Questgeber: Der Name des Punkts ist der Schlüssel in NPCS. Ein Klick öffnet seine Quests.
+        const def = NPCS[poi.name];
+        if (!def) throw new Error(`NPC "${poi.name}" fehlt in src/data/npcs.ts.`);
+        const fixture = new Fixture(this, x, y, def.sprite, NPC_TALK.openRange, () => this.questWindow.open(poi.name));
+        this.interactables.push(fixture);
+        this.givers.set(poi.name, { fixture, name: def.name, closeRange: NPC_TALK.closeRange, label: null, sign: '' });
+      },
+      kopfgeldbrett: () => {
+        const fixture = new Fixture(this, x, y, BOUNTY_BOARD.sprite, BOUNTY_BOARD.openRange, () => this.questWindow.open(BOUNTY_BOARD.id));
+        this.interactables.push(fixture);
+        this.givers.set(BOUNTY_BOARD.id, { fixture, name: BOUNTY_BOARD.name, closeRange: BOUNTY_BOARD.closeRange, label: null, sign: '' });
+      },
+      questkiste: () => {
+        // Kiste einer Sammel-Quest (`quest` = ihr Schlüssel). Ob sie zu sehen ist, regelt refreshQuestWorld.
+        const crate = new QuestCrate(this, poi.name, textProperty(poi, 'quest'), x, y, (taken) => this.quests.takeCrate(taken.quest, taken.name));
+        this.crates.push(crate);
+        this.interactables.push(crate);
+      },
       elite: () => {
         // Fester Elite-Platz: Der Name des Punkts ist der Schlüssel in NAMED_ELITES.
         const named = NAMED_ELITES[poi.name];
@@ -551,6 +624,10 @@ export class WorldScene extends Phaser.Scene {
     this.shopWindow.close();
     this.townWindow.close();
     this.stashWindow.close();
+    // Das Questlog darf offen bleiben – das Gespräch mit einem Questgeber nicht.
+    if (this.questWindow.giver !== null) this.questWindow.close();
+    this.givers.clear();
+    this.crates = [];
     for (const enemy of this.enemies) enemy.destroy();
     for (const thing of this.interactables) thing.destroy();
     for (const flag of this.flags) flag.image.destroy();
@@ -600,7 +677,117 @@ export class WorldScene extends Phaser.Scene {
     if (this.stashChest) marks.push({ pos: this.stashChest.pos, color: MINIMAP.stashColor, radius: MINIMAP.stashRadius });
     for (const chest of this.chests) marks.push({ pos: chest.pos, color: chest.full ? MINIMAP.chestColor : MINIMAP.chestEmptyColor, radius: MINIMAP.chestRadius });
     for (const portal of this.portals) marks.push({ pos: portal.pos, color: MINIMAP.portalColor, radius: MINIMAP.portalRadius });
+    for (const giver of this.givers.values()) marks.push({ pos: giver.fixture.pos, color: MINIMAP.npcColor, radius: MINIMAP.npcRadius });
+    // Die Ringe der Quests zuletzt, damit sie über den Punkten liegen.
+    marks.push(...this.questMarks());
     return marks;
+  }
+
+  // ---------------------------------------------------------------- Quests
+
+  /**
+   * Die Ringe der Quests für Minimap und große Karte:
+   * - um jeden Questgeber, der eine neue Quest hat,
+   * - um das Ziel jeder laufenden Quest (Gegner des Typs, Boss-Platz, Ort, Kisten),
+   * - um den Auftraggeber, wenn das Ziel erreicht ist,
+   * - liegt das Ziel in einer anderen Zone: um den Übergang, der dorthin führt.
+   * Auf der Minimap bleibt je Quest ein Ring am Rand stehen, wenn das Ziel außerhalb liegt (`clamp`).
+   */
+  private questMarks(): MinimapMark[] {
+    const marks: MinimapMark[] = [];
+    const ring = (pos: Point, clamp: boolean) => marks.push({ pos, color: QUEST_UI.markColor, radius: QUEST_UI.markRadius, ring: true, clamp });
+    // Mehrere Ziele (z. B. alle Ratten): Ringe um alle, am Rand der Minimap bleibt nur das nächste stehen.
+    const ringAll = (points: Point[]) => {
+      let nearest: Point | null = null;
+      for (const point of points) if (!nearest || this.player.distanceTo(point) < this.player.distanceTo(nearest)) nearest = point;
+      for (const point of points) ring(point, point === nearest);
+    };
+    // Ring um die Übergänge, die in Richtung einer der Zonen `zones` führen.
+    const towards = (zones: string[]) => {
+      const next = this.questIndex.nextZoneToward(this.zoneId, zones);
+      ringAll(this.portals.filter((portal) => portal.to === next).map((portal) => portal.pos));
+    };
+
+    for (const giver of this.givers.values()) if (giver.sign === '!') ring(giver.fixture.pos, false);
+    for (const entry of this.runningQuests) {
+      if (!entry.tracked) continue;
+      if (entry.status === 'ready') {
+        const giver = this.givers.get(entry.giver);
+        if (giver) ring(giver.fixture.pos, true);
+        else towards(this.questIndex.zonesOfGiver(entry.giver));
+        continue;
+      }
+      const goal = entry.goal;
+      const zones = this.questIndex.zonesOfGoal(entry.key, goal);
+      if (!zones.includes(this.zoneId)) towards(zones);
+      else if (goal.type === 'explore') {
+        const at = this.markers.get(goal.marker);
+        if (at) ring(at, true);
+      } else if (goal.type === 'elite' || goal.type === 'boss') {
+        // Boss oder feste Elite: der Platz, an dem der Gegner steht (auch solange er gerade besiegt ist).
+        const id = goal.type === 'elite' ? goal.elite : goal.enemy;
+        ringAll(this.enemies.filter((enemy) => enemy.def.rank === 'boss' ? enemy.type === id : enemy.bossId === id).map((enemy) => enemy.home));
+      } else if (goal.type === 'collect' && !goal.enemy) {
+        ringAll(this.crates.filter((crate) => crate.visible && crate.quest === entry.key).map((crate) => crate.pos));
+      } else {
+        // Töten oder Sammeln von Gegnern: alle lebenden Gegner des Typs in dieser Zone.
+        ringAll(this.enemies.filter((enemy) => enemy.type === goal.enemy && enemy.state !== 'dead' && enemy.def.rank !== 'boss').map((enemy) => enemy.pos));
+      }
+    }
+    return marks;
+  }
+
+  /** Bei den Quests hat sich etwas getan: Fenster, Zähler, Kisten und Zeichen über den NPCs auffrischen, speichern. */
+  private onQuestChange(): void {
+    this.runningQuests = this.quests.running();
+    this.questWindow.render();
+    this.questTracker.render(this.runningQuests);
+    this.refreshQuestWorld();
+    this.requestSave();
+  }
+
+  /** Zeigt in der Welt, was die Quests gerade brauchen: Kisten laufender Sammel-Quests und "!" / "?" über den Questgebern. */
+  private refreshQuestWorld(): void {
+    const entries = this.quests.entries();
+    for (const crate of this.crates) {
+      const entry = entries.find((candidate) => candidate.key === crate.quest);
+      crate.setVisible(entry?.status === 'active' && !entry.taken.includes(crate.name));
+    }
+    for (const [key, giver] of this.givers) {
+      const own = entries.filter((entry) => entry.giver === key);
+      giver.sign = own.some((entry) => entry.status === 'ready') ? '?' : own.some((entry) => entry.status === 'available') ? '!' : '';
+      if (!giver.label) continue;
+      const sign = giver.sign ? `<b class="quest-sign${giver.sign === '?' ? ' ready' : ''}">${giver.sign}</b>` : '';
+      giver.label.innerHTML = sign + giver.name;
+    }
+  }
+
+  /** Erkunden-Quests: Steht die Figur nah genug am gesuchten Ort dieser Zone, ist das Ziel erreicht. */
+  private checkExplore(): void {
+    if (!this.player.alive) return;
+    for (const entry of this.runningQuests) {
+      const goal = entry.goal;
+      if (entry.status !== 'active' || goal.type !== 'explore' || goal.zone !== this.zoneId) continue;
+      const at = this.markers.get(goal.marker);
+      if (at && this.player.distanceTo(at) <= goal.radius * TILE) this.quests.reach(entry.key);
+    }
+  }
+
+  /** Zahlt die Belohnung einer abgegebenen Quest aus: Gold, EP und – bei Elite- und Boss-Quests – ein Item. */
+  private payReward(entry: QuestEntry): void {
+    const { xp, gold, item } = entry.reward;
+    const parts = [`+${xp} EP`, `+${gold} Gold`];
+    this.inventory.addGold(gold);
+    this.floaters.spawn(this.player.pos.x, this.player.pos.y - 8, `+${gold} Gold`, 'gold');
+    if (item) {
+      const reward = generateItem(entry.level, item);
+      parts.push(reward.name);
+      // Ist das Inventar voll, liegt das Item vor den Füßen der Figur.
+      if (this.inventory.add(reward)) this.hud.logLoot(reward.name, rarityById(item).color);
+      else this.loot.dropItem(reward, this.player.pos.x, this.player.pos.y);
+    }
+    this.hud.logLine(`Quest abgeschlossen: ${entry.name} (${parts.join(', ')})`, QUEST_UI.markColor);
+    this.combat.giveXp(xp);
   }
 
   /** Schreibt die laufenden Zeiten der aktuellen Zone (Bosse, benannte Elites, Truhen) in die Listen für den Spielstand. */
@@ -629,8 +816,9 @@ export class WorldScene extends Phaser.Scene {
     else this.hud.flash(`Die Lagertruhe ist verschlossen – baue beim ${BUILDER.name} das ${BUILDINGS.lagerhaus.name}`);
   }
 
-  /** Schließt alle Fenster, die links im Bild sitzen: Händler, Dorfausbau, Lagertruhe und Jagdbuch. */
+  /** Schließt alle Fenster, die links im Bild sitzen: Händler, Dorfausbau, Lagertruhe, Jagdbuch und Quests. */
   private closeSideWindows(): void {
+    this.questWindow.close();
     this.shopWindow.close();
     this.townWindow.close();
     this.stashWindow.close();
@@ -693,6 +881,10 @@ export class WorldScene extends Phaser.Scene {
     if (this.shopWindow.isOpen && gone(this.merchant, MERCHANT.closeRange)) this.shopWindow.close();
     if (this.townWindow.isOpen && gone(this.builder, BUILDER.closeRange)) this.townWindow.close();
     if (this.stashWindow.isOpen && gone(this.stashChest, STASH_CHEST.closeRange)) this.stashWindow.close();
+    // Dasselbe beim Gespräch mit einem Questgeber und am Kopfgeld-Brett (das Questlog bleibt offen).
+    const talkingTo = this.questWindow.giver !== null ? this.givers.get(this.questWindow.giver) : undefined;
+    if (this.questWindow.giver !== null && gone(talkingTo?.fixture ?? null, talkingTo?.closeRange ?? 0)) this.questWindow.close();
+    this.questWindow.update();
     this.shopWindow.update();
     for (const chest of this.chests) chest.update();
   }
@@ -739,7 +931,7 @@ export class WorldScene extends Phaser.Scene {
 
   /**
    * Übernimmt einen Spielstand: Inventar, Ausrüstung, Gold, Tränke, Stufe, EP, Leben, Händler,
-   * Dorfausbau, Lagertruhe, Jagdbuch, Items am Boden und die Zeiten von Bossen und Truhen. Die Schwierigkeit übernimmt create
+   * Dorfausbau, Lagertruhe, Jagdbuch, Quests, Items am Boden und die Zeiten von Bossen und Truhen. Die Schwierigkeit übernimmt create
    * schon vorher, Zone und Position danach (enterZone).
    */
   private applySave(save: SaveGame): void {
@@ -757,6 +949,8 @@ export class WorldScene extends Phaser.Scene {
     // Das Jagdbuch vor Stufe und Leben: Seine Sammelseiten erhöhen das maximale Leben.
     this.bestiary.load(save.bestiary);
     this.player.restore(save.character.level, save.character.xp, save.character.hp);
+    // Die Quests zuletzt: Was frei ist, hängt an der Stufe der Figur, die Zahl der Kopfgelder am Rathaus.
+    this.quests.load(save.quests);
   }
 
   /** Der aktuelle Stand des Spiels als Spielstand. */
@@ -784,6 +978,7 @@ export class WorldScene extends Phaser.Scene {
       stash: this.stash.toData(),
       bossKills: { ...this.town.bossKills },
       bestiary: this.bestiary.toData(),
+      quests: this.quests.toData(),
       difficulty: { ...this.difficulty },
       respawnAt: stillRunning(this.respawnAt),
       chests: stillRunning(this.chestRefillAt),

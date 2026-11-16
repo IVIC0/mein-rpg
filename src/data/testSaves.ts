@@ -25,6 +25,8 @@ export interface TestSaveDef {
   bossKills?: string[];
   /** Jagdbuch: besiegte Gegner je Typ und Siege je Boss (src/data/bestiary.ts). Ohne Angabe: leer. */
   bestiary?: { kills?: Record<string, number>; bosses?: Record<string, number> };
+  /** Quests: Stand einzelner Quests (Schlüssel aus src/data/quests.ts). Ohne Angabe: nichts angenommen. */
+  quests?: Record<string, { progress?: number; done?: boolean; taken?: string[] }>;
 }
 
 export const TEST_SAVES: TestSaveDef[] = [
@@ -76,6 +78,24 @@ export const TEST_SAVES: TestSaveDef[] = [
     equipped: { weapon: 'rare', shield: 'uncommon', helmet: 'uncommon', chest: 'rare', gloves: 'uncommon', boots: 'uncommon' },
     bag: ['common', 'uncommon', 'uncommon', 'rare', 'epic'],
     bossKills: ['raeuberhauptmann'],
+  },
+  {
+    // Zum Ausprobieren der Quests: eine ist abgegeben, eine wartet aufs Abgeben, drei laufen
+    // (der Seide fehlt ein Strang, dem Diebesgut eine Kiste), der Räuberhauptmann ist noch gesperrt.
+    label: 'Stufe 6 – Quests',
+    name: 'Test Quests',
+    level: 6,
+    gold: 300,
+    potions: 6,
+    equipped: { weapon: 'rare', shield: 'uncommon', helmet: 'uncommon', chest: 'uncommon', gloves: 'common', boots: 'uncommon' },
+    bag: ['common', 'uncommon'],
+    quests: {
+      rattenplage: { progress: 10 },
+      spinnenseide: { progress: 7 },
+      'in-die-hoehle': { done: true, progress: 1 },
+      brutmutter: {},
+      'goblin-diebesgut': { progress: 4, taken: ['kiste-1', 'kiste-2', 'kiste-3', 'kiste-4'] },
+    },
   },
   {
     // Zum Ausprobieren des Jagdbuchs: Jeder Rang kommt vor, Ratte, Wolf und Fledermaus stehen

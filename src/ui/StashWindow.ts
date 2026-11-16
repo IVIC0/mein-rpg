@@ -1,6 +1,7 @@
 import { STASH_MAX } from '../data/town';
 import { rarityById } from '../items/generator';
 import type { Stash } from '../items/Stash';
+import { bindTip } from './tip';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
 import type { InventoryWindow } from './InventoryWindow';
@@ -37,14 +38,17 @@ export class StashWindow {
       box.addEventListener('click', () => {
         if (!this.stash.take(index)) this.hud.flash('Inventar voll');
       });
-      box.addEventListener('mouseenter', () => {
-        this.hovered = index;
-        this.showTooltip();
-      });
-      box.addEventListener('mouseleave', () => {
-        if (this.hovered === index) this.hovered = -1;
-        this.tooltip.hide();
-      });
+      bindTip(
+        box,
+        () => {
+          this.hovered = index;
+          this.showTooltip();
+        },
+        () => {
+          if (this.hovered === index) this.hovered = -1;
+          this.tooltip.hide();
+        },
+      );
       parent.appendChild(box);
       this.cells.push({ box, icon: box.querySelector('.item-icon') as HTMLElement });
     }

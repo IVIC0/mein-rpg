@@ -274,9 +274,14 @@ export class Combat {
   /** EP für einen besiegten Gegner – und alles, was bei einem Stufenaufstieg passiert. */
   private grantXp(enemy: Enemy): void {
     const player = this.player;
-    if (player.xpToNext === 0) return; // Maximalstufe
     // rewardFactor = Zuschlag für die Schwierigkeit (src/data/difficulty.ts).
-    const amount = Math.round(xpForKill(enemy.level, player.level, enemy.rank) * enemy.rewardFactor);
+    this.giveXp(Math.round(xpForKill(enemy.level, player.level, enemy.rank) * enemy.rewardFactor));
+  }
+
+  /** Schreibt der Figur EP gut (Gegner oder Quest-Belohnung) – mit allem, was bei einem Stufenaufstieg passiert. */
+  giveXp(amount: number): void {
+    const player = this.player;
+    if (player.xpToNext === 0) return; // Maximalstufe
     const missingHp = player.maxHp - player.hp;
     const levelUps = player.gainXp(amount);
     this.floaters.spawn(player.pos.x, player.pos.y - 16, `+${amount} EP`, 'xp');

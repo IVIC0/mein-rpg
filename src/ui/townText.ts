@@ -9,7 +9,7 @@ export function describeBuilding(id: BuildingId, level: number, levels: TownLeve
   const effects = townEffects({ ...levels, [id]: level });
   switch (id) {
     case 'rathaus':
-      return `Alle anderen Gebäude bis Stufe ${level}`;
+      return `Alle anderen Gebäude bis Stufe ${level} · ${effects.bountySlots === 1 ? '1 Kopfgeld' : `${effects.bountySlots} Kopfgelder`} am Kopfgeld-Brett`;
     case 'kontor': {
       const parts = [`${effects.stockSize} Regalplätze`, `${effects.stockRareShare} % seltene Ware`];
       if (effects.stockEpicShare > 0) parts.push(`${effects.stockEpicShare} % epische`);

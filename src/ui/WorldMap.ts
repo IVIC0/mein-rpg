@@ -1,5 +1,6 @@
 import { TILE } from '../config';
 import { MINIMAP } from '../data/minimap';
+import { QUEST_UI } from '../data/quests';
 import { WORLD_MAP } from '../data/worldmap';
 import type { Enemy } from '../entities/Enemy';
 import type { Point } from '../world/Grid';
@@ -17,13 +18,15 @@ export interface MapLabel {
 const MAX_PIXEL_RATIO = 2;
 
 /** Was unter der Karte erklärt wird: Farbe des Punkts und Text. */
-const LEGEND: { color: string; text: string }[] = [
+const LEGEND: { color: string; text: string; ring?: boolean }[] = [
   { color: MINIMAP.playerColor, text: 'Du' },
   { color: MINIMAP.enemies.normal.color, text: 'Gegner' },
   { color: MINIMAP.enemies.elite.color, text: 'Elite' },
   { color: MINIMAP.enemies.boss.color, text: 'Boss' },
   { color: MINIMAP.merchantColor, text: 'Händler' },
   { color: MINIMAP.builderColor, text: 'Baumeister' },
+  { color: MINIMAP.npcColor, text: 'Questgeber' },
+  { color: QUEST_UI.markColor, text: 'Quest', ring: true },
   { color: MINIMAP.chestColor, text: 'Truhe' },
   { color: MINIMAP.portalColor, text: 'Übergang' },
   { color: WORLD_MAP.goalColor, text: 'Ziel' },
@@ -62,7 +65,8 @@ export class WorldMap {
     for (const entry of LEGEND) {
       const item = document.createElement('span');
       const dot = document.createElement('i');
-      dot.style.background = entry.color;
+      if (entry.ring) dot.style.boxShadow = `inset 0 0 0 2px ${entry.color}`;
+      else dot.style.background = entry.color;
       item.append(dot, entry.text);
       legend.appendChild(item);
     }
@@ -185,7 +189,22 @@ export class WorldMap {
       context.stroke();
     };
 
-    for (const mark of marks) dot(mark.pos, mark.color, mark.radius);
+    // Ring um ein Quest-Ziel: erst breit in Schwarz, dann schmal in Farbe.
+    const ring = (at: Point, color: string, radius: number): void => {
+      context.beginPath();
+      context.arc(at.x * scale, at.y * scale, radius * WORLD_MAP.dotScale * ratio, 0, Math.PI * 2);
+      context.lineWidth = 3.5 * ratio;
+      context.strokeStyle = '#000000';
+      context.stroke();
+      context.lineWidth = 2 * ratio;
+      context.strokeStyle = color;
+      context.stroke();
+    };
+
+    for (const mark of marks) {
+      if (mark.ring) ring(mark.pos, mark.color, mark.radius);
+      else dot(mark.pos, mark.color, mark.radius);
+    }
     for (const enemy of enemies) {
       if (enemy.state === 'dead') continue;
       const look = MINIMAP.enemies[enemy.rank];
