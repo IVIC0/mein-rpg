@@ -26,6 +26,9 @@ Jeder Push auf `main` veröffentlicht das Spiel automatisch auf GitHub Pages.
 | `Q` | Heiltrank trinken |
 | Linksklick auf den Baumeister im Dorf | Dorfausbau: Gebäude mit Gold ausbauen |
 | Linksklick auf die Lagertruhe am Lagerhaus | Truhe öffnen (Rechtsklick im Inventar: einlagern, Linksklick in der Truhe: herausnehmen) |
+| Linksklick auf einen Questgeber (mit „!" oder „?") | Quest annehmen bzw. abgeben |
+| Linksklick auf das Kopfgeld-Brett am Rathaus | Kopfgelder annehmen und abgeben (wechseln alle 30 Minuten) |
+| `L` oder der Knopf 📜 | Questlog öffnen und schließen (auch per Klick auf den Quest-Zähler unter der Minimap) |
 | `I` oder `C` | Charakter & Inventar öffnen und schließen |
 | Linksklick auf ein Item im Inventar | anlegen (angelegte Ausrüstung: ablegen) |
 | Umschalt + Linksklick auf ein Item | wegwerfen |
@@ -46,6 +49,7 @@ Menü „Spielstände" (Diskette oben rechts), HUD-Einstellungen hinter dem Zahn
 | `src/scenes/` | Szenen: `BootScene` lädt alles, `WorldScene` ist die Spielwelt |
 | `src/entities/` | Spielfigur, Gegner, Truhe, Übergang; `Fixture` = Händler, Baumeister und Lagertruhe; `Actor` ist die gemeinsame Basis der Figuren |
 | `src/town/` | Dorfausbau: Stufen der Gebäude und was sie bringen |
+| `src/quests/` | Quests: Regeln (annehmen, mitzählen, abgeben, Kopfgeld-Brett) und das Verzeichnis, wo die Ziele liegen |
 | `src/combat/` | Kampfregeln (`Combat`: Angriffe, EP, Stufenaufstieg, Tod) und Schadensformel |
 | `src/items/` | Loot: Item-Generator, Inventar mit Ausrüstung, Items am Boden, Händler |
 | `src/save/` | Spielstand (Aufbau, Format-Umbau) und Slots im Browser |

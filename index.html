@@ -91,12 +91,17 @@
       <!-- Minimap unter der Knopf-Leiste: Gelände, Figur, Gegner, Händler (zeichnet src/ui/Minimap.ts). -->
       <div id="minimap"><canvas id="minimap-canvas"></canvas></div>
 
+      <!-- Quest-Zähler unter der Minimap: laufende Quests mit Fortschritt (füllt src/ui/QuestTracker.ts).
+           Klick oder Tippen öffnet das Questlog. -->
+      <div id="quest-tracker"></div>
+
       <!-- Knopf-Leiste oben rechts. Neue Knöpfe (Talente …) kommen hier dazu. -->
       <div id="topbar">
         <button id="bag-button" class="topbar-button" type="button" title="Charakter &amp; Inventar (I)">
           <span class="sprite-icon topbar-icon"></span>
         </button>
         <button id="bestiary-button" class="topbar-button" type="button" title="Jagdbuch (J)">📖</button>
+        <button id="quests-button" class="topbar-button" type="button" title="Quests (L)">📜</button>
         <button id="worldmap-button" class="topbar-button" type="button" title="Karte (M)">🗺️</button>
         <button id="saves-button" class="topbar-button" type="button" title="Spielstände">💾</button>
         <button id="settings-button" class="topbar-button" type="button" title="Einstellungen">⚙</button>
@@ -247,6 +252,21 @@
           <span id="bestiary-total"></span>
         </div>
         <div class="window-help" id="bestiary-help"></div>
+      </div>
+
+      <!-- Quests: das Questlog (Taste L oder der Knopf in der Leiste), das Gespräch mit einem
+           Questgeber und das Kopfgeld-Brett. Den Inhalt baut src/ui/QuestWindow.ts. -->
+      <div id="quests" class="side-window" hidden>
+        <div class="window-title">
+          <span id="quests-title">Quests</span>
+          <span class="window-buttons">
+            <button id="quests-close" type="button" title="Schließen (L oder Esc)">×</button>
+          </span>
+        </div>
+        <div id="quests-list"></div>
+        <div class="bag-footer">
+          <span id="quests-footer"></span>
+        </div>
       </div>
 
       <!-- Große Karte der Zone (Taste M oder der Knopf in der Leiste). Zeichnet src/ui/WorldMap.ts.

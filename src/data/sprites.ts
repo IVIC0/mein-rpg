@@ -31,6 +31,11 @@ export const SPRITES = {
   ritter: { sheet: 'characters', idle: [96] },
   haendler: { sheet: 'characters', idle: [86] },
   baumeister: { sheet: 'characters', idle: [87] },
+  // Questgeber im Dorf und das Kopfgeld-Brett (src/data/npcs.ts)
+  aeltester: { sheet: 'characters', idle: [84] },
+  jaeger: { sheet: 'characters', idle: [88] },
+  wachmann: { sheet: 'characters', idle: [97] },
+  kopfgeldbrett: { sheet: 'characters', idle: [66] },
   ratte: { sheet: 'characters', idle: [123] },
   spinne: { sheet: 'characters', idle: [122] },
   fledermaus: { sheet: 'characters', idle: [120] },

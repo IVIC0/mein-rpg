@@ -4,6 +4,7 @@ import type { Player } from '../entities/Player';
 import { rarityById, type Item } from '../items/generator';
 import type { Inventory } from '../items/Inventory';
 import type { BuyResult, Shop } from '../items/Shop';
+import { bindTip } from './tip';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
 import type { InventoryWindow } from './InventoryWindow';
@@ -89,14 +90,17 @@ export class ShopWindow {
       slot.innerHTML = '<div class="item-cell"><span class="item-icon sprite-icon"></span></div><span class="shop-price"></span>';
       const box = slot.querySelector('.item-cell') as HTMLElement;
       box.addEventListener('click', () => this.report(onClick(index)));
-      box.addEventListener('mouseenter', () => {
-        this.hovered = index;
-        this.showTooltip();
-      });
-      box.addEventListener('mouseleave', () => {
-        if (this.hovered === index) this.hovered = -1;
-        this.tooltip.hide();
-      });
+      bindTip(
+        box,
+        () => {
+          this.hovered = index;
+          this.showTooltip();
+        },
+        () => {
+          if (this.hovered === index) this.hovered = -1;
+          this.tooltip.hide();
+        },
+      );
       parent.appendChild(slot);
       slots.push({ root: slot, box, icon: slot.querySelector('.item-icon') as HTMLElement, price: slot.querySelector('.shop-price') as HTMLElement });
     }

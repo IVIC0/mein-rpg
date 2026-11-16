@@ -13,6 +13,10 @@ export interface MinimapMark {
   pos: Point;
   color: string;
   radius: number;
+  /** true = nur ein Ring statt eines gefüllten Punkts (Quest-Ziel). */
+  ring?: boolean;
+  /** true = liegt der Punkt außerhalb des Ausschnitts, bleibt er am Rand der Minimap stehen (zeigt die Richtung). */
+  clamp?: boolean;
 }
 
 /**
@@ -63,12 +67,26 @@ export class Minimap {
     context.drawImage(this.terrain, -left * pixelsPerTile, -top * pixelsPerTile, this.terrain.width * pixelsPerTile, this.terrain.height * pixelsPerTile);
 
     // Ein Punkt an einem Platz der Welt; liegt er außerhalb des Ausschnitts, wird nichts gezeichnet.
-    const dot = (at: Point, color: string, radius: number): void => {
-      const x = (at.x / TILE - left) * pixelsPerTile;
-      const y = (at.y / TILE - top) * pixelsPerTile;
-      if (x < 0 || y < 0 || x > this.canvas.width || y > this.canvas.height) return;
+    const dot = (at: Point, color: string, radius: number, ring = false, clamp = false): void => {
+      let x = (at.x / TILE - left) * pixelsPerTile;
+      let y = (at.y / TILE - top) * pixelsPerTile;
+      if (clamp) {
+        const edge = (radius + 1) * RESOLUTION;
+        x = Math.min(this.canvas.width - edge, Math.max(edge, x));
+        y = Math.min(this.canvas.height - edge, Math.max(edge, y));
+      } else if (x < 0 || y < 0 || x > this.canvas.width || y > this.canvas.height) return;
       context.beginPath();
       context.arc(x, y, radius * RESOLUTION, 0, Math.PI * 2);
+      if (ring) {
+        // Ring: erst breit in Schwarz, dann schmal in Farbe – so hebt er sich von jedem Gelände ab.
+        context.lineWidth = 3 * RESOLUTION;
+        context.strokeStyle = '#000000';
+        context.stroke();
+        context.lineWidth = 1.5 * RESOLUTION;
+        context.strokeStyle = color;
+        context.stroke();
+        return;
+      }
       context.fillStyle = color;
       context.fill();
       context.lineWidth = RESOLUTION;
@@ -76,7 +94,7 @@ export class Minimap {
       context.stroke();
     };
 
-    for (const mark of marks) dot(mark.pos, mark.color, mark.radius);
+    for (const mark of marks) dot(mark.pos, mark.color, mark.radius, mark.ring, mark.clamp);
     for (const enemy of enemies) {
       if (enemy.state === 'dead') continue;
       const look = MINIMAP.enemies[enemy.rank];

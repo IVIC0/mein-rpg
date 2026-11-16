@@ -32,8 +32,14 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     laufen nicht über den Rand.
   - Die Regel gilt für alles Neue ab Schritt 11d (zuerst für die große Karte, Abschnitt 2d). Die
     bestehenden Fenster und das HUD halten sie noch nicht ein (z. B. Verkaufen per Rechtsklick,
-    Wegwerfen per Umschalt+Klick, Item-Tooltip nur beim Überfahren) – das Anpassen wird ein
-    eigener Meilenstein (noch ohne Nummer).
+    Wegwerfen per Umschalt+Klick) – das Anpassen wird ein eigener Schritt: **12b**, grob
+    eingeschätzt in Abschnitt 15.10.
+  - **Tooltips am Handy** *(Fix in Meilenstein 12)*: Mit dem Finger gibt es kein „Überfahren" und
+    kein „Verlassen" – ein angetippter Tooltip (z. B. der des Heiltranks) blieb deshalb stehen.
+    Jetzt gilt für **alle** Tooltips (Skill-Leiste mit Heiltrank, Items in Inventar, Händler und
+    Lagertruhe): Antippen zeigt ihn, er verschwindet nach 3 Sekunden *(Startwert, `TOUCH_TIP_MS`
+    in `src/ui/tip.ts`)* oder sofort beim Tippen irgendwo anders. Mit der Maus ist alles wie
+    bisher. Neue Tooltips hängen immer über `bindTip` an ihrem Element.
 - **Bewegung** mit der linken Maustaste *(Umgesetzt)*:
   - Klick auf begehbaren Boden = hinlaufen, mit Wegfindung um Hindernisse.
   - Klick auf eine nicht begehbare Stelle (Baum, Haus …) = keine Bewegung, dort
@@ -51,6 +57,9 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
 - **Skills:** lösen automatisch aus, es gibt keine Skill-Tasten. Die Tasten `1`–`6`
   entfallen. *(Entschieden, umgesetzt – siehe Abschnitt 4 und 5)*
 - **Jagdbuch:** `J` öffnet und schließt das Jagdbuch (Abschnitt 16.3). *(Umgesetzt, Schritt 11c)*
+- **Quests:** `L`, der Knopf 📜 in der Leiste oder ein Klick auf den Quest-Zähler unter der Minimap
+  öffnet das Questlog. Klick auf einen Questgeber oder das Kopfgeld-Brett = hinlaufen und reden.
+  *(Umgesetzt, Meilenstein 12 – Abschnitt 9c)*
 - **Fenster:** `I` oder `C` öffnet „Charakter & Inventar" (ein gemeinsames Fenster), `Esc`
   schließt es. *(Umgesetzt)*
   - Das Fenster lässt sich an der Titelzeile verschieben und an der Ecke unten rechts in der
@@ -61,7 +70,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     Der Kampf läuft bei offenem Fenster immer weiter.
   - Position, Größe und Pin merkt sich der Browser (`localStorage`, getrennt vom Spielstand).
 - **Knopf-Leiste** oben rechts *(Umgesetzt)*: kleine Knöpfe für Inventar, Jagdbuch (Buch,
-  Abschnitt 16.3), große Karte (Abschnitt 2d), Spielstände (Diskette, Abschnitt 11) und Einstellungen; weitere (Talente) kommen dort dazu. Was die
+  Abschnitt 16.3), Quests (Schriftrolle, Abschnitt 9c), große Karte (Abschnitt 2d), Spielstände (Diskette, Abschnitt 11) und Einstellungen; weitere (Talente) kommen dort dazu. Was die
   Einstellungen können, steht in Abschnitt 2b.
   `T` Talente kommt mit dem Talentbaum. *(Vorschlag)*
 - **Karte:** `M` oder der Karten-Knopf in der Leiste öffnet und schließt die große Karte; ein
@@ -88,11 +97,11 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   |---|---|---|
   | Über meiner Figur | Name, Stufe, Leben | Größe, Deckkraft |
   | Über Gegnern | Name (mit Elite-Eigenschaften), Stufe, Leben; „bei allen Gegnern" (aus = nur Ziel, Angreifer, Verletzte) | Größe, Deckkraft |
-  | HUD-Elemente | Spielerrahmen, Zielrahmen, Skill-Leiste, Beute-Liste, Minimap, Schwebende Zahlen (Schaden, Heilung, EP, Skill-Namen); dazu die große Karte ohne Häkchen (Abschnitt 2d) | je Element Größe, Deckkraft |
+  | HUD-Elemente | Spielerrahmen, Zielrahmen, Skill-Leiste, Beute-Liste, Minimap, Quest-Zähler *(seit Meilenstein 12)*, Schwebende Zahlen (Schaden, Heilung, EP, Skill-Namen); dazu die große Karte ohne Häkchen (Abschnitt 2d) | je Element Größe, Deckkraft |
   | Schwierigkeit *(seit Meilenstein 10, gehört zum Spielstand – Abschnitt 15.6)* | vier Knöpfe Leicht / Normal / Schwer / Brutal | Gegnerleben, Gegnerschaden |
 
 - **Bearbeitungsmodus** („HUD verschieben …"): Spielerrahmen, Zielrahmen, Skill-Leiste,
-  Beute-Liste und Minimap bekommen einen gestrichelten Rahmen und lassen sich mit der Maus ziehen. Sie bleiben
+  Beute-Liste, Minimap und Quest-Zähler bekommen einen gestrichelten Rahmen und lassen sich mit der Maus ziehen. Sie bleiben
   immer ganz im Bild. Oben erscheint eine Leiste mit „Plätze zurücksetzen" und „Fertig"; `Esc`
   beendet den Modus. Das Spiel läuft dabei weiter.
 - **Alles auf Standard** setzt alle Einstellungen, die Plätze der HUD-Elemente und das
@@ -129,6 +138,10 @@ Oben rechts unter der Knopf-Leiste. Alle Zahlen und Farben sind **Startwerte** v
   (am größten). Seit Meilenstein 11 dazu *(Startwerte)*: Truhen orange (leer: grau), Übergänge
   in eine andere Zone türkis. Das Gelände wird beim Betreten einer Zone neu aufgebaut. Besiegte Gegner verschwinden, bis sie wieder erscheinen. Zu sehen sind alle
   Gegner im Ausschnitt – auch hinter Bäumen (kein Nebel des Krieges, Abschnitt 13).
+- **Quests** *(seit Meilenstein 12, Startwerte)*: Questgeber und Kopfgeld-Brett sind hellgelbe
+  Punkte. Alles, was zu einer Quest gehört, bekommt einen **hellgrünen Ring** (Abschnitt 9c).
+  Liegt ein Quest-Ziel außerhalb des Ausschnitts, bleibt sein Ring am Rand der Minimap stehen und
+  zeigt so die Richtung (je Quest einer: das nächste Ziel).
 - **HUD-Element** wie die anderen: ausblenden, Größe, Deckkraft, im Bearbeitungsmodus
   verschieben (Abschnitt 2b). Ausgeblendet wird sie auch nicht mehr gezeichnet.
 - Die Menüs „Einstellungen" und „Spielstände" klappen an derselben Stelle auf und verdecken sie,
@@ -150,6 +163,8 @@ Einstellungen. **Alles andere hier habe ich mir ausgedacht: Startwerte** (`src/d
   Lagertruhe, Truhen (leer: grau), Übergänge. Besiegte Gegner fehlen, bis sie wieder erscheinen.
   Die Farben sind die der Minimap (`src/data/minimap.ts`), die Punkte 1,3-mal so groß. Unter der
   Karte steht eine Zeile, die die Farben erklärt *(von mir ergänzt – ohne Hover braucht es das)*.
+  Seit Meilenstein 12 dazu: Questgeber (hellgelb) und die hellgrünen Ringe der Quests
+  (Abschnitt 9c) – hier um alle Ziele der Zone, nicht nur um das nächste.
 - **Ortsnamen** *(von mir ergänzt)*: Dorf, Pilzhain, Große Lichtung, Ostlichtung, Südlichtung,
   Westlichtung, Wolfshang, Eichenhain, Wachposten, Goblin-Lager, Ruine; in der Höhle Eingang,
   Fledermaushalle, Netzkammer, Tropfgang, Brutkammer. Sie stehen als `label` im Bauplan der Zone
@@ -842,7 +857,7 @@ neben dem alten Platz, weil die Plätze neu ausgewürfelt wurden.
   zu einem Marker, die es nicht gibt, Zone ohne Eintrag in `zones.ts` (und umgekehrt).
 - Beim Start prüft das Spiel, ob es jedes Einzelbild aus `sprites.ts` wirklich gibt.
 - **Noch nicht gebaut** (kommt mit dem Meilenstein, der es braucht): `abilities` der Gegner und
-  `src/data/abilities.ts` (13), Quests und NPCs (12), Portalsteine, Außenposten und Übergänge am
+  `src/data/abilities.ts` (13), Portalsteine, Außenposten und Übergänge am
   Kartenrand (13), Legendär-Effekte und Sets (15, 18). Übergänge stehen nicht in `zones.ts`,
   sondern als POI im Bauplan – dort liegt auch ihr Platz.
 
@@ -853,6 +868,111 @@ neben dem alten Platz, weil die Plätze neu ausgewürfelt wurden.
 - Die Schwierigkeit gibt bei Truhen keinen Zuschlag auf Gold – sie hängt weiter nur an Gegnern.
 - Mehr Gegner heißt mehr EP: Grünwald und Höhle haben zusammen 72 Gegner statt 32. Die
   Levelkurve ist unverändert; ob Stufe 10 jetzt zu schnell kommt, muss das Spielen zeigen.
+
+## 9c. Quests *(Meilenstein 12, umgesetzt)*
+
+Vorgegeben von dir (15.2, 15.7, 16.2): Questgeber, fünf Quest-Arten als Daten, Belohnung EP und
+Gold und bei Elite- und Boss-Quests ein Item mit fester Mindest-Seltenheit, wenig Text, Questlog
+mit `L`, Zähler unter der Minimap, Kopfgeld-Brett (wiederholbar, wechselt alle 30 Minuten, Anzahl
+1 / 1 / 2 / 2 / 3 nach Rathaus-Stufe), die sechs Quests in Grünwald mit ihren Zielen, Quest-Ziele
+auf Minimap und großer Karte, alte Spielstände laden weiter. **Alles andere in diesem Abschnitt
+habe ich mir ausgedacht: Startwerte** – Namen und Plätze der Questgeber, wer welche Quest
+vergibt, Stufen, Texte, alle Belohnungen, die Drop-Chance der Seide, der Vorgänger der
+Brutmutter-Quest, alle Regeln und Werte des Kopfgeld-Bretts, Aussehen von Fenster, Zähler,
+Zeichen und Ringen.
+
+**Ablauf:** Questgeber anklicken → **Annehmen** → Ziel erfüllen (zählt von selbst mit) → zurück
+zum Questgeber → **Abgeben** → Belohnung. Abgegeben wird immer beim Auftraggeber, nicht im Questlog.
+
+**Die sechs Quests in Grünwald** (`QUESTS` in `src/data/quests.ts`):
+
+| Quest | Auftraggeber | ab Stufe | Ziel | Belohnung |
+|---|---|---|---|---|
+| Rattenplage | Dorfältester Alrik | 1 | 10 Riesenratten besiegen | 150 EP · 15 Gold |
+| Spinnenseide | Jäger Bram | 2 | 8 Spinnenseide sammeln – Waldspinnen lassen sie mit 60 % fallen (Elites immer), im Schnitt rund 13 Spinnen | 350 EP · 30 Gold |
+| In die Höhle | Jäger Bram | 3 | die Brutkammer am Ende der Spinnenhöhle erreichen (9 Kacheln um ihre Mitte – man muss die Brutmutter nicht bekämpfen) | 450 EP · 40 Gold |
+| Die Brutmutter | Jäger Bram | 4, erst nach „In die Höhle" | die feste Elite Brutmutter besiegen | 900 EP · 80 Gold · ein seltenes (blaues) Item |
+| Goblin-Diebesgut | Wachmann Tomas | 5 | 5 Kisten im Goblin-Lager einsammeln | 1 100 EP · 100 Gold |
+| Der Räuberhauptmann | Dorfältester Alrik | 8 | den Boss in der Ruine besiegen | 2 400 EP · 250 Gold · ein episches (lila) Item |
+
+- Zusammen 5 350 EP – rund ein Viertel der 21 645 EP bis Stufe 10 (wie in 15.1 geplant) – und 515 Gold.
+- Belohnungen sind fest: Die Schwierigkeit gibt hier keinen Zuschlag. Das Item hat genau die
+  genannte Seltenheit und das Itemlevel der Quest (6 bzw. 10); ist das Inventar voll, liegt es
+  vor den Füßen der Figur. Auf der Maximalstufe verfallen die EP.
+- Gezählt wird nur, solange die Quest läuft – nicht rückwirkend. Wer den Räuberhauptmann vor dem
+  Annehmen besiegt, muss noch einmal ran. Eine Elite zählt bei Töte-Quests wie ein Gegner.
+  Ein Gegner zählt für alle passenden Quests gleichzeitig (Quest und Kopfgeld).
+- Quests lassen sich nicht aufgeben und nicht wiederholen (wiederholbar sind nur Kopfgelder).
+
+**Die fünf Quest-Arten** (`QuestGoal`): Jede ist einmal Code, danach nur noch Daten.
+
+| Art | Ziel | Angaben in `quests.ts` |
+|---|---|---|
+| Töten | X Gegner eines Typs | `enemy`, `count` |
+| Sammeln | X Dinge: von einem Gegnertyp (mit Chance) – oder als Kisten in der Welt | `item`, `count`, dazu `enemy` + `chance`; ohne `enemy` sind es Kisten (POI-Art `questkiste` im Bauplan) |
+| Elite | eine feste Elite besiegen | `elite` (Schlüssel in `NAMED_ELITES`) |
+| Boss | einen Boss besiegen | `enemy` |
+| Erkunden | einen Ort erreichen | `zone`, `marker`, `radius` (Kacheln), `place` (Name im Questlog) |
+
+- Gesammelte Dinge brauchen keinen Platz im Inventar – sie sind nur ein Zähler.
+- **Kisten** sind nur zu sehen, solange ihre Quest läuft (darunter pulsiert ein grüner Fleck).
+  Anklicken = hinlaufen und mitnehmen (ab 22 Pixeln). Sie sind kein Hindernis.
+
+**Questgeber** (`src/data/npcs.ts`, Platz im Bauplan als POI-Art `npc`) – alle auf dem Dorfplatz:
+**Dorfältester Alrik** oben neben dem Baumeister, **Jäger Bram** unten rechts am Weg aus dem Dorf,
+**Wachmann Tomas** unten links. Über dem Namen steht ein gelbes **!** (hat eine Quest für dich)
+oder ein grünes **?** (Quest abgeben; hat Vorrang). Das Gespräch geht zu, wenn man weggeht
+(56 Pixel), wie beim Händler. Die Bilder stammen aus „Tiny Dungeon".
+
+**Kopfgeld-Brett** – steht vor dem Rathaus am Weg (POI-Art `kopfgeldbrett`), Werte in
+`BOUNTY` / `BOUNTY_POOL` (`src/data/quests.ts`) und `TOWN_HALL_BOUNTIES` (`src/data/town.ts`):
+
+- Es hängen so viele Kopfgelder aus, wie das Rathaus erlaubt: 1 / 1 / 2 / 2 / 3 auf Stufe 1–5.
+  In Grünwald ist also immer **eines** zu haben (Rathaus höchstens Stufe 2).
+- **Wechsel alle 30 Minuten** (echte Zeit, läuft bei geschlossenem Spiel weiter, wie die Truhen).
+  Ersetzt wird alles, was nicht gerade angenommen ist. Ein angenommenes Kopfgeld bleibt, bis es
+  abgegeben oder aufgegeben ist – auch über den Wechsel hinaus; sein Platz bleibt so lange belegt.
+  Ein abgegebenes hinterlässt bis zum Wechsel einen leeren Platz: mehr als ein Kopfgeld je Platz
+  und halber Stunde gibt es nicht.
+- **Aufgeben** geht nur bei Kopfgeldern (Knopf am Brett): Es hängt dann wieder aus, der Zähler
+  beginnt bei 0.
+- **Auswahl:** gewürfelt aus der Liste unten, passend zur Stufe der Figur, nie zweimal dasselbe
+  Ziel gleichzeitig. Das Jagdbuch zählt die Gegner ganz normal mit.
+- **Belohnung:** Jedes Kopfgeld ist so viel „wert" wie eine Anzahl Gegner (bei Töten: die
+  verlangte Anzahl). EP = Wert × EP eines Gegners dieser Stufe × 0,5 · Gold = Wert × Stufe × 0,8.
+
+| Ziel | Anzahl | Stufe des Ziels | hängt aus für Stufe | Belohnung (kleinste – größte Anzahl) |
+|---|---|---|---|---|
+| Riesenratte | 10–14 | 2 | 1–4 | 100–140 EP · 16–22 Gold |
+| Wolf | 8–12 | 3 | 2–6 | 100–150 EP · 19–29 Gold |
+| Waldspinne | 10–14 | 4 | 2–8 | 150–210 EP · 32–45 Gold |
+| Fledermaus | 8–10 | 4 | 3–7 | 120–150 EP · 26–32 Gold |
+| Wildschwein | 8–10 | 5 | ab 4 | 140–175 EP · 32–40 Gold |
+| Goblin | 8–12 | 7 | ab 5 | 180–270 EP · 45–67 Gold |
+| Goblin-Schleuderer | 5–8 | 8 | ab 6 | 125–200 EP · 32–51 Gold |
+| Wegelagerer | 8–12 | 8 | ab 7 | 200–300 EP · 51–77 Gold |
+| Brutmutter (Elite) | 1, wert 12 | 6 | ab 5 | 240 EP · 58 Gold |
+| Räuberhauptmann (Boss) | 1, wert 30 | 10 | ab 9 | 900 EP · 240 Gold |
+
+**Anzeige** – alles per Klick oder Tippen, passt auf ein Handy im Querformat (Abschnitt 2):
+
+| Was | Wie | Wo |
+|---|---|---|
+| Fenster „Quests" | ein Fenster mit drei Ansichten: **Questlog** (`L`, Knopf 📜, Klick auf den Zähler) mit allen laufenden Quests · **Questgeber** (seine Quests mit „Annehmen" / „Abgeben", gesperrte mit Grund) · **Kopfgeld-Brett** (mit Restzeit bis zum Wechsel). Je Quest: Name, Stufe, Text, Ziel mit Zähler, Belohnung. Sitzt links wie das Jagdbuch; am Handy oben links über die ganze Höhe, mit Rollbalken. Knöpfe 30 Pixel hoch | `src/ui/QuestWindow.ts` |
+| Quest-Zähler | unter der Minimap, eine Zeile je Quest („Rattenplage 3 / 10"); grün mit „✔ abgeben", wenn das Ziel erreicht ist (steht dann oben). Höchstens 6 Zeilen, am Handy 3 – der Rest als „+ n weitere". Klick öffnet das Questlog. HUD-Element wie die anderen (Abschnitt 2b); er wandert nicht mit, wenn man die Minimap verschiebt | `src/ui/QuestTracker.ts`, `QUEST_UI` |
+| „Auf der Karte: an / aus" | Knopf an jeder laufenden Quest: nimmt sie aus Zähler und Karten, ohne sie aufzugeben | – |
+| Ringe auf Minimap und großer Karte | hellgrün: um Questgeber mit neuer Quest · um das Ziel jeder laufenden Quest (alle lebenden Gegner des Typs, Platz von Boss oder Elite, der gesuchte Ort, die Kisten) · um den Auftraggeber, sobald das Ziel erreicht ist · liegt das Ziel in einer anderen Zone: um den Übergang dorthin | `questMarks` in `src/scenes/WorldScene.ts` |
+| Meldungen | grün in der Beute-Liste: angenommen, Ziel erreicht (mit Auftraggeber), abgeschlossen (mit Belohnung). Ein gesammeltes Ding steigt als Text über der Figur auf | – |
+
+**Datengetrieben:** Eine neue Quest ist ein Eintrag in `QUESTS`; steht ihr Questgeber schon, braucht
+sie sonst nichts. Wo ein Ziel liegt, liest das Spiel beim Start aus den Karten
+(`src/quests/questIndex.ts`) – die Ringe und der Weg über Übergänge kommen daraus von selbst.
+Geprüft wird zweimal: `npm run assets` meldet einen NPC oder eine Quest-Kiste, die es in den
+Daten nicht gibt; das Spiel meldet beim Start eine Quest, deren Ziel, Marker, Auftraggeber oder
+Kisten in keiner Karte stehen. Regeln: `src/quests/QuestLog.ts`.
+
+**Karte:** Das Gelände von Grünwald und alle Gegner stehen exakt wie vorher (nachgezählt: keine
+Kachel und kein Gegner verändert). Neu sind nur die vier Figuren im Dorf und die fünf Kisten.
 
 ## 10. Endgame
 
@@ -880,6 +1000,9 @@ Export/Import als Datei; Versionsnummer; Namenseingabe pro Slot. Alles, was unte
   Anzahl der Siege; daran hängen die Rathaus-Stufen). *(seit Schritt 11b, Abschnitt 16.2)*
 - Jagdbuch: `bestiary` mit `kills` (Gegnertyp → Zähler) und `bosses` (Boss oder feste Elite →
   Siege). Nur Zähler – Ränge und Boni werden beim Laden berechnet. *(seit Schritt 11c, Abschnitt 16.3)*
+- Quests: `quests` mit dem Stand je angenommener Quest (Zähler, abgegeben, „auf der Karte",
+  mitgenommene Kisten) und dem Kopfgeld-Brett (Zeitpunkt des nächsten Wechsels, die Kopfgelder
+  mit Ziel, Belohnung und Stand). *(seit Meilenstein 12, Abschnitt 9c)*
 - Respawn-Zeitpunkt besiegter Bosse und benannter Elites, Zeitpunkt, ab dem eine geöffnete Truhe
   wieder gefüllt ist *(beides je Zone, seit Meilenstein 11)*, Spielzeit, Zeitpunkt des letzten
   Speicherns, Format-Nummer.
@@ -903,7 +1026,8 @@ schon abgezogen).
   nach jedem besiegten Gegner), an-/abgelegt, weggeworfen, gekauft, verkauft, zurückgekauft,
   Schwierigkeit geändert, Trank getrunken,
   neue Ware beim Händler, Stufenaufstieg, Tod, Aufwachen, Boss besiegt, Gebäude ausgebaut,
-  Item in die Lagertruhe gelegt oder herausgenommen,
+  Item in die Lagertruhe gelegt oder herausgenommen, Quest angenommen, weitergezählt, abgegeben
+  oder aufgegeben, Wechsel der Kopfgelder,
 - sofort beim Verlassen, Neuladen oder Wegschalten der Seite und mit „Jetzt speichern".
 
 **Slots:** 3 normale Slots plus 1 Slot „Test" *(Anzahl 3 ist ein Startwert, `SLOT_COUNT`)*.
@@ -925,7 +1049,7 @@ speichert wie jeder andere Slot – die normalen Slots bleiben unberührt. Vorla
 `src/data/testSaves.ts` (Stufe, Gold, Tränke, Ausrüstung je Platz mit Seltenheit, Inventar als Liste von
 Seltenheiten; die Items werden beim Anlegen gewürfelt; seit Schritt 11b wahlweise auch Stufen
 einzelner Gebäude `town` und schon besiegte Bosse `bossKills`, seit 11c auch Zähler des Jagdbuchs
-`bestiary`). *Startwerte:*
+`bestiary`, seit Meilenstein 12 der Stand einzelner Quests `quests`). *Startwerte:*
 
 | Vorlage | Stufe | Gold | Tränke | Ausrüstung | Inventar |
 |---|---|---|---|---|---|
@@ -935,9 +1059,14 @@ einzelner Gebäude `town` und schon besiegte Bosse `bossKills`, seit 11c auch Z�
 | Stufe 10 – Dorfausbau *(seit 11b)* | 10 | 6000 | 12 | Waffe und Brust blau, Schild, Helm, Hände und Füße grün | 5 Items |
 
 | Stufe 10 – Jagdbuch *(seit 11c)* | 10 | 800 | 10 | wie „Dorfausbau" | 3 Items |
+| Stufe 6 – Quests *(seit Meilenstein 12)* | 6 | 300 | 6 | Waffe blau, Schild, Helm, Brust und Füße grün, Hände weiß | 2 Items |
 
 Die Vorlage „Dorfausbau" hat den Räuberhauptmann schon besiegt: Die 6 000 Gold reichen für
 Rathaus 2 und alle vier Gebäude auf Stufe 2 (1 500 + 4 × 950 = 5 300 Gold).
+
+Die Vorlage „Quests" zeigt jeden Zustand: „Rattenplage" wartet aufs Abgeben, „In die Höhle" ist
+abgegeben, „Spinnenseide" (7 / 8), „Die Brutmutter" und „Goblin-Diebesgut" (4 / 5, eine Kiste
+steht noch im Lager) laufen, „Der Räuberhauptmann" ist noch gesperrt (ab Stufe 8).
 
 Die Vorlage „Jagdbuch" hat ein gefülltes Jagdbuch, in dem jeder Rang vorkommt: Riesenratte 749
 (ein Gegner vor Rang 5), Waldspinne 760 (Rang 5), Wolf 349 (einer vor Rang 4), Wildschwein 200,
@@ -957,8 +1086,8 @@ derselbe Text wie im Browser). „Importieren …" legt eine Datei in den **erst
 Slot und lädt sie nicht von selbst. Sind alle Slots belegt, gibt es eine Meldung – ein Import
 überschreibt nie etwas. *(Startwert)*
 
-**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **5** (Schritt 10b hat nur
-Balancing-Werte geändert – dort ist das Format geblieben). Ändert sich der Aufbau,
+**Versionsnummer:** `SAVE_VERSION` in `src/data/save.ts`, aktuell **7** (die Schritte 10b und 11d
+haben das Format nicht geändert). Ändert sich der Aufbau,
 wird sie erhöht und in `MIGRATIONS` (`src/save/saveGame.ts`) eingetragen, wie ein alter Stand ins
 neue Format kommt.
 - Format 1 (Meilenstein 7) → 2 (Meilenstein 8): Die Einstellungen fallen aus dem Spielstand;
@@ -981,6 +1110,11 @@ neue Format kommt.
 - Format 5 → 6 (Schritt 11c): Neu ist das Jagdbuch (`bestiary`, Start: alle Zähler 0). Alte Stände
   verlieren nichts; im Browser geprüft mit einem Format-5-Stand. **Gezählt wird erst ab jetzt** –
   auch die Boss-Siege aus `bossKills` (11b) werden nicht ins Jagdbuch übernommen.
+- Format 6 → 7 (Meilenstein 12): Neu sind die Quests (`quests`, Start: nichts angenommen; das
+  Kopfgeld-Brett würfelt beim ersten Laden frische Kopfgelder). Alte Stände verlieren nichts; im
+  Browser geprüft mit einem Format-6-Stand. **Gezählt wird erst ab dem Annehmen** – was vorher
+  besiegt wurde, zählt für keine Quest. Quests, die es später nicht mehr gibt, fallen beim Laden
+  weg, ebenso Kopfgelder auf Gegner, die es nicht mehr gibt.
 - Im Menü „Spielstände" steht bei jedem Slot jetzt auch die Zone.
 - Alter Stand: wird beim Laden Schritt für Schritt umgebaut.
 - Stand aus einer **neueren** Spielversion, zu alter Stand ohne Umbau oder kaputte Daten: Der Slot
@@ -1027,6 +1161,7 @@ Grünwald-Ergänzung, Abschnitt 9b) und Schritt 10b (Balancing-Fixes, Abschnitt 
 umgesetzt ✅ – siehe Tabelle in 15.7. Von der zweiten Fortschrittsachse (Abschnitt 16) ist der
 Dorfausbau (Schritt 11b) und das Jagdbuch (Schritt 11c) umgesetzt ✅; die Meisterschaft ist geplant.
 Schritt 11d (große Karte, Abschnitt 2d, und die Regel „Maus zuerst", Abschnitt 2) ist umgesetzt ✅.
+Meilenstein 12 (Quests und Kopfgeld-Brett, Abschnitt 9c) ist umgesetzt ✅.
 
 **Reihenfolge nach V1:** steht jetzt als Meilensteine 10–20 in Abschnitt 15.7 (ersetzt die
 frühere Kurzliste Talentbaum → Quests → Aufwerten → Zone 2 → …).
@@ -1042,6 +1177,8 @@ Von dir gewünscht. *(Entschieden)*
 | Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
 | Mehr Skills als Plätze | Meilenstein 14, zusammen mit dem Talentbaum | Mit der Zeit 8–10 Skills pro Klasse freischalten, aber nur 4 aktive Plätze. Die Auswahl ist der Build. |
 | Legendäre Items mit einzigartigen Effekten | Meilenstein 15 (Liste in Abschnitt 15.4) | Legendäre Items verändern Skills, z. B. „Rundumschlag hinterlässt Feuerspur". |
+| Handy-Anpassung der bestehenden Fenster und des HUD | eigener Schritt, Vorschlag: **12b** (Abschnitt 15.10) | Kleine Bildschirme, Antippen-Menü für Items – alles Alte auf die Regel „Maus zuerst" bringen |
+| Musik und Soundeffekte | eigener Schritt, Vorschlag: **13b** (Abschnitt 15.10) | Musik pro Zone; Sounds für Treffer, Beute, Levelaufstieg, UI; Lautstärkeregler und Stumm in den Einstellungen; CC0-Pakete bevorzugt |
 
 Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
 
@@ -1197,6 +1334,36 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
       Fledermäuse und Goblins. Die Gold-Seite Grünwald dauert damit länger als die 15–18 Stunden.
     - Halbe Zähler stehen mit Komma im Buch („12,5 / 50"). Alte Spielstände bleiben, wie sie sind.
 
+21. Meilenstein 12 (Quests), von mir gesetzte Startwerte zum Prüfen im Spiel (Abschnitt 9c, alle
+    in `src/data/quests.ts` und `src/data/npcs.ts`):
+    - Namen, Bilder und Plätze der drei Questgeber; wer welche Quest vergibt; Mindeststufen
+      (1 / 2 / 3 / 4 / 5 / 8); „Die Brutmutter" erst nach „In die Höhle"; die Texte.
+    - Belohnungen: zusammen 5 350 EP und 515 Gold, blaues Item für die Brutmutter, lila Item für
+      den Räuberhauptmann. Mit den Quests kommt Stufe 10 spürbar früher (ein Viertel der EP).
+    - Spinnenseide fällt mit 60 % – zu zäh oder zu schnell? (`chance`)
+    - „In die Höhle" ist erfüllt, sobald man die Brutkammer betritt (9 Kacheln um ihre Mitte).
+    - Abgeben nur beim Auftraggeber – für „In die Höhle" und „Die Brutmutter" heißt das zweimal
+      der Weg zurück ins Dorf. Lieber sofort im Questlog abgeben?
+    - Feste Quests lassen sich nicht aufgeben; was vor dem Annehmen besiegt wurde, zählt nicht.
+    - Kopfgeld-Brett: Auswahl-Liste mit Anzahlen und Stufenbereichen, die Belohnungsformel
+      (halbe EP je Gegner, Gold = Stufe × 0,8), Brutmutter „wert 12", Räuberhauptmann „wert 30".
+      Ein angenommenes Kopfgeld verfällt nicht; ein abgegebenes lässt den Platz bis zum Wechsel leer.
+    - In Grünwald gibt es immer nur **ein** Kopfgeld (Rathaus 1–2 = 1 Platz, wie in 16.2 geplant).
+      Das ist wenig – schon ab Rathaus 2 zwei Plätze wäre eine Zeile in `TOWN_HALL_BOUNTIES`.
+    - Quest-Belohnungen bekommen keinen Zuschlag durch die Schwierigkeit.
+    - Ringe: hellgrün (`markColor`), bei Töte-Quests um **jeden** lebenden Gegner des Typs. Mit
+      mehreren laufenden Quests wird die große Karte voll – dafür gibt es „Auf der Karte: aus".
+    - Ein „!"-Ring liegt auch um jeden Questgeber, der eine neue Quest hat.
+    - Der Quest-Zähler wandert nicht mit, wenn man die Minimap verschiebt oder vergrößert (er ist
+      ein eigenes HUD-Element). Am Handy ist er schmal und kürzt lange Namen ab.
+    - Das Questfenster verdeckt am Handy Spieler- und Zielrahmen und den linken Teil der
+      Skill-Leiste, solange es offen ist.
+    - Das Kopfgeld-Brett steht zwei Kacheln vor dem Rathaus am Weg, nicht an der Hauswand – dort
+      hätte sein Schild das Schild der Rathaus-Fahne verdeckt.
+    - Touch-Tooltips bleiben 3 Sekunden stehen (`TOUCH_TIP_MS`). Am Handy legt Antippen ein Item
+      weiterhin **sofort** an – der Tooltip zeigt dann schon das getauschte Item. Das behebt erst
+      das Antippen-Menü aus Schritt 12b (Abschnitt 15.10).
+
 ---
 
 ## 15. Inhaltsplan nach V1 *(Schritt 9 – nur Planung)*
@@ -1301,6 +1468,8 @@ Quest-Ding fallen, oder Kisten im Lager), Boss, Elite jagen, Erkunden (einen POI
 Belohnung: EP, Gold und bei Elite-/Boss-Quests ein Item mit fester Mindest-Seltenheit. Wenig Text
 (zwei Sätze je Quest), Questlog mit Taste `L`, Zähler unter der Minimap. Dazu je Außenposten ein
 **Kopfgeld-Brett** *(Entschieden)*: eine wiederholbare Quest, die alle 30 Minuten wechselt.
+*(Umgesetzt in Meilenstein 12 für Grünwald – so ist es gebaut: Abschnitt 9c. Der Zähler zeigt
+alle laufenden Quests, nicht nur eine.)*
 
 Gegner mit Fähigkeiten (Fernkampf, Heiler, Beschwörer …) sind gewollt *(Entschieden)* – der Kampf
 darf damit mehr sein als „Ziel anwählen und zuschauen". Die Zonen Orkhügel, Nebelmoor und
@@ -1419,7 +1588,7 @@ ihren Meilensteinen):
 | Fähigkeiten der Gegner (Fernkampf, Heilen, Beschwören, Gift, Anstürmen, Flächenschlag mit Ansage, Teilen beim Tod, Boden-Effekt) | je Art einmal Code, Werte in `src/data/abilities.ts` | einmal je Art, danach frei kombinierbar |
 | Bosse | Gegner mit `abilities` und `phases` (ab wie viel Leben was passiert) | nein |
 | POIs | Objekte in der Karte mit `type` und Eigenschaften; im Spiel ein Verzeichnis „Art → Verhalten" | nur für eine neue POI-Art |
-| Quests und NPCs | `src/data/quests.ts`, `src/data/npcs.ts` | nur für eine neue Quest-Art |
+| Quests und NPCs *(seit Meilenstein 12, Abschnitt 9c)* | `src/data/quests.ts`, `src/data/npcs.ts`; Plätze im Bauplan (`npc`, `kopfgeldbrett`, `questkiste`) | nur für eine neue Quest-Art |
 | Bilder | `src/data/sprites.ts`: Name → Datei, Bild-Nummer, Animation | nein |
 | Affixe, Legendär-Effekte, Sets | `src/data/items.ts`, `src/data/legendary.ts`, `src/data/sets.ts` | nur für einen neuen Effekt |
 
@@ -1429,7 +1598,7 @@ ihren Meilensteinen):
   Quest ohne Ziel, POI nicht erreichbar) – das macht der Karten-Bauer für Gegnergruppen schon.
 - Spielstand: aktuelle Zone, entdeckte Portalsteine, Quest-Stand, Zeitpunkte für Truhen, feste
   Elites und Bosse je Zone. Format 4 (seit Meilenstein 11) enthält davon Zone, Truhen, feste
-  Elites und Bosse; Portalsteine und Quest-Stand kommen mit den Meilensteinen 12 und 13 dazu.
+  Elites und Bosse; der Quest-Stand ist seit Format 7 (Meilenstein 12) dabei, Portalsteine kommen mit Meilenstein 13.
   Alte Stände laden weiter.
 - Ehrlich: Dieser Umbau ist der teuerste Einzelschritt im Plan, und die erste neue Zone danach
   ist noch teurer als die späteren, weil Fernkampf und Co. dort zum ersten Mal gebaut werden.
@@ -1468,7 +1637,7 @@ Von dir entschieden *(Entschieden)*: vier Knöpfe plus freie Regler, mehr EP und
 „Sitzung" = ein Arbeitsgang mit einem PR wie bisher. Die Schätzungen sind grob; dein Testen und
 das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter dem Meilenstein
 (Meilenstein 10 = 0.10.0, Meilenstein 11 = 0.11.0); Zwischenschritte mit Buchstaben zählen die
-letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2, 11c = 0.11.3, 11d = 0.11.4 …). Die Schritte
+letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2, 11c = 0.11.3, 11d = 0.11.4 …; Meilenstein 12 = 0.12.0). Die Schritte
 11b, 11c und 14b sind die zweite Fortschrittsachse aus Abschnitt 16 – seit deinen Antworten in
 16.6 *(Entschieden)*; offen ist nur die Waffen-Meisterschaft. Die Nummern 12–20 bleiben, wie sie waren.
 
@@ -1480,8 +1649,10 @@ letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2,
 | 11b ✅ | Dorfausbau (16.2) | Umgesetzt. Baumeister im Dorf, Fenster „Dorfausbau", Rathaus, Kontor, Alchemistin, Gasthaus, Lagerhaus mit Lagertruhe, Fahnen an den Häusern; in Grünwald erreichbar sind Stufe 1–2 (Stufe 2 nach dem Räuberhauptmann). Dazu: Trank-Obergrenze entfernt, Aufwachen nach dem Tod mit halbem Leben. Spielstand Format 5 | 1 Sitzung, mittel |
 | 11c ✅ | Jagdbuch (16.3) | Umgesetzt. Besiegte Gegner je Typ zählen (Elite fünffach), fünf Ränge mit kleinen Boni gegen den Typ, Sammelseite Grünwald (Bronze / Silber / Gold: Leben und Angriffskraft), Bosse-Zeile, Fenster mit Taste `J` und Knopf in der Leiste, Meldung bei neuem Rang. Spielstand Format 6 | 1 Sitzung, klein bis mittel |
 | 11d ✅ | Große Karte, Regel „Maus zuerst" | Umgesetzt (Abschnitt 2d). **Große Karte** mit `M` und Knopf, vorgezogen aus Meilenstein 13: ganze Zone, Punkte wie auf der Minimap, Ortsnamen aus dem Bauplan, Klick = Automatiklauf mit Zielmarker, Größe und Deckkraft in den Einstellungen. **Regel für alle neuen UI-Elemente:** Maus / ein Finger zuerst, alles per Klick erreichbar, passt auf kleine Bildschirme (Abschnitt 2, `CLAUDE.md`). **Jagdbuch:** schwache Gegner zählen nur halb. Kein neues Spielstand-Format. *Startwerte von mir:* alles in `src/data/worldmap.ts`, Ortsnamen, Erklär-Zeile, „Karte bleibt offen", Schwelle 5 Stufen / halb | 1 Sitzung, klein bis mittel |
-| 12 | Quests | NPCs, fünf Quest-Arten, Questlog (`L`), Zähler im HUD (unter der Minimap), Kopfgeld-Brett (Anzahl der Kopfgelder hängt an der Rathaus-Stufe, 16.2), die 6 Quests in Grünwald | 1–2 Sitzungen, mittel |
+| 12 ✅ | Quests | Umgesetzt (Abschnitt 9c). Drei Questgeber im Dorf, fünf Quest-Arten, Questlog (`L` und Knopf), Zähler im HUD (unter der Minimap), Kopfgeld-Brett (Anzahl der Kopfgelder hängt an der Rathaus-Stufe, 16.2), die 6 Quests in Grünwald, Quest-Ziele als Ringe auf Minimap und großer Karte. Dazu der Fix „Tooltips verschwinden am Handy wieder" (Abschnitt 2). Spielstand Format 7. *Startwerte von mir:* alles in `src/data/quests.ts` und `src/data/npcs.ts`, Regeln des Kopfgeld-Bretts, Aussehen | 1 Sitzung, mittel |
+| 12b *(Vorschlag)* | Handy-Anpassung | Bestehende Fenster und HUD auf die Regel „Maus zuerst" bringen: Antippen-Menü für Items, Fenster für kleine Bildschirme, HUD-Größen fürs Handy (Abschnitt 15.10). Kein neues Spielstand-Format | 1–2 Sitzungen, mittel |
 | 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, Cap 20, neue Assets (die große Karte gibt es seit 11d; die neue Zone bekommt sie von selbst) | 2–3 Sitzungen, groß |
+| 13b *(Vorschlag)* | Musik und Soundeffekte | Musik pro Zone, Sounds für Treffer, Beute, Levelaufstieg, Quests, UI; Regler Musik / Effekte und „Stumm" in den Einstellungen; CC0-Pakete (Abschnitt 15.10). Hängt an nichts – lässt sich auch früher oder später einschieben | 1 Sitzung, klein bis mittel (plus deine Auswahl der Stücke) |
 | 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
 | 14b | Skill-Meisterschaft (16.4) | Skills steigen durch Auslösen (Stufe 0–10), Übungsplatz als Gebäude im Dorf. Erst hier, weil es vorher nichts zu wählen gibt und die Rechnung „Skill-Werte nach Talenten" aus Meilenstein 14 stammt | 1 Sitzung, mittel |
 | 15 | Loot-Vielfalt | Neue Affixe, Waffen-Unterschiede, zwei neue Waffen, 12 Legendär-Effekte. Dazu vielleicht die Waffen-Meisterschaft (16.4) – *offen, du entscheidest später* | 2 Sitzungen, mittel |
@@ -1491,8 +1662,8 @@ letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2,
 | 19 | Zone 4: Aschenfeste | Zone, Fähigkeit Boden-Effekt, Boss mit Phasen, Weltboss und Set der Zone, Cap 40 | 1–2 Sitzungen, mittel |
 | 20 | Endgame | Endlos-Turm (Tod beendet den Lauf, Wiedereinstieg alle 5 Ebenen), Turm-Set, Kodex (das Jagdbuch wird sein erster Reiter). Kein Hochschalten alter Zonen (15.3) | 2 Sitzungen, groß |
 
-Zusammen rund 19–28 Sitzungen (davon 4–5 für 10b und die zweite Fortschrittsachse). Der Talentbaum bleibt Meilenstein 14 *(Entschieden)*. Nach Meilenstein 13 gibt es etwa 11 Stunden Inhalt, nach 16 etwa
-25, nach 19 etwa 45 plus Endgame. Nicht im Plan und später: zweite Klasse, Sound, Nebel des
+Zusammen rund 19–28 Sitzungen (davon 4–5 für 10b und die zweite Fortschrittsachse), dazu 2–3 für die Vorschläge 12b und 13b. Der Talentbaum bleibt Meilenstein 14 *(Entschieden)*. Nach Meilenstein 13 gibt es etwa 11 Stunden Inhalt, nach 16 etwa
+25, nach 19 etwa 45 plus Endgame. Nicht im Plan und später: zweite Klasse, Nebel des
 Krieges, Lauf-Animation der eigenen Figur, einheitlicher Figuren-Stil (der Stilmix ist vorerst
 in Ordnung, 15.9 Frage 2), Cap über 40 mit Zone 5 und 6.
 
@@ -1574,7 +1745,53 @@ Zu Abschnitt 15 ist keine Frage offen. Meilenstein 11 und Schritt 10b sind umges
 Fragen zur zweiten Fortschrittsachse stehen in Abschnitt 16.6; nächster Schritt nach deinen
 Antworten: 11b (Dorfausbau) – oder direkt Meilenstein 12 (Quests), falls du die Achse später
 willst. *(Stand Schritt 11c: Dorfausbau und Jagdbuch sind umgesetzt, als Nächstes kommt Meilenstein 12.)* Was ich in Meilenstein 11 und 10b selbst festgelegt habe, steht als Startwert in den
-Abschnitten 9b und 4b und in den Offenen Punkten 16 und 17.
+Abschnitten 9b und 4b und in den Offenen Punkten 16 und 17. *(Stand Meilenstein 12: Quests sind
+umgesetzt; als Nächstes schlage ich Schritt 12b vor – siehe 15.10 –, sonst Meilenstein 13.)*
+
+### 15.10 Zukunftsliste: Handy-Anpassung und Ton *(nur Planung)*
+
+Beide Punkte sind von dir gewünscht; **Inhalt im Einzelnen, Aufwand, Nummern und Reihenfolge
+sind Vorschläge von mir (Startwerte)**. Die Aufwände sind grob geschätzt wie in 15.7.
+
+**Schritt 12b – Handy-Anpassung der bestehenden Fenster und des HUD**
+
+Ziel: Alles, was vor Schritt 11d gebaut wurde, hält die Regel „Maus zuerst" ein (Abschnitt 2).
+Neu gebaut ist sie schon in der großen Karte (11d) und bei den Quests (12); die Tooltips
+verschwinden seit Meilenstein 12 am Handy wieder.
+
+| Baustein | Inhalt | Anteil |
+|---|---|---|
+| Antippen-Menü für Items | Tippen auf ein Item legt es nicht mehr sofort an, sondern zeigt Tooltip **und Knöpfe**: Anlegen / Ablegen, Verkaufen, Einlagern, Wegwerfen (mit Sicherheits-Klick). Gilt in Inventar, Händler und Lagertruhe. Rechtsklick und Umschalt+Klick bleiben als Abkürzung für die Maus | das größte Einzelteil – drei Fenster benutzen es |
+| Fenster auf kleinen Bildschirmen | Charakter & Inventar, Händler, Lagertruhe, Dorfausbau, Jagdbuch, Spielstände, Einstellungen: nie über den Rand, Rollbalken, am Handy bildschirmfüllend. Inventar und Händler passen bei 570 Pixeln nicht nebeneinander – dort als Reiter | viel CSS, wenig Regeln |
+| HUD am Handy | eigene Standardgrößen für kleine Bildschirme (Minimap, Rahmen, Skill-Leiste), Knöpfe der Leiste 30 Pixel, nichts überlappt | klein |
+| Bedienung | Zoomen und Verschieben der Seite durch den Browser abstellen, Hinweis „Bitte quer halten" im Hochformat, vielleicht ein Vollbild-Knopf; HUD-Bearbeitungsmodus mit dem Finger prüfen | klein |
+
+- **Aufwand:** 1–2 Sitzungen, mittel. Kein neues Spielstand-Format, keine Balancing-Werte.
+- **Reihenfolge – Vorschlag: direkt als Nächstes (12b), vor Orkhügel.** Jedes Fenster, das danach
+  kommt (Talentbaum, Schmied), würde sonst erst nach altem Muster gebaut und später umgebaut.
+- **Offene Frage an dich:** Soll das Antippen-Menü auch am PC gelten (ein Klick mehr beim
+  Anlegen, dafür überall dieselbe Bedienung) – oder nur bei Touch, und am PC bleibt Linksklick =
+  anlegen? *Mein Vorschlag: nur bei Touch.*
+
+**Schritt 13b – Musik und Soundeffekte**
+
+| Thema | Vorschlag |
+|---|---|
+| Musik | ein Stück je Zone (Grünwald, Spinnenhöhle, später Orkhügel …), weiches Überblenden beim Zonenwechsel. Möglich, aber nicht nötig: eigenes Stück fürs Dorf und für Boss-Kämpfe |
+| Sounds | Treffer (eigener, erlittener, Krit), Skill löst aus, Gegner besiegt, Tod · Beute fällt und wird aufgehoben (eigener Ton ab Selten), Gold, Truhe, Heiltrank · Levelaufstieg, Jagdbuch-Rang, Quest angenommen / Ziel erreicht / abgegeben · UI: Fenster auf / zu, Knopf, kaufen, verkaufen, „geht nicht" (z. B. Inventar voll) · Zonenwechsel |
+| Einstellungen | neuer Bereich „Ton": Regler **Musik** und **Effekte** (0–100 %) und ein Häkchen **Stumm**. Global wie die anderen Einstellungen (Abschnitt 2b), nicht im Spielstand. Startwerte: Musik 40 %, Effekte 70 % |
+| Daten | `src/data/audio.ts`: Ereignis → Datei und Lautstärke; die Zone nennt ihr Musikstück in `src/data/zones.ts`. Ein neuer Sound ist dann eine Zeile |
+| Technik | Phaser bringt die Ton-Wiedergabe mit. Browser erlauben Ton erst nach dem ersten Klick oder Tippen – die Musik beginnt also mit dem ersten Klick ins Spiel. Musik wird erst beim Betreten der Zone geladen, damit der Start schnell bleibt |
+| Quellen (CC0 bevorzugt) | **Effekte:** die Audio-Packs von Kenney (z. B. „RPG Audio", „Interface Sounds", „Impact Sounds") – Kenney veröffentlicht unter CC0. **Musik:** „Ninja Adventure" bringt meines Wissens Musik und Sounds mit (du hattest das Pack bewusst ohne Audio hochgeladen, 15.9 Frage 3), sonst OpenGameArt mit Filter CC0. **Nicht geprüft:** Lizenz und Inhalt jedes Packs sehe ich mir erst beim Einbau an und trage sie in `CREDITS.md` ein; du lädst die ZIPs hoch wie bisher |
+| Größe | Effekte zusammen deutlich unter 1 MB. Musik rund 1–3 MB je Stück – mit drei bis vier Stücken wächst das Spiel um grob 5–10 MB |
+| Unsicher | Ob iPhones (Safari) das Format OGG abspielen, weiß ich nicht sicher – vielleicht braucht jede Datei eine zweite Fassung (M4A oder MP3). Kläre ich beim Einbau |
+
+- **Aufwand:** 1 Sitzung, klein bis mittel. Der Code ist klein; Zeit kosten das Aussuchen und das
+  Abmischen der Lautstärken – und das Aussuchen der Musik ist Geschmackssache, also deins.
+- **Reihenfolge – Vorschlag: nach Meilenstein 13 (Orkhügel) als 13b.** Ton hängt an nichts und
+  lässt sich jederzeit einschieben. Nach Orkhügel gibt es aber drei Zonen mit eigener Stimmung
+  und Gegner mit Fähigkeiten (Fernkampf, Heilen), die eigene Sounds brauchen – dann wird einmal
+  für alles ausgesucht statt zweimal. Wer es früher will: direkt nach 12b geht genauso.
 
 ---
 
@@ -1626,7 +1843,7 @@ Plan abweicht oder dazugekommen ist, steht unten unter „So ist es gebaut".
 
 | Gebäude | Stufe 1 → 5 | Heute (ohne Ausbau) |
 |---|---|---|
-| **Rathaus** | begrenzt alle anderen Gebäude auf seine eigene Stufe. Stufe 1 steht von Anfang an (das Dorf gibt es ja schon), Stufe 2–5 brauchen den Sieg über den Zonen-Boss: Räuberhauptmann / Grommak / Lich Morvan / Azgar. Dazu ab Meilenstein 12 *(noch nicht gebaut)*: 1 / 1 / 2 / 2 / 3 Kopfgelder gleichzeitig am Kopfgeld-Brett | – |
+| **Rathaus** | begrenzt alle anderen Gebäude auf seine eigene Stufe. Stufe 1 steht von Anfang an (das Dorf gibt es ja schon), Stufe 2–5 brauchen den Sieg über den Zonen-Boss: Räuberhauptmann / Grommak / Lich Morvan / Azgar. Dazu seit Meilenstein 12 *(gebaut, Abschnitt 9c)*: 1 / 1 / 2 / 2 / 3 Kopfgelder gleichzeitig am Kopfgeld-Brett | – |
 | **Kontor** (Händler) | Regal 9 / 10 / 11 / 12 / 14 Plätze · Anteil Selten 10 / 12 / 14 / 17 / 20 %, ab Stufe 4 dazu 2 % / 4 % Episch · neue Ware alle 9 / 8 / 7 / 6 / 5 Minuten · ab Stufe 3 Knopf „Neue Ware sofort" (kostet so viel wie ein grünes Item der eigenen Stufe – eine kleine Dauer-Ausgabe) | 8 Plätze, 8 % Selten, 10 Minuten |
 | **Alchemistin** | Heilung 42 / 44 / 46 / 48 / 50 % · Abklingzeit ab Stufe 3: 25 s, ab Stufe 5: 20 s · Trank 5 / 10 / 15 / 20 / 25 % billiger *(mein Ersatz für „Tränke im Gepäck 6–10" – die Obergrenze gibt es seit 11b nicht mehr)* | 40 %, 30 s, voller Preis |
 | **Gasthaus** | Rasten: voll in 110 / 100 / 90 / 80 / 70 s · Gold-Verlust beim Tod 9 / 8 / 7 / 6 / 5 % · im Dorf selbst heilt die Figur ab Stufe 1 in 15 s voll | 120 s, 10 % |
@@ -1695,7 +1912,8 @@ Lagerhaus und öffnet ein Fenster neben dem Inventar.
 | Minimap | Baumeister orange, Lagertruhe hellbraun | `src/data/minimap.ts` |
 
 - **Noch nicht gebaut:** Übungsplatz (kommt mit 14b) und Schmiede (Meilenstein 17) – sie stehen
-  noch nicht im Fenster. Das Kopfgeld-Brett am Rathaus kommt mit Meilenstein 12.
+  noch nicht im Fenster. Das Kopfgeld-Brett steht seit Meilenstein 12 vor dem Rathaus
+  (Abschnitt 9c); das Fenster „Dorfausbau" nennt beim Rathaus die Zahl der Kopfgelder.
 - **Trank-Obergrenze entfernt** *(von dir vorgegeben)*: Details in Abschnitt 7b. Die Alchemistin
   gibt dafür einen Preisnachlass statt mehr Platz im Gepäck.
 - **Aufwachen mit halbem Leben** *(von dir vorgegeben, Frage 11)*: `reviveHpFraction` in
@@ -1854,7 +2072,8 @@ und Zweihandschwert) hat Stufe 0–20. Sie steigt mit jedem Schlag, den man mit 
 |---|---|---|
 | **11b** ✅ | Dorfausbau | Umgesetzt. **Vor den Quests.** Antwortet direkt auf dein Feedback „Gold hat zu wenig Verwendung", braucht nichts, was es noch nicht gibt, und Stufe 1–2 lassen sich schon in Grünwald testen. Das Kopfgeld-Brett dockt in Meilenstein 12 an |
 | **11c** ✅ | Jagdbuch | Umgesetzt. **Vor den Quests.** Gezählt wird erst ab dem Einbau – je früher, desto weniger geht verloren. Das Ereignis „Gegner besiegt" brauchen die Quests danach ohnehin |
-| 12, 13, 14 | Quests, Orkhügel, Talentbaum | wie geplant |
+| **12** ✅ | Quests | Umgesetzt (Abschnitt 9c), mit Kopfgeld-Brett am Rathaus |
+| 13, 14 | Orkhügel, Talentbaum | wie geplant |
 | **14b** | Skill-Meisterschaft, Übungsplatz | **Nicht vor Meilenstein 12**, sondern direkt nach dem Talentbaum (Gründe in 16.4, Punkt 1 und 2) |
 | 15 | Loot-Vielfalt, vielleicht **plus Waffen-Meisterschaft** | die Waffen unterscheiden sich erst hier; ob es die Waffen-Meisterschaft gibt, ist offen |
 | 17 | Schmied **als Gebäude** | Aufwerten war dort schon geplant |

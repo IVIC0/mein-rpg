@@ -233,7 +233,7 @@
   pointer-events: auto;
 }
 
-.skill:hover {
+.skill.tip-open {
   border-color: #e8d9a0;
 }
 
@@ -411,7 +411,8 @@
   display: block;
 }
 
-.skill:hover .skill-tooltip {
+/* "tip-open" setzt src/ui/tip.ts: Maus darüber – oder mit dem Finger angetippt (dann nur kurz). */
+.skill.tip-open .skill-tooltip {
   display: block;
 }
 
@@ -643,6 +644,65 @@
 
 #minimap-canvas {
   image-rendering: pixelated;
+}
+
+/* ---------------------------------------------------------------- Quest-Zähler */
+
+/* Unter der Minimap (52 + 148 Pixel). Ein HUD-Element wie die anderen; ein Klick öffnet das Questlog. */
+#quest-tracker {
+  position: absolute;
+  right: 10px;
+  top: 206px;
+  transform-origin: 100% 0;
+  width: 190px;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: right;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Eine Zeile je Quest: Ein langer Name wird gekürzt, der Fortschritt dahinter bleibt immer ganz zu lesen. */
+#quest-tracker div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+#quest-tracker b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #ffe08a;
+}
+
+#quest-tracker span {
+  flex: none;
+}
+
+/* Ziel erreicht: zurück zum Auftraggeber. */
+#quest-tracker .ready,
+#quest-tracker .ready b {
+  color: #9dff3d;
+}
+
+/* Kleiner Bildschirm (Handy quer): schmal, damit der Zähler nicht über der Skill-Leiste liegt. */
+@media (max-height: 500px) {
+  #quest-tracker {
+    width: 122px;
+    font-size: 11px;
+  }
+}
+
+#quest-tracker .more {
+  color: #c9bf9f;
+}
+
+.hud-edit #quest-tracker:empty::before {
+  content: 'Quest-Zähler';
+  color: #c9bf9f;
 }
 
 /* ---------------------------------------------------------------- Große Karte */
@@ -1324,8 +1384,11 @@
   cursor: pointer;
 }
 
-.item-cell.filled:hover {
-  filter: brightness(1.35);
+/* Nur mit Maus: Am Handy bliebe die Hervorhebung nach dem Antippen kleben. */
+@media (hover: hover) {
+  .item-cell.filled:hover {
+    filter: brightness(1.35);
+  }
 }
 
 /* Das Symbol doppelt so groß, mittig im Feld. Nur zu sehen, wenn das Feld belegt ist. */
@@ -1696,6 +1759,152 @@
   grid-template-columns: repeat(10, 40px);
   justify-content: space-between;
   gap: 4px;
+}
+
+/* ---------------------------------------------------------------- Quests */
+
+/* Questlog, Gespräch mit einem Questgeber und Kopfgeld-Brett: ein Fenster, links wie das Jagdbuch. */
+#quests {
+  width: 430px;
+  max-width: calc(100vw - 20px);
+}
+
+/* Kleiner Bildschirm (Handy quer): ganz nach oben, links neben die Knopf-Leiste, volle Höhe. */
+@media (max-height: 500px) {
+  #quests {
+    top: 6px;
+    width: calc(100vw - 250px);
+    min-width: 290px;
+    max-height: calc(100vh - 12px);
+  }
+}
+
+#quests .window-title {
+  margin-bottom: 6px;
+}
+
+/* Das × ist hier groß genug zum Tippen. */
+#quests .window-buttons button {
+  width: 30px;
+  height: 30px;
+}
+
+.quest-empty {
+  padding: 6px 2px;
+  font-size: 12px;
+  color: #c9bf9f;
+}
+
+.quest-card {
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  background: #1a1e19;
+  border: 1px solid #0c0f0c;
+  border-left: 3px solid #6f7566;
+  border-radius: 3px;
+}
+
+.quest-card.status-available {
+  border-left-color: #ffd34d;
+}
+
+.quest-card.status-active {
+  border-left-color: #4d9bff;
+}
+
+.quest-card.status-ready {
+  border-left-color: #9dff3d;
+}
+
+.quest-card.status-locked,
+.quest-card.status-done {
+  opacity: 0.6;
+}
+
+.quest-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.quest-head span {
+  flex: none;
+  font-size: 11px;
+  color: #c9bf9f;
+}
+
+.quest-text {
+  margin: 2px 0 4px;
+  color: #c9bf9f;
+}
+
+.quest-goal b {
+  color: #ffe08a;
+}
+
+.status-ready .quest-goal,
+.status-ready .quest-goal b {
+  color: #9dff3d;
+}
+
+.quest-reward {
+  color: #8fc0ff;
+}
+
+.quest-lock {
+  color: #ff8d7a;
+}
+
+.quest-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.quest-actions:empty {
+  display: none;
+}
+
+/* Knöpfe 30 Pixel hoch: groß genug zum Tippen. */
+.quest-button {
+  min-height: 30px;
+  padding: 4px 12px;
+  font: bold 12px sans-serif;
+  color: #f4ecd2;
+  background: #454d3c;
+  border: 1px solid #ffd34d;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.quest-button.plain {
+  font-weight: normal;
+  background: #2e342c;
+  border-color: #0c0f0c;
+}
+
+@media (hover: hover) {
+  .quest-button:hover {
+    filter: brightness(1.25);
+  }
+}
+
+#quests-footer {
+  font-size: 11px;
+  color: #8a8a80;
+}
+
+/* Zeichen über einem Questgeber: "!" = hat eine Quest, "?" = Quest abgeben. */
+.nameplate-npc .quest-sign {
+  margin-right: 3px;
+  font-size: 14px;
+  color: #ffd34d;
+}
+
+.nameplate-npc .quest-sign.ready {
+  color: #9dff3d;
 }
 
 /* ---------------------------------------------------------------- Jagdbuch */

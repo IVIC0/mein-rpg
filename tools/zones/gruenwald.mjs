@@ -102,6 +102,10 @@ export default {
   //   lagertruhe – die Lagertruhe am Lagerhaus
   //   fahne    – Fahne am Haus des Gebäudes `building` (Schlüssel in BUILDINGS, src/data/town.ts);
   //              sie zeigt dessen Stufe und ist kein Hindernis
+  //   npc      – Questgeber; `name` ist der Schlüssel in NPCS (src/data/npcs.ts)
+  //   kopfgeldbrett – das Kopfgeld-Brett am Rathaus (Werte: src/data/quests.ts)
+  //   questkiste – Kiste, die man für die Quest `quest` einsammelt (Schlüssel in QUESTS,
+  //              src/data/quests.ts); zu sehen nur, solange die Quest läuft. Kein Hindernis
   // `name` muss in der Zone eindeutig sein – daran hängen die Zeiten im Spielstand.
   pois: [
     { type: 'haendler', name: 'haendler', x: 25, y: 70 },
@@ -116,6 +120,17 @@ export default {
     { type: 'fahne', name: 'fahne-alchemistin', x: 34, y: 70, building: 'alchemistin' },
     { type: 'fahne', name: 'fahne-kontor', x: 23, y: 67, building: 'kontor' },
     { type: 'fahne', name: 'fahne-lagerhaus', x: 30, y: 77, building: 'lagerhaus' },
+    // Quests (seit Meilenstein 12): drei Questgeber auf dem Dorfplatz, das Kopfgeld-Brett am Rathaus
+    // und die fünf Kisten Diebesgut im Goblin-Lager.
+    { type: 'npc', name: 'aeltester', x: 20, y: 69 },
+    { type: 'npc', name: 'jaeger', x: 26, y: 74 },
+    { type: 'npc', name: 'wachmann', x: 19, y: 74 },
+    { type: 'kopfgeldbrett', name: 'kopfgeldbrett', x: 30, y: 69 },
+    { type: 'questkiste', name: 'kiste-1', x: 78, y: 39, quest: 'goblin-diebesgut' },
+    { type: 'questkiste', name: 'kiste-2', x: 81, y: 40, quest: 'goblin-diebesgut' },
+    { type: 'questkiste', name: 'kiste-3', x: 85, y: 41, quest: 'goblin-diebesgut' },
+    { type: 'questkiste', name: 'kiste-4', x: 87, y: 38, quest: 'goblin-diebesgut' },
+    { type: 'questkiste', name: 'kiste-5', x: 84, y: 36, quest: 'goblin-diebesgut' },
   ],
 
   /**

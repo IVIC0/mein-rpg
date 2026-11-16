@@ -68,6 +68,19 @@ export class BootScene extends Phaser.Scene {
       '...o#o...',
       '....o....',
     ]);
+    // Kiste für Sammel-Quests (src/entities/QuestCrate.ts): Holzkiste mit Eisenbändern.
+    pixelTexture(this, 'quest-crate', { o: '#2a1c10', w: '#b07a3e', d: '#7a5230', i: '#c9c9c9' }, [
+      'oooooooooooo',
+      'owwwwwwwwwwo',
+      'oiiiiiiiiiio',
+      'owdwwddwwdwo',
+      'owdwwddwwdwo',
+      'owdwwddwwdwo',
+      'owdwwddwwdwo',
+      'oiiiiiiiiiio',
+      'owwwwwwwwwwo',
+      'oooooooooooo',
+    ]);
     // Rotes X für Klicks auf nicht begehbare Stellen, mit dunklem Rand,
     // damit es auch auf roten Dächern und Herbstbäumen zu sehen ist.
     pixelTexture(this, 'blocked-marker', { '#': '#f0383c', o: '#3a1016' }, [

@@ -22,9 +22,9 @@ import { buildForest } from './lib/terrain-wald.mjs';
 const TERRAINS = { wald: buildForest, hoehle: buildCave };
 
 /** POI-Arten, die das Spiel kennt (Verhalten: POI_BUILDERS in src/scenes/WorldScene.ts). */
-const POI_TYPES = ['haendler', 'truhe', 'portal', 'elite', 'baumeister', 'lagertruhe', 'fahne'];
+const POI_TYPES = ['haendler', 'truhe', 'portal', 'elite', 'baumeister', 'lagertruhe', 'fahne', 'npc', 'kopfgeldbrett', 'questkiste'];
 /** Auf diesen POIs steht etwas Festes: Die Kachel selbst ist ein Hindernis, davor (darunter) muss Platz sein. */
-const SOLID_POIS = ['haendler', 'truhe', 'baumeister', 'lagertruhe'];
+const SOLID_POIS = ['haendler', 'truhe', 'baumeister', 'lagertruhe', 'npc', 'kopfgeldbrett'];
 
 // ---------------------------------------------------------------- Baupläne und Spieldaten lesen
 
@@ -54,6 +54,8 @@ const enemyTypes = readKeys('src/data/enemies.ts', 'ENEMIES');
 const namedElites = readKeys('src/data/elites.ts', 'NAMED_ELITES');
 const gameZones = readKeys('src/data/zones.ts', 'ZONES');
 const buildings = readKeys('src/data/town.ts', 'BUILDINGS');
+const npcs = readKeys('src/data/npcs.ts', 'NPCS');
+const quests = readKeys('src/data/quests.ts', 'QUESTS');
 for (const plan of plans) {
   if (!gameZones.includes(plan.id)) throw new Error(`Zone "${plan.id}" hat einen Bauplan, fehlt aber in src/data/zones.ts.`);
 }
@@ -88,6 +90,8 @@ function buildZone(plan) {
     if (SOLID_POIS.includes(poi.type)) reserved[idx(poi.x, poi.y)] = 1;
     if (poi.type === 'elite' && !namedElites.includes(poi.name)) fail(`Elite "${poi.name}" fehlt in NAMED_ELITES (src/data/elites.ts).`);
     if (poi.type === 'fahne' && !buildings.includes(poi.building)) fail(`Fahne "${poi.name}": Das Gebäude "${poi.building}" fehlt in BUILDINGS (src/data/town.ts).`);
+    if (poi.type === 'npc' && !npcs.includes(poi.name)) fail(`NPC "${poi.name}" fehlt in NPCS (src/data/npcs.ts).`);
+    if (poi.type === 'questkiste' && !quests.includes(poi.quest)) fail(`Quest-Kiste "${poi.name}": Die Quest "${poi.quest}" fehlt in QUESTS (src/data/quests.ts).`);
     if (poi.type === 'portal') {
       const target = plans.find((other) => other.id === poi.to);
       if (!target) fail(`Portal "${poi.name}" führt in die Zone "${poi.to}", die es nicht gibt.`);
@@ -128,7 +132,8 @@ function buildZone(plan) {
     if (s.type === 'lager') areas.set(s.marker, { cx: s.x + (s.width - 1) / 2, cy: s.y + (s.height - 1) / 2, rx: (s.width - 2) / 2, ry: (s.height - 2) / 2 });
   }
   // Rund um POIs bleibt Platz: Dort erscheint kein gewöhnlicher Gegner.
-  const taken = (plan.pois ?? []).map((poi) => ({ x: poi.x, y: poi.y }));
+  // Quest-Kisten zählen nicht dazu: Sie sind kein Hindernis und stehen mitten in einer Gegnergruppe.
+  const taken = (plan.pois ?? []).filter((poi) => poi.type !== 'questkiste').map((poi) => ({ x: poi.x, y: poi.y }));
 
   // Eigener Zufallsgenerator: so ändert sich die Landschaft nicht, wenn man Gegner umstellt.
   const enemyRng = mulberry32(plan.seed + 11);
