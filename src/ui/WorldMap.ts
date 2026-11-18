@@ -5,6 +5,7 @@ import { WORLD_MAP } from '../data/worldmap';
 import type { Enemy } from '../entities/Enemy';
 import type { Point } from '../world/Grid';
 import { byId } from './dom';
+import { GameWindow } from './GameWindow';
 import type { MinimapMark } from './Minimap';
 import type { Settings } from './settings';
 
@@ -44,12 +45,18 @@ const LEGEND: { color: string; text: string; ring?: boolean }[] = [
  */
 export class WorldMap {
   private readonly root = byId('worldmap');
+  private readonly body = byId('worldmap-body');
+  private readonly legend = byId('worldmap-legend');
+  /** Das gemeinsame Fenster-Gerüst: verschieben, Größe ziehen, merken. */
+  readonly win = new GameWindow(this.root, 'worldmap');
   private readonly button = byId('worldmap-button');
   private readonly title = byId('worldmap-title');
   private readonly canvas = byId('worldmap-canvas') as HTMLCanvasElement;
   private readonly context: CanvasRenderingContext2D;
   private terrain: HTMLCanvasElement | null = null;
   private labels: MapLabel[] = [];
+  /** Der Wert des Größen-Reglers beim letzten applySettings – um zu erkennen, ob er bewegt wurde. */
+  private shownScale: number;
   /** Zeichen-Pixel je Bildschirm-Pixel (siehe layout). */
   private ratio = 1;
 
@@ -57,11 +64,12 @@ export class WorldMap {
   onWalk: (target: Point) => void = () => {};
 
   constructor(private readonly settings: Settings) {
+    this.shownScale = settings.worldMap.scale;
     const context = this.canvas.getContext('2d');
     if (!context) throw new Error('Die Karte lässt sich nicht zeichnen.');
     this.context = context;
 
-    const legend = byId('worldmap-legend');
+    const legend = this.legend;
     for (const entry of LEGEND) {
       const item = document.createElement('span');
       const dot = document.createElement('i');
@@ -82,7 +90,8 @@ export class WorldMap {
     byId('worldmap-close').addEventListener('click', () => this.close());
     // "click" kommt bei der Maus und beim Tippen mit dem Finger.
     this.canvas.addEventListener('click', (event) => this.onClick(event));
-    window.addEventListener('resize', () => this.layout());
+    // Nach jeder Größenänderung des Fensters (gezogen, gedreht, Browser) passt sich die Zeichenfläche an.
+    this.win.onLayout = () => this.layout();
   }
 
   /** Neue Zone: ihr Gelände (1 Pixel pro Kachel), ihre Überschrift und ihre Ortsnamen. */
@@ -90,11 +99,11 @@ export class WorldMap {
     this.terrain = terrain;
     this.labels = labels;
     this.title.textContent = title;
-    this.layout();
+    this.win.apply();
   }
 
   get isOpen(): boolean {
-    return !this.root.hidden;
+    return this.win.isOpen;
   }
 
   toggle(): void {
@@ -103,48 +112,68 @@ export class WorldMap {
   }
 
   open(): void {
-    this.root.hidden = false;
+    this.win.show();
     this.button.classList.add('active');
-    this.layout();
   }
 
   close(): void {
-    this.root.hidden = true;
+    this.win.hide();
     this.button.classList.remove('active');
   }
 
-  /** Übernimmt Größe und Deckkraft aus den Einstellungen. */
+  /**
+   * Übernimmt Größe und Deckkraft aus den Einstellungen. Wer den Größen-Regler bewegt, will
+   * dessen Größe sehen: Eine selbst gezogene Fenstergröße wird dabei vergessen.
+   */
   applySettings(): void {
-    this.layout();
+    this.root.style.opacity = `${this.settings.worldMap.opacity}`;
+    const sizeChanged = this.settings.worldMap.scale !== this.shownScale;
+    this.shownScale = this.settings.worldMap.scale;
+    if (sizeChanged && this.win.hasOwnSize) this.win.forgetSize();
+    else this.win.apply();
   }
 
   /**
-   * Legt die Größe der Karte fest: so groß, wie es die Einstellung will – aber immer so,
-   * dass das ganze Fenster (mit Titel und Erklärung) in den Bildschirm passt.
+   * Legt die Größe der Zeichenfläche fest. Zwei Fälle:
+   * - Das Fenster hat eine feste Größe (selbst gezogen oder Startgröße am Handy): Die Karte füllt
+   *   den Platz darin, so groß es ihr Seitenverhältnis erlaubt.
+   * - Sonst (PC, Standard): so groß, wie es die Einstellung "Größe" will – aber immer so, dass das
+   *   ganze Fenster (mit Titel und Erklärung) in den Bildschirm passt.
    */
   private layout(): void {
     this.root.style.opacity = `${this.settings.worldMap.opacity}`;
     const terrain = this.terrain;
     if (!terrain || !this.isOpen) return;
     const aspect = terrain.width / terrain.height;
-    const maxWidth = window.innerWidth - 2 * WORLD_MAP.margin;
-    const maxHeight = window.innerHeight - 2 * WORLD_MAP.margin;
-    // Anteil des Bildschirms, den das Fenster füllen darf – auf kleinen Bildschirmen immer alles.
-    const small = window.innerHeight < WORLD_MAP.smallScreenHeight;
-    const share = small ? 1 : Math.min(1, WORLD_MAP.fill * this.settings.worldMap.scale);
 
-    // Erst nach der Breite. Rahmen, Titel und Erklärung brauchen auch Platz – der wird gemessen.
-    const frameWidth = this.root.offsetWidth - this.canvas.offsetWidth;
-    let width = Math.max(40, maxWidth * share - frameWidth);
-    // Dann die Höhe prüfen. Wird die Karte schmaler, kann die Erklärung umbrechen und höher werden:
-    // deshalb höchstens dreimal nachmessen.
-    for (let pass = 0; pass < 3; pass++) {
+    if (this.root.style.height) {
+      // Feste Fenstergröße: Platz im Inhalt messen (ohne Erklär-Zeile) und die Karte hineinpassen.
+      const legendHeight = this.legend.offsetHeight + (this.legend.offsetHeight > 0 ? 4 : 0);
+      const availableWidth = Math.max(40, this.body.clientWidth);
+      const availableHeight = Math.max(30, this.body.clientHeight - legendHeight);
+      const width = Math.min(availableWidth, availableHeight * aspect);
       this.canvas.style.width = `${Math.floor(width)}px`;
       this.canvas.style.height = `${Math.floor(width / aspect)}px`;
-      const frameHeight = this.root.offsetHeight - this.canvas.offsetHeight;
-      const allowed = Math.max(30, maxHeight * share - frameHeight);
-      if (width / aspect <= allowed + 0.5) break;
-      width = allowed * aspect;
+    } else {
+      const maxWidth = window.innerWidth - 2 * WORLD_MAP.margin;
+      const maxHeight = window.innerHeight - 2 * WORLD_MAP.margin;
+      // Anteil des Bildschirms, den das Fenster füllen darf – auf kleinen Bildschirmen immer alles.
+      const small = window.innerHeight < WORLD_MAP.smallScreenHeight;
+      const share = small ? 1 : Math.min(1, WORLD_MAP.fill * this.settings.worldMap.scale);
+
+      // Erst nach der Breite. Rahmen, Titel und Erklärung brauchen auch Platz – der wird gemessen.
+      const frameWidth = this.root.offsetWidth - this.canvas.offsetWidth;
+      let width = Math.max(40, maxWidth * share - frameWidth);
+      // Dann die Höhe prüfen. Wird die Karte schmaler, kann die Erklärung umbrechen und höher werden:
+      // deshalb höchstens dreimal nachmessen.
+      for (let pass = 0; pass < 3; pass++) {
+        this.canvas.style.width = `${Math.floor(width)}px`;
+        this.canvas.style.height = `${Math.floor(width / aspect)}px`;
+        const frameHeight = this.root.offsetHeight - this.canvas.offsetHeight;
+        const allowed = Math.max(30, maxHeight * share - frameHeight);
+        if (width / aspect <= allowed + 0.5) break;
+        width = allowed * aspect;
+      }
     }
 
     this.ratio = Math.min(MAX_PIXEL_RATIO, window.devicePixelRatio || 1);

@@ -8,6 +8,10 @@ import { askName } from './ui/dialog';
 import { SaveMenu } from './ui/SaveMenu';
 import { GAME_TITLE } from './config';
 import { adoptSettingsFromOldSave } from './ui/settings';
+import { initDevice } from './ui/device';
+
+// Zuerst: Handy oder PC, Maus oder Finger? Davon hängen Layout und Fenster ab (src/ui/device.ts).
+initDevice();
 
 const versionLabel = document.getElementById('version');
 if (versionLabel) versionLabel.textContent = `${GAME_TITLE} v${__APP_VERSION__}`;

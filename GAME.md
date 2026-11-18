@@ -33,7 +33,9 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   - Die Regel gilt für alles Neue ab Schritt 11d (zuerst für die große Karte, Abschnitt 2d). Die
     bestehenden Fenster und das HUD halten sie noch nicht ein (z. B. Verkaufen per Rechtsklick,
     Wegwerfen per Umschalt+Klick) – das Anpassen wird ein eigener Schritt: **12b**, grob
-    eingeschätzt in Abschnitt 15.10.
+    eingeschätzt in Abschnitt 15.10. **Teil 1 von 12b ist umgesetzt** (Abschnitt 2e): Skalierung,
+    Touch-Bedienung, HUD am Handy, gemeinsames Fenster-System. Teil 2 (Inhalt der Fenster für kleine
+    Bildschirme) steht noch aus.
   - **Tooltips am Handy** *(Fix in Meilenstein 12)*: Mit dem Finger gibt es kein „Überfahren" und
     kein „Verlassen" – ein angetippter Tooltip (z. B. der des Heiltranks) blieb deshalb stehen.
     Jetzt gilt für **alle** Tooltips (Skill-Leiste mit Heiltrank, Items in Inventar, Händler und
@@ -69,6 +71,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
     Zielauswahl auf, und nach dem Neuladen ist es wieder da. `I`, `C` und × schließen es weiterhin.
     Der Kampf läuft bei offenem Fenster immer weiter.
   - Position, Größe und Pin merkt sich der Browser (`localStorage`, getrennt vom Spielstand).
+  - Seit 12b gilt das Verschieben und Größe-Ziehen für **alle** Fenster (Abschnitt 2e).
 - **Knopf-Leiste** oben rechts *(Umgesetzt)*: kleine Knöpfe für Inventar, Jagdbuch (Buch,
   Abschnitt 16.3), Quests (Schriftrolle, Abschnitt 9c), große Karte (Abschnitt 2d), Spielstände (Diskette, Abschnitt 11) und Einstellungen; weitere (Talente) kommen dort dazu. Was die
   Einstellungen können, steht in Abschnitt 2b.
@@ -91,7 +94,7 @@ ergänzt, damit das Konzept vollständig ist – kannst du jederzeit ändern.
   die Farbe Grün ist ein Startwert.)* Der Name ist seit Meilenstein 7 der eigene Figurenname
   (Abschnitt 11).
 - **Einstellungen** (Zahnrad oben rechts): ein schmales Menü mit vier zugeklappten Bereichen,
-  dazu „HUD verschieben …", „Fenster zurücksetzen" und „Alles auf Standard".
+  dazu „HUD verschieben …", „Fensterlayout zurücksetzen" (seit 12b, Abschnitt 2e) und „Alles auf Standard".
 
   | Bereich | Einzeln schaltbar | Regler |
   |---|---|---|
@@ -156,8 +159,8 @@ Abbruch durch jeden neuen Klick; datengetrieben; kein Nebel des Krieges; Größe
 Einstellungen. **Alles andere hier habe ich mir ausgedacht: Startwerte** (`src/data/worldmap.ts`).
 
 - **Öffnen und schließen:** `M` oder der Karten-Knopf oben rechts; zu geht sie mit `M`, `Esc`, dem
-  Knopf oder dem × im Fenster. Das Spiel läuft weiter. Die Karte sitzt in der Bildmitte und ist
-  nicht verschiebbar *(Startwert)*.
+  Knopf oder dem × im Fenster. Das Spiel läuft weiter. Die Karte sitzt in der Bildmitte; seit 12b lässt sie
+  sich verschieben und in der Größe ziehen (Abschnitt 2e).
 - **Zu sehen** ist die ganze aktuelle Zone: Gelände (dasselbe Bild wie bei der Minimap), eigene
   Figur (weißer Punkt mit Ring), alle Gegner (rot, Elite gold, Boss lila), Händler, Baumeister,
   Lagertruhe, Truhen (leer: grau), Übergänge. Besiegte Gegner fehlen, bis sie wieder erscheinen.
@@ -189,6 +192,86 @@ Einstellungen. **Alles andere hier habe ich mir ausgedacht: Startwerte** (`src/d
   bekommt ihre große Karte von selbst; für Ortsnamen trägt man `label` im Bauplan ein.
 - **Wo:** `src/ui/WorldMap.ts` (zeichnen, Größe, Klick), `autoWalkTo` in
   `src/scenes/WorldScene.ts`, `nearestReachable` in `src/world/Grid.ts`.
+
+## 2e. Handy-Anpassung und Fenster-System *(Meilenstein 12b, Teil 1 von 2, umgesetzt)*
+
+Vorgegeben von dir: Handy hochkant und quer (rund 360–430 Pixel breit) mit einem Finger spielbar, am
+PC nichts schlechter; kein Seiten-Zoom, sauberes Neu-Skalieren beim Drehen; alles per Tippen;
+Tooltips mit dem Finger; Knöpfe mindestens rund 44 × 44 Pixel; Notch beachten; ein gemeinsames
+Fenster-System für alle Fenster (verschieben, Größe ziehen, nie aus dem Bild, zuletzt angeklicktes
+vorn, Platz und Größe gemerkt – getrennt für PC und Handy, nicht im Spielstand –, Knopf
+„Fensterlayout zurücksetzen"); eine zentrale Erkennung. **Die Zahlen und Einzelheiten unten sind
+Startwerte von mir** (`src/data/windows.ts`, `TOUCH_HIT_PAD` in `src/config.ts`).
+
+- **Erkennung an einer Stelle** (`src/ui/device.ts`): Ist die kürzere Bildschirmseite kleiner als
+  500 Pixel, gilt das **Handy-Layout** (`DEVICE.mobileShortSide`) – auch an einem sehr kleinen
+  Browserfenster am PC. Unabhängig davon gilt **Finger-Bedienung**, wenn der Hauptzeiger ein Finger
+  ist (`pointer: coarse`). Die Datei setzt die Klassen `ui-pc` / `ui-mobile`, `ui-touch` und
+  `ui-portrait` an die Seite; alle Sonderfälle in `hud.css` hängen an diesen Klassen (Abschnitt
+  „Handy und Finger" am Ende der Datei), nicht an eigenen Bildschirm-Abfragen.
+- **Skalierung:** Das Spielbild füllt weiter immer genau den Bildschirm (Phaser `RESIZE`); beim
+  Drehen und bei jeder Größenänderung passen sich Spielbild, HUD und Fenster an. Die Seite selbst
+  zoomt und scrollt nicht mehr (Viewport-Tag, kein Doppeltipp-Zoom, kein Zwei-Finger-Zoom, kein
+  „Ziehen zum Neuladen"). Das Spielbild reicht bis unter die Notch; das HUD und die Fenster halten
+  Abstand davon (Safe Area).
+- **Tippen in der Welt:** Laufen, gedrückt halten, Gegner, Händler, Questgeber, Truhen und
+  Übergänge gehen wie mit der Maus. Mit dem Finger zählt ein Tippen auch, wenn es bis zu 5
+  Welt-Pixel (rund 10 Bildschirm-Pixel) neben einem Gegner oder einer Figur liegt.
+- **Ziel aufheben:** neues kleines × im Zielrahmen (wie `Esc`), für Maus und Finger.
+- **Tooltips mit dem Finger:** Antippen zeigt ihn, er geht nach 3 Sekunden, beim Tippen woanders
+  oder beim **nochmaligen Antippen** desselben Elements wieder zu.
+- **Items mit dem Finger** (Inventar, Händler, Rückkauf, Lagertruhe): Antippen legt **nichts mehr
+  sofort an** und kauft nichts sofort, sondern zeigt den Tooltip **mit Knöpfen** – im Inventar
+  Anlegen / Ablegen, Verkaufen (bei offenem Händler), Einlagern (bei offener Lagertruhe) und
+  Wegwerfen; beim Händler Kaufen bzw. Zurückkaufen; in der Truhe „Ins Inventar nehmen". Wegwerfen
+  und das Verkaufen ab Episch brauchen einen zweiten Druck auf denselben Knopf. Der Tooltip bleibt
+  offen, bis ein Knopf gedrückt oder woanders hingetippt wird. **Mit der Maus bleibt alles wie
+  bisher** (Linksklick, Rechtsklick, Umschalt+Klick) – damit ist die offene Frage aus 15.10 im Sinne
+  meines Vorschlags „nur bei Touch" umgesetzt. Langes Drücken mit dem Finger verkauft nie etwas.
+  Die Hilfe-Zeilen in den Fenstern zeigen je nach Gerät den Maus- oder den Finger-Hinweis.
+- **Heiltränke:** Neben „Kaufen" gibt es beim Händler einen zweiten Knopf „10 Stück" (bisher nur
+  Umschalt + Klick).
+- **HUD mit dem Finger:** Knöpfe der Leiste 44 Pixel statt 26, Fenster-Knöpfe (× und Pinnnadel)
+  40 Pixel, Griff zum Größe-Ziehen 32 Pixel, Knöpfe in Einstellungen und Händler mindestens 40
+  Pixel hoch.
+- **HUD im Handy-Layout:** Spieler- und Zielrahmen 85 %, Skill-Leiste 80 %, Minimap 75 %,
+  Beute-Liste 85 % – die Einstellung „Größe" rechnet darauf. Der Zielrahmen sitzt unter dem
+  Spielerrahmen (daneben ist die Knopf-Leiste), die Beute-Liste über der Skill-Leiste. Im
+  Hochformat rutschen beide Rahmen unter die Knopf-Leiste, die Minimap bleibt rechts daneben.
+  Verschieben im Bearbeitungsmodus geht auch mit dem Finger. Die Verschiebungen der HUD-Elemente
+  gelten weiter für beide Layouts gemeinsam (anders als bei den Fenstern).
+- **Fenster-System** (`src/ui/GameWindow.ts`, Werte in `src/data/windows.ts`) – gilt für Inventar,
+  Händler, Lagertruhe, Dorfausbau, Jagdbuch, Quests, große Karte, Einstellungen und Spielstände:
+  - **Verschieben** an der Titelleiste, **Größe ziehen** am Griff unten rechts – mit Maus und Finger.
+    Je Fenster gibt es eine Mindest- und eine Höchstgröße; größer als der Bildschirm wird keines.
+    Ist das Fenster kleiner als sein Inhalt, wird gescrollt statt abgeschnitten.
+  - **Nie aus dem Bild:** Die Titelleiste bleibt immer ganz im Bild (oben nie über den Rand, unten
+    bleibt sie sichtbar), seitlich bleiben mindestens 90 Pixel zum Greifen. Das wird auch nach dem
+    Drehen und bei jeder Änderung der Browsergröße geprüft.
+  - **Vorn** liegt das zuletzt angeklickte oder geöffnete Fenster.
+  - **Gemerkt** werden Platz und Größe jedes Fensters im Browser unter `mein-rpg.ui.fenster`,
+    getrennt für PC- und Handy-Layout – nicht im Spielstand (Format bleibt 7). Der alte Platz des
+    Inventars wird einmal ins PC-Layout übernommen. Die Pinnnadel des Inventars bleibt.
+  - **Startplätze am PC** wie bisher: Inventar rechts mittig, Händler, Lagertruhe, Dorfausbau,
+    Jagdbuch und Quests links, Einstellungen und Spielstände oben rechts, große Karte in der Mitte.
+    **Am Handy** liegen alle Fenster unter der Knopf-Leiste (die bleibt erreichbar) und füllen den
+    Rest des Bildschirms; Händler bzw. Lagertruhe und Inventar teilen ihn sich (quer: nebeneinander,
+    hochkant: untereinander).
+  - **„Fensterlayout zurücksetzen"** (Einstellungen, früher „Fenster zurücksetzen") setzt alle
+    Fenster für PC und Handy zurück und löst die Pinnnadel. „Alles auf Standard" tut das auch.
+  - Einstellungen und Spielstände sind jetzt richtige Fenster mit ×. Vor dem Spiel (Slot-Auswahl)
+    steht das Spielstand-Menü weiter fest in der Bildmitte.
+  - **Große Karte:** verschiebbar und in der Größe ziehbar; die Karte füllt das Fenster, so weit es
+    ihr Seitenverhältnis erlaubt. Wird der Regler „Größe" bewegt, gilt wieder seine Größe (eine
+    gezogene Größe wird dann vergessen). Am Handy füllt sie immer den Platz unter der Leiste – der
+    Regler wirkt dort erst, wenn man das Fenster kleiner zieht und den Regler danach bewegt.
+  - Unverändert: Händler, Dorfausbau, Lagertruhe, Jagdbuch und Quests schließen sich weiter
+    gegenseitig (sie hatten denselben Platz); Inventar, Karte, Einstellungen und Spielstände sind
+    davon unabhängig.
+- **Regel *(Entschieden)*: Neue Fenster benutzen immer die gemeinsame Fenster-Komponente**
+  (`GameWindow`): in `index.html` ein Element mit `.window-title` und `.window-body`, ein Eintrag in
+  `WINDOWS` (`src/data/windows.ts`) und `new GameWindow(root, 'id')` im Fenster-Code. Kein eigener
+  Code für Ziehen, Größe oder Merken.
 
 ## 3. Perspektive & Grafik
 
@@ -1162,6 +1245,7 @@ umgesetzt ✅ – siehe Tabelle in 15.7. Von der zweiten Fortschrittsachse (Absc
 Dorfausbau (Schritt 11b) und das Jagdbuch (Schritt 11c) umgesetzt ✅; die Meisterschaft ist geplant.
 Schritt 11d (große Karte, Abschnitt 2d, und die Regel „Maus zuerst", Abschnitt 2) ist umgesetzt ✅.
 Meilenstein 12 (Quests und Kopfgeld-Brett, Abschnitt 9c) ist umgesetzt ✅.
+Von Schritt 12b (Handy-Anpassung) ist Teil 1 umgesetzt ✅ (Abschnitt 2e), Teil 2 steht aus.
 
 **Reihenfolge nach V1:** steht jetzt als Meilensteine 10–20 in Abschnitt 15.7 (ersetzt die
 frühere Kurzliste Talentbaum → Quests → Aufwerten → Zone 2 → …).
@@ -1177,7 +1261,7 @@ Von dir gewünscht. *(Entschieden)*
 | Nebel des Krieges | optional, zusammen mit Minimap oder großer Karte | Noch nicht besuchte Bereiche der Karte bleiben verdeckt und werden beim Erkunden aufgedeckt |
 | Mehr Skills als Plätze | Meilenstein 14, zusammen mit dem Talentbaum | Mit der Zeit 8–10 Skills pro Klasse freischalten, aber nur 4 aktive Plätze. Die Auswahl ist der Build. |
 | Legendäre Items mit einzigartigen Effekten | Meilenstein 15 (Liste in Abschnitt 15.4) | Legendäre Items verändern Skills, z. B. „Rundumschlag hinterlässt Feuerspur". |
-| Handy-Anpassung der bestehenden Fenster und des HUD | eigener Schritt, Vorschlag: **12b** (Abschnitt 15.10) | Kleine Bildschirme, Antippen-Menü für Items – alles Alte auf die Regel „Maus zuerst" bringen |
+| Handy-Anpassung der bestehenden Fenster und des HUD | **12b**: Teil 1 ✅ (Abschnitt 2e), Teil 2 offen (Abschnitt 15.10) | Kleine Bildschirme, Antippen-Menü für Items – alles Alte auf die Regel „Maus zuerst" bringen |
 | Musik und Soundeffekte | eigener Schritt, Vorschlag: **13b** (Abschnitt 15.10) | Musik pro Zone; Sounds für Treffer, Beute, Levelaufstieg, UI; Lautstärkeregler und Stumm in den Einstellungen; CC0-Pakete bevorzugt |
 
 Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
@@ -1313,7 +1397,7 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
       (Bronze, Silber, Gold); Bosse-Zeile 1 / 5 / 20 Siege.
     - Die Meldung zu einem neuen Rang steht in der Beute-Liste. Wer die Beute-Liste in den
       Einstellungen ausblendet, sieht sie nicht.
-    - Das Fenster sitzt links (wie der Händler) und ist nicht verschiebbar; bei 720 Pixeln
+    - Das Fenster sitzt links (wie der Händler) und ist seit 12b verschiebbar (Abschnitt 2e); bei 720 Pixeln
       Bildhöhe bekommt es einen Rollbalken. Im Zielrahmen steht der Rang des Gegners noch nicht.
     - Boni im Fenster sind auf den Typ bezogen; ob ein Bonus gerade wirkt, sieht man im Kampf
       nur an den Zahlen (3 % sind klein).
@@ -1363,6 +1447,20 @@ Oben rechts sitzt die Knopf-Leiste, darunter die Minimap.
     - Touch-Tooltips bleiben 3 Sekunden stehen (`TOUCH_TIP_MS`). Am Handy legt Antippen ein Item
       weiterhin **sofort** an – der Tooltip zeigt dann schon das getauschte Item. Das behebt erst
       das Antippen-Menü aus Schritt 12b (Abschnitt 15.10).
+
+22. Meilenstein 12b Teil 1, von mir gesetzte Startwerte zum Prüfen im Spiel (Abschnitt 2e, Werte in
+    `src/data/windows.ts` und `TOUCH_HIT_PAD` in `src/config.ts`):
+    - Grenze Handy-Layout: kürzere Bildschirmseite unter 500 Pixel. Tablets bekommen das PC-Layout
+      (mit großen Knöpfen, wenn sie per Finger bedient werden).
+    - Grundgrößen am Handy (Rahmen 85 %, Skill-Leiste 80 %, Minimap 75 %) und die Plätze von
+      Zielrahmen und Beute-Liste.
+    - Mindest- und Höchstgrößen der Fenster, 90 Pixel, die seitlich immer im Bild bleiben, und die
+      Startplätze am Handy (Händler/Truhe + Inventar je halb, alles andere voll).
+    - Ein Fenster mit Höhe „nach Inhalt" wird beim Herunterschieben kürzer (es endet am Bildrand
+      und scrollt), statt unten hinauszuragen.
+    - Mit dem Finger 5 Welt-Pixel Spielraum beim Antippen von Gegnern und Figuren.
+    - Items am Handy: Tooltip mit Knöpfen statt Sofort-Aktion; Wegwerfen immer mit Sicherheits-Druck.
+    - Das alte Punkt-21-Problem „Antippen legt das Item sofort an" ist damit behoben.
 
 ---
 
@@ -1637,7 +1735,7 @@ Von dir entschieden *(Entschieden)*: vier Knöpfe plus freie Regler, mehr EP und
 „Sitzung" = ein Arbeitsgang mit einem PR wie bisher. Die Schätzungen sind grob; dein Testen und
 das Nachstellen von Werten kommen jeweils dazu. Die Versionsnummer folgt weiter dem Meilenstein
 (Meilenstein 10 = 0.10.0, Meilenstein 11 = 0.11.0); Zwischenschritte mit Buchstaben zählen die
-letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2, 11c = 0.11.3, 11d = 0.11.4 …; Meilenstein 12 = 0.12.0). Die Schritte
+letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2, 11c = 0.11.3, 11d = 0.11.4 …; Meilenstein 12 = 0.12.0, 12b Teil 1 = 0.12.1). Die Schritte
 11b, 11c und 14b sind die zweite Fortschrittsachse aus Abschnitt 16 – seit deinen Antworten in
 16.6 *(Entschieden)*; offen ist nur die Waffen-Meisterschaft. Die Nummern 12–20 bleiben, wie sie waren.
 
@@ -1650,7 +1748,8 @@ letzte Stelle hoch (10b = 0.11.1, weil er nach Meilenstein 11 kam; 11b = 0.11.2,
 | 11c ✅ | Jagdbuch (16.3) | Umgesetzt. Besiegte Gegner je Typ zählen (Elite fünffach), fünf Ränge mit kleinen Boni gegen den Typ, Sammelseite Grünwald (Bronze / Silber / Gold: Leben und Angriffskraft), Bosse-Zeile, Fenster mit Taste `J` und Knopf in der Leiste, Meldung bei neuem Rang. Spielstand Format 6 | 1 Sitzung, klein bis mittel |
 | 11d ✅ | Große Karte, Regel „Maus zuerst" | Umgesetzt (Abschnitt 2d). **Große Karte** mit `M` und Knopf, vorgezogen aus Meilenstein 13: ganze Zone, Punkte wie auf der Minimap, Ortsnamen aus dem Bauplan, Klick = Automatiklauf mit Zielmarker, Größe und Deckkraft in den Einstellungen. **Regel für alle neuen UI-Elemente:** Maus / ein Finger zuerst, alles per Klick erreichbar, passt auf kleine Bildschirme (Abschnitt 2, `CLAUDE.md`). **Jagdbuch:** schwache Gegner zählen nur halb. Kein neues Spielstand-Format. *Startwerte von mir:* alles in `src/data/worldmap.ts`, Ortsnamen, Erklär-Zeile, „Karte bleibt offen", Schwelle 5 Stufen / halb | 1 Sitzung, klein bis mittel |
 | 12 ✅ | Quests | Umgesetzt (Abschnitt 9c). Drei Questgeber im Dorf, fünf Quest-Arten, Questlog (`L` und Knopf), Zähler im HUD (unter der Minimap), Kopfgeld-Brett (Anzahl der Kopfgelder hängt an der Rathaus-Stufe, 16.2), die 6 Quests in Grünwald, Quest-Ziele als Ringe auf Minimap und großer Karte. Dazu der Fix „Tooltips verschwinden am Handy wieder" (Abschnitt 2). Spielstand Format 7. *Startwerte von mir:* alles in `src/data/quests.ts` und `src/data/npcs.ts`, Regeln des Kopfgeld-Bretts, Aussehen | 1 Sitzung, mittel |
-| 12b *(Vorschlag)* | Handy-Anpassung | Bestehende Fenster und HUD auf die Regel „Maus zuerst" bringen: Antippen-Menü für Items, Fenster für kleine Bildschirme, HUD-Größen fürs Handy (Abschnitt 15.10). Kein neues Spielstand-Format | 1–2 Sitzungen, mittel |
+| 12b ✅ Teil 1 | Handy-Anpassung: Grundlage, HUD, Fenster-System | Umgesetzt (Abschnitt 2e): Skalierung ohne Seiten-Zoom, zentrale Erkennung (`src/ui/device.ts`), Tippen statt Rechtsklick (Item-Tooltip mit Knöpfen), Tooltips schließen beim zweiten Antippen, HUD-Größen und -Plätze fürs Handy, Safe Area, gemeinsames Fenster-System für alle Fenster (verschieben, Größe, merken je Layout, zurücksetzen). Kein neues Spielstand-Format. Version 0.12.1 | 1 Sitzung, mittel |
+| 12b Teil 2 | Handy-Anpassung: Inhalt der Fenster | Raster, Schriftgrößen und Anordnung **innerhalb** der Fenster für kleine Bildschirme (Liste in 15.10) | 1 Sitzung, mittel |
 | 13 | Zone 2: Orkhügel | Gegner-Fähigkeiten (Fernkampf, Heilen, Anstürmen, Schlag mit Ansage, Verstärkung rufen), Zone mit Außenposten, Portalsteine, Cap 20, neue Assets (die große Karte gibt es seit 11d; die neue Zone bekommt sie von selbst) | 2–3 Sitzungen, groß |
 | 13b *(Vorschlag)* | Musik und Soundeffekte | Musik pro Zone, Sounds für Treffer, Beute, Levelaufstieg, Quests, UI; Regler Musik / Effekte und „Stumm" in den Einstellungen; CC0-Pakete (Abschnitt 15.10). Hängt an nichts – lässt sich auch früher oder später einschieben | 1 Sitzung, klein bis mittel (plus deine Auswahl der Stücke) |
 | 14 | Talentbaum und neue Skills | 3 Bäume, 1 Punkt je Stufe (19 Punkte bei Cap 20, 39 bei Cap 40), Zurücksetzen gegen Gold, Taste `T`. Dazu neue Skills auf Stufe 12 / 16 / 20 / 25 / 30 / 35 und die Auswahl „mehr Skills als Plätze" (Abschnitt 13). Erst hier, weil der Baum mit 9 Punkten nicht trägt | 2 Sitzungen, groß |
@@ -1755,6 +1854,11 @@ sind Vorschläge von mir (Startwerte)**. Die Aufwände sind grob geschätzt wie 
 
 **Schritt 12b – Handy-Anpassung der bestehenden Fenster und des HUD**
 
+> **Stand:** in zwei Teile geteilt. **Teil 1 ✅** (Abschnitt 2e): Skalierung, Bedienung, Touch statt
+> Rechtsklick (das Antippen-Menü für Items steckt jetzt im Item-Tooltip), HUD am Handy und das
+> gemeinsame Fenster-System. **Teil 2 (offen):** den Inhalt der einzelnen Fenster für kleine
+> Bildschirme neu anordnen – Liste unten. Die Tabelle darunter ist der ursprüngliche Plan.
+
 Ziel: Alles, was vor Schritt 11d gebaut wurde, hält die Regel „Maus zuerst" ein (Abschnitt 2).
 Neu gebaut ist sie schon in der großen Karte (11d) und bei den Quests (12); die Tooltips
 verschwinden seit Meilenstein 12 am Handy wieder.
@@ -1771,7 +1875,34 @@ verschwinden seit Meilenstein 12 am Handy wieder.
   kommt (Talentbaum, Schmied), würde sonst erst nach altem Muster gebaut und später umgebaut.
 - **Offene Frage an dich:** Soll das Antippen-Menü auch am PC gelten (ein Klick mehr beim
   Anlegen, dafür überall dieselbe Bedienung) – oder nur bei Touch, und am PC bleibt Linksklick =
-  anlegen? *Mein Vorschlag: nur bei Touch.*
+  anlegen? *Mein Vorschlag: nur bei Touch.* – **Umgesetzt in Teil 1: nur bei Touch** (lässt sich
+  ändern, wenn du es anders willst).
+
+**Offen für 12b Teil 2** (beim Bauen von Teil 1 aufgefallen, Startliste von mir):
+- **Inventar:** Ausrüstung und Inventar stehen nebeneinander; in der Handy-Hälfte (rund 300–370
+  Pixel) passt das nur mit Scrollen. Besser untereinander oder als Reiter (Ausrüstung / Inventar /
+  Werte). Item-Felder sind 40 Pixel – zum Tippen knapp, eher 44–48.
+- **Händler + Inventar:** am Handy nebeneinander bzw. untereinander je eine halbe Fläche – eng.
+  Vorschlag aus dem Plan: Reiter im Händler-Fenster (Ware / Rückkauf / Verkaufen).
+- **Lagertruhe:** festes Raster mit 10 Feldern je Zeile (460 Pixel) – am Handy nur mit
+  waagerechtem Scrollen. Raster soll sich der Breite anpassen.
+- **Dorfausbau** (500 Pixel breit) und **Jagdbuch** (680 Pixel, Karten nebeneinander): Zeilen und
+  Karten sollen bei schmalem Fenster umbrechen statt waagerecht zu scrollen.
+- **Einstellungen:** Regler und Häkchen sind klein für den Finger; die zwei Regler je Zeile eher
+  untereinander. Die Tooltips der Häkchen (z. B. „bei allen Gegnern") sind nur `title` – am Handy
+  nicht zu sehen, besser als kleine Erklär-Zeile.
+- **Spielstände:** viele kleine Knöpfe je Slot in einer Zeile – am Handy umbrechen, größer.
+- **Große Karte:** Die Erklär-Zeile fällt nach der Bildschirmhöhe weg (unter 420 Pixel), nicht
+  nach der Fenstergröße; das sollte sich am Fenster richten. Ortsnamen sind bei kleiner Karte winzig.
+- **Item-Tooltip:** 220 Pixel breit, bei bildschirmfüllenden Fenstern verdeckt er Felder; am Handy
+  vielleicht unten als Leiste über die ganze Breite.
+- **Skill-Leiste:** Tooltips der Skills sitzen über der Leiste und können am Handy-Hochformat
+  seitlich über den Rand ragen – prüfen.
+- **Quest-Zähler** wandert weiter nicht mit der Minimap mit (Punkt 21 in Abschnitt 14).
+- **HUD-Verschiebungen** gelten für PC und Handy gemeinsam – eventuell wie bei den Fenstern trennen.
+- **Hinweis „Bitte quer halten"** und **Vollbild-Knopf** aus dem Plan: nicht gebaut, weil
+  Hochformat jetzt gespielt werden soll. Ein Vollbild-Knopf wäre noch eine Überlegung wert.
+- Schriftgrößen allgemein: 11–12 Pixel in vielen Fenstern sind am Handy klein.
 
 **Schritt 13b – Musik und Soundeffekte**
 

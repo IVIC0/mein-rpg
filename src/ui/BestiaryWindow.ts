@@ -3,6 +3,7 @@ import type { FieldGuide, GuideEntry } from '../bestiary/fieldGuide';
 import { BESTIARY_PAGES, BESTIARY_RANKS, BOSS_STEPS, ELITE_KILL_WEIGHT, PAGE_TIERS, TRIVIAL_KILLS, type BestiaryPageDef, type TypeBonus } from '../data/bestiary';
 import { RANKS, traitName } from '../data/elites';
 import { enemyStats } from '../data/enemies';
+import { GameWindow } from './GameWindow';
 import { byId } from './dom';
 
 /**
@@ -13,6 +14,8 @@ import { byId } from './dom';
  */
 export class BestiaryWindow {
   private readonly root = byId('bestiary');
+  /** Das gemeinsame Fenster-Gerüst: verschieben, Größe ziehen, merken, nach vorn holen. */
+  private readonly win = new GameWindow(this.root, 'bestiary');
   private readonly button = byId('bestiary-button');
   private readonly tabs = byId('bestiary-tabs');
   private readonly pageBox = byId('bestiary-page');
@@ -55,7 +58,7 @@ export class BestiaryWindow {
   }
 
   get isOpen(): boolean {
-    return !this.root.hidden;
+    return this.win.isOpen;
   }
 
   toggle(): void {
@@ -65,13 +68,13 @@ export class BestiaryWindow {
 
   open(): void {
     this.beforeOpen();
-    this.root.hidden = false;
+    this.win.show();
     this.button.classList.add('active');
     this.render();
   }
 
   close(): void {
-    this.root.hidden = true;
+    this.win.hide();
     this.button.classList.remove('active');
   }
 

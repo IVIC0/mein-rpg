@@ -2,7 +2,11 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Handy: kein Zoomen der Seite (auch nicht per Doppeltipp), Spielbild bis unter die Notch (viewport-fit=cover);
+         das HUD hält über env(safe-area-inset-*) Abstand davon. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>Rogoi Offline</title>
     <style>
       html,
@@ -12,6 +16,13 @@
         height: 100%;
         background: #1b2a1f;
         overflow: hidden;
+        /* Kein Nachziehen/Zurückfedern der Seite und kein "Ziehen zum Neuladen" am Handy. */
+        overscroll-behavior: none;
+        /* Nur Wischen zum Scrollen in Fenstern – kein Zoomen mit zwei Fingern, kein Doppeltipp-Zoom. */
+        touch-action: pan-x pan-y;
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
       }
       #game {
         position: fixed;
@@ -19,11 +30,13 @@
       }
       #game canvas {
         display: block;
+        /* Im Spielbild gehören alle Finger-Gesten dem Spiel (laufen, gedrückt halten). */
+        touch-action: none;
       }
       #version {
         position: fixed;
-        left: 6px;
-        bottom: 4px;
+        left: calc(6px + env(safe-area-inset-left, 0px));
+        bottom: calc(4px + env(safe-area-inset-bottom, 0px));
         font: 11px monospace;
         color: rgba(255, 255, 255, 0.55);
         text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
@@ -66,6 +79,8 @@
         <div class="frame-title">
           <span id="target-name"></span>
           <span id="target-level"></span>
+          <!-- Ziel aufheben (wie Esc) – für Maus und Finger. -->
+          <button id="target-clear" type="button" title="Ziel aufheben (Esc)">×</button>
         </div>
         <div id="target-rank"></div>
         <div class="bar bar-hp">
@@ -109,23 +124,35 @@
 
       <!-- Spielstände: Slots laden, anlegen, löschen, exportieren, importieren (füllt src/ui/SaveMenu.ts). -->
       <div id="saves" hidden>
-        <div class="window-title"><span id="saves-title">Spielstände</span></div>
-        <div id="saves-body"></div>
+        <div class="window-title">
+          <span id="saves-title">Spielstände</span>
+          <span class="window-buttons">
+            <button id="saves-close" type="button" title="Schließen (Esc)">×</button>
+          </span>
+        </div>
+        <div class="window-body" id="saves-body"></div>
       </div>
 
       <!-- Einstellungen (füllt src/ui/SettingsMenu.ts). -->
       <div id="settings" hidden>
-        <div class="window-title"><span>Einstellungen</span></div>
-        <!-- Die aufklappbaren Bereiche mit Häkchen und Reglern baut SettingsMenu.ts hier hinein. -->
-        <div id="settings-body"></div>
-        <button id="setting-edit-hud" type="button">HUD verschieben …</button>
-        <button id="setting-reset-windows" type="button">Fenster zurücksetzen</button>
-        <button id="setting-reset-all" type="button">Alles auf Standard</button>
+        <div class="window-title">
+          <span>Einstellungen</span>
+          <span class="window-buttons">
+            <button id="settings-close" type="button" title="Schließen (Esc)">×</button>
+          </span>
+        </div>
+        <div class="window-body">
+          <!-- Die aufklappbaren Bereiche mit Häkchen und Reglern baut SettingsMenu.ts hier hinein. -->
+          <div id="settings-body"></div>
+          <button id="setting-edit-hud" type="button">HUD verschieben …</button>
+          <button id="setting-reset-windows" type="button">Fensterlayout zurücksetzen</button>
+          <button id="setting-reset-all" type="button">Alles auf Standard</button>
+        </div>
       </div>
 
-      <!-- Leiste im Bearbeitungsmodus: HUD-Elemente lassen sich dann mit der Maus ziehen. -->
+      <!-- Leiste im Bearbeitungsmodus: HUD-Elemente lassen sich dann mit Maus oder Finger ziehen. -->
       <div id="hud-edit-bar" hidden>
-        <span>HUD verschieben: Elemente mit der Maus ziehen</span>
+        <span>HUD verschieben: Elemente ziehen</span>
         <button id="hud-edit-reset" type="button">Plätze zurücksetzen</button>
         <button id="hud-edit-done" type="button">Fertig (Esc)</button>
       </div>
@@ -140,7 +167,7 @@
             <button id="inventory-close" type="button" title="Schließen (I)">×</button>
           </span>
         </div>
-        <div class="window-columns">
+        <div class="window-body window-columns">
           <div class="window-column">
             <!-- Name der Figur und ihre Klasse (trägt WorldScene.showName ein). -->
             <div id="character-name"></div>
@@ -154,11 +181,9 @@
               <span id="gold"></span>
             </div>
             <!-- Ist der Händler oder die Lagertruhe offen, ergänzt InventoryWindow hier "Rechtsklick: verkaufen" bzw. "einlagern". -->
-            <div class="window-help" id="inventory-help">Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen</div>
+            <div class="window-help" id="inventory-help"></div>
           </div>
         </div>
-        <!-- Ecke unten rechts: daran lässt sich die Größe ziehen. -->
-        <div id="inventory-resize" title="Größe ändern"></div>
       </div>
 
       <!-- Händler (Klick auf den Händler im Dorf). Das Sortiment baut src/ui/ShopWindow.ts. -->
@@ -169,103 +194,121 @@
             <button id="shop-close" type="button" title="Schließen (Esc)">×</button>
           </span>
         </div>
-        <!-- Zwei Reiter: die Ware des Händlers und der Rückkauf verkaufter Items. -->
-        <div id="shop-tabs">
-          <button id="shop-tab-stock" class="shop-tab" type="button">Ware</button>
-          <button id="shop-tab-buyback" class="shop-tab" type="button">Rückkauf</button>
-        </div>
-        <div id="shop-page-stock">
-          <div id="shop-stock"></div>
-          <div class="bag-footer">
-            <span id="shop-restock"></span>
-            <span id="shop-gold"></span>
+        <div class="window-body">
+          <!-- Zwei Reiter: die Ware des Händlers und der Rückkauf verkaufter Items. -->
+          <div id="shop-tabs">
+            <button id="shop-tab-stock" class="shop-tab" type="button">Ware</button>
+            <button id="shop-tab-buyback" class="shop-tab" type="button">Rückkauf</button>
           </div>
-          <!-- "Neue Ware sofort" gibt es erst mit Kontor Stufe 3 (Dorfausbau). -->
-          <button id="shop-restock-now" class="shop-button" type="button" hidden></button>
-          <div id="shop-potion">
-            <span class="shop-potion-icon"><span id="shop-potion-icon" class="sprite-icon"></span></span>
-            <span id="shop-potion-info">
-              <span id="shop-potion-text"></span>
-              <b id="shop-potion-count"></b>
-            </span>
-            <button id="shop-potion-buy" class="shop-button" type="button"></button>
-            <span class="window-help" id="shop-potion-help"></span>
+          <div id="shop-page-stock">
+            <div id="shop-stock"></div>
+            <div class="bag-footer">
+              <span id="shop-restock"></span>
+              <span id="shop-gold"></span>
+            </div>
+            <!-- "Neue Ware sofort" gibt es erst mit Kontor Stufe 3 (Dorfausbau). -->
+            <button id="shop-restock-now" class="shop-button" type="button" hidden></button>
+            <div id="shop-potion">
+              <span class="shop-potion-icon"><span id="shop-potion-icon" class="sprite-icon"></span></span>
+              <span id="shop-potion-info">
+                <span id="shop-potion-text"></span>
+                <b id="shop-potion-count"></b>
+              </span>
+              <button id="shop-potion-buy" class="shop-button" type="button"></button>
+              <button id="shop-potion-bulk" class="shop-button" type="button"></button>
+              <span class="window-help hint-mouse" id="shop-potion-help"></span>
+            </div>
+            <div class="window-help">
+              <span class="hint-mouse">Linksklick auf Ware: kaufen<br />Rechtsklick auf ein Item im Inventar: verkaufen</span>
+              <span class="hint-touch">Ware antippen: ansehen und kaufen<br />Im Inventar antippen: verkaufen</span>
+            </div>
           </div>
-          <div class="window-help">Linksklick auf Ware: kaufen<br />Rechtsklick auf ein Item im Inventar: verkaufen</div>
-        </div>
-        <div id="shop-page-buyback" hidden>
-          <div id="shop-buyback"></div>
-          <div class="bag-footer">
-            <span id="shop-buyback-count"></span>
-            <span id="shop-buyback-gold"></span>
+          <div id="shop-page-buyback" hidden>
+            <div id="shop-buyback"></div>
+            <div class="bag-footer">
+              <span id="shop-buyback-count"></span>
+              <span id="shop-buyback-gold"></span>
+            </div>
+            <div class="window-help" id="shop-buyback-help"></div>
           </div>
-          <div class="window-help" id="shop-buyback-help"></div>
         </div>
       </div>
 
       <!-- Dorfausbau (Klick auf den Baumeister im Dorf). Die Zeilen baut src/ui/TownWindow.ts. -->
-      <div id="town" class="side-window" hidden>
+      <div id="town" hidden>
         <div class="window-title">
           <span>Dorfausbau</span>
           <span class="window-buttons">
             <button id="town-close" type="button" title="Schließen (Esc)">×</button>
           </span>
         </div>
-        <div id="town-list"></div>
-        <div class="bag-footer">
-          <span id="town-note">Die Gebäude bringen Komfort – keine Kampfwerte.</span>
-          <span id="town-gold"></span>
+        <div class="window-body">
+          <div id="town-list"></div>
+          <div class="bag-footer">
+            <span id="town-note">Die Gebäude bringen Komfort – keine Kampfwerte.</span>
+            <span id="town-gold"></span>
+          </div>
         </div>
       </div>
 
       <!-- Lagertruhe (Klick auf die Truhe am Lagerhaus). Die Felder baut src/ui/StashWindow.ts. -->
-      <div id="stash" class="side-window" hidden>
+      <div id="stash" hidden>
         <div class="window-title">
           <span>Lagertruhe</span>
           <span class="window-buttons">
             <button id="stash-close" type="button" title="Schließen (Esc)">×</button>
           </span>
         </div>
-        <div id="stash-slots"></div>
-        <div class="bag-footer">
-          <span id="stash-count"></span>
+        <div class="window-body">
+          <div id="stash-slots"></div>
+          <div class="bag-footer">
+            <span id="stash-count"></span>
+          </div>
+          <!-- hint-mouse / hint-touch: Hinweis für Maus bzw. Finger (welcher gilt, entscheidet src/ui/device.ts). -->
+          <div class="window-help">
+            <span class="hint-mouse">Linksklick: ins Inventar nehmen<br />Rechtsklick auf ein Item im Inventar: einlagern</span>
+            <span class="hint-touch">Item antippen: ansehen und herausnehmen<br />Im Inventar antippen: einlagern</span>
+          </div>
         </div>
-        <div class="window-help">Linksklick: ins Inventar nehmen<br />Rechtsklick auf ein Item im Inventar: einlagern</div>
       </div>
 
       <!-- Jagdbuch (Taste J oder der Knopf in der Leiste). Den Inhalt baut src/ui/BestiaryWindow.ts. -->
-      <div id="bestiary" class="side-window" hidden>
+      <div id="bestiary" hidden>
         <div class="window-title">
           <span>Jagdbuch</span>
           <span class="window-buttons">
             <button id="bestiary-close" type="button" title="Schließen (J oder Esc)">×</button>
           </span>
         </div>
-        <!-- Ein Reiter je Sammelseite (Zone). -->
-        <div id="bestiary-tabs"></div>
-        <!-- Die drei Stufen der Sammelseite: Bronze, Silber, Gold. -->
-        <div id="bestiary-page"></div>
-        <div id="bestiary-list"></div>
-        <div class="bestiary-heading">Bosse <span>– reines Sammeln, ohne Bonus</span></div>
-        <div id="bestiary-bosses"></div>
-        <div class="bag-footer">
-          <span id="bestiary-total"></span>
+        <div class="window-body">
+          <!-- Ein Reiter je Sammelseite (Zone). -->
+          <div id="bestiary-tabs"></div>
+          <!-- Die drei Stufen der Sammelseite: Bronze, Silber, Gold. -->
+          <div id="bestiary-page"></div>
+          <div id="bestiary-list"></div>
+          <div class="bestiary-heading">Bosse <span>– reines Sammeln, ohne Bonus</span></div>
+          <div id="bestiary-bosses"></div>
+          <div class="bag-footer">
+            <span id="bestiary-total"></span>
+          </div>
+          <div class="window-help" id="bestiary-help"></div>
         </div>
-        <div class="window-help" id="bestiary-help"></div>
       </div>
 
       <!-- Quests: das Questlog (Taste L oder der Knopf in der Leiste), das Gespräch mit einem
            Questgeber und das Kopfgeld-Brett. Den Inhalt baut src/ui/QuestWindow.ts. -->
-      <div id="quests" class="side-window" hidden>
+      <div id="quests" hidden>
         <div class="window-title">
           <span id="quests-title">Quests</span>
           <span class="window-buttons">
             <button id="quests-close" type="button" title="Schließen (L oder Esc)">×</button>
           </span>
         </div>
-        <div id="quests-list"></div>
-        <div class="bag-footer">
-          <span id="quests-footer"></span>
+        <div class="window-body">
+          <div id="quests-list"></div>
+          <div class="bag-footer">
+            <span id="quests-footer"></span>
+          </div>
         </div>
       </div>
 
@@ -278,9 +321,11 @@
             <button id="worldmap-close" type="button" title="Schließen (M oder Esc)">×</button>
           </span>
         </div>
-        <canvas id="worldmap-canvas"></canvas>
-        <!-- Erklärung der Punkte (füllt WorldMap.ts aus den Farben der Minimap). -->
-        <div id="worldmap-legend"></div>
+        <div class="window-body" id="worldmap-body">
+          <canvas id="worldmap-canvas"></canvas>
+          <!-- Erklärung der Punkte (füllt WorldMap.ts aus den Farben der Minimap). -->
+          <div id="worldmap-legend"></div>
+        </div>
       </div>
       <div id="item-tooltip" hidden></div>
 

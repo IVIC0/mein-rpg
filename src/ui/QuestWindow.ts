@@ -1,6 +1,7 @@
 import { BOUNTY_BOARD, NPCS } from '../data/npcs';
 import { rarityById } from '../items/generator';
 import { goalText, type QuestEntry, type QuestLog, type QuestStatus } from '../quests/QuestLog';
+import { GameWindow } from './GameWindow';
 import { byId } from './dom';
 
 /** Reihenfolge der Karten im Fenster: was etwas von einem will, steht oben. */
@@ -27,6 +28,8 @@ const STATUS_LABEL: Record<QuestStatus, string> = {
  */
 export class QuestWindow {
   private readonly root = byId('quests');
+  /** Das gemeinsame Fenster-Gerüst: verschieben, Größe ziehen, merken, nach vorn holen. */
+  private readonly win = new GameWindow(this.root, 'quests');
   private readonly button = byId('quests-button');
   private readonly title = byId('quests-title');
   private readonly list = byId('quests-list');
@@ -63,7 +66,7 @@ export class QuestWindow {
   }
 
   get isOpen(): boolean {
-    return !this.root.hidden;
+    return this.win.isOpen;
   }
 
   /** Der Auftraggeber, dessen Ansicht gerade offen ist – null beim Questlog oder wenn das Fenster zu ist. */
@@ -81,13 +84,13 @@ export class QuestWindow {
   open(giver: string | null): void {
     this.beforeOpen();
     this.currentGiver = giver;
-    this.root.hidden = false;
+    this.win.show();
     this.button.classList.toggle('active', giver === null);
     this.render();
   }
 
   close(): void {
-    this.root.hidden = true;
+    this.win.hide();
     this.button.classList.remove('active');
   }
 

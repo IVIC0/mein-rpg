@@ -5,6 +5,29 @@
   display: none !important;
 }
 
+/*
+ * Ränder für Notch, Kamera-Loch und Home-Leiste (am PC alle 0). Das HUD hält davon Abstand.
+ * --topbar-size = Größe der Knöpfe oben rechts; mit dem Finger größer (siehe "Handy und Finger" ganz unten).
+ */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --topbar-size: 26px;
+  /* Unterkante der Knopf-Leiste: 10 Rand + 3 Innenabstand oben/unten + 2 Rahmen oben/unten. */
+  --topbar-bottom: calc(var(--safe-top) + 20px + var(--topbar-size));
+}
+
+/* Unsichtbar: Hier liest src/ui/device.ts die Safe-Area-Ränder ab. */
+#safe-area-probe {
+  position: fixed;
+  inset: 0;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  visibility: hidden;
+  pointer-events: none;
+}
+
 #hud,
 #nameplates,
 #floaters {
@@ -24,14 +47,37 @@
 #player-frame,
 #target-frame {
   position: absolute;
-  left: 10px;
-  top: 10px;
+  left: calc(10px + var(--safe-left));
+  top: calc(10px + var(--safe-top));
   transform-origin: 0 0;
 }
 
 /* Der Zielrahmen steht rechts neben dem Spielerrahmen (210 Pixel breit + 10 Abstand). */
 #target-frame {
-  left: 230px;
+  left: calc(230px + var(--safe-left));
+}
+
+/* × im Zielrahmen: Ziel aufheben (wie Esc). */
+#target-clear {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: -3px -4px -3px 0;
+  padding: 0;
+  font: bold 15px/1 sans-serif;
+  color: #c9bf9f;
+  background: #2e342c;
+  border: 1px solid #0c0f0c;
+  border-radius: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+@media (hover: hover) {
+  #target-clear:hover {
+    border-color: #e8d9a0;
+  }
 }
 
 /* ---------------------------------------------------------------- Verschiebbare HUD-Elemente */
@@ -39,9 +85,10 @@
 /*
  * Platz und Größe kommen aus den Einstellungen (setzt HudLayout.ts):
  * --dx / --dy = Verschiebung gegenüber dem Standard-Platz, --scale = Größe.
+ * --base-scale = Grundgröße je Layout (am Handy etwas kleiner, siehe ganz unten); die Einstellung rechnet darauf.
  */
 .hud-item {
-  transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(var(--scale, 1));
+  transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(calc(var(--scale, 1) * var(--base-scale, 1)));
 }
 
 /* In den Einstellungen ausgeblendet. */
@@ -55,6 +102,8 @@
   outline-offset: 2px;
   cursor: move;
   pointer-events: auto;
+  /* Mit dem Finger ziehen, ohne dass der Browser scrollt. */
+  touch-action: none;
 }
 
 .hud-edit .hud-item * {
@@ -69,9 +118,12 @@
 
 #hud-edit-bar {
   position: absolute;
+  z-index: 100000;
   left: 0;
   right: 0;
-  top: 10px;
+  top: calc(10px + var(--safe-top));
+  max-width: calc(100% - 20px);
+  flex-wrap: wrap;
   width: fit-content;
   margin: 0 auto;
   display: flex;
@@ -205,7 +257,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 14px;
+  bottom: calc(14px + var(--safe-bottom));
   width: fit-content;
   margin: 0 auto;
   transform-origin: 50% 100%;
@@ -420,8 +472,9 @@
 
 #message {
   position: absolute;
+  z-index: 100000;
   left: 50%;
-  bottom: 96px;
+  bottom: calc(96px + var(--safe-bottom));
   transform: translateX(-50%);
   font-size: 15px;
   font-weight: bold;
@@ -479,6 +532,7 @@
 
 #levelup {
   position: absolute;
+  z-index: 100000;
   left: 50%;
   top: 22%;
   transform: translateX(-50%);
@@ -524,6 +578,7 @@
 
 #death-screen {
   position: absolute;
+  z-index: 100000;
   inset: 0;
   display: flex;
   flex-direction: column;
@@ -618,8 +673,8 @@
 
 #loot-log {
   position: absolute;
-  left: 10px;
-  bottom: 24px;
+  left: calc(10px + var(--safe-left));
+  bottom: calc(24px + var(--safe-bottom));
   transform-origin: 0 100%;
   font-size: 13px;
   font-weight: bold;
@@ -632,8 +687,8 @@
 /* Unter der Knopf-Leiste. Die Größe der Zeichenfläche setzt src/ui/Minimap.ts (src/data/minimap.ts). */
 #minimap {
   position: absolute;
-  right: 10px;
-  top: 52px;
+  right: calc(10px + var(--safe-right));
+  top: calc(var(--topbar-bottom) + 6px);
   transform-origin: 100% 0;
   padding: 2px;
   background: rgba(22, 26, 22, 0.85);
@@ -648,11 +703,11 @@
 
 /* ---------------------------------------------------------------- Quest-Zähler */
 
-/* Unter der Minimap (52 + 148 Pixel). Ein HUD-Element wie die anderen; ein Klick öffnet das Questlog. */
+/* Unter der Minimap (148 Pixel hoch). Ein HUD-Element wie die anderen; ein Klick öffnet das Questlog. */
 #quest-tracker {
   position: absolute;
-  right: 10px;
-  top: 206px;
+  right: calc(10px + var(--safe-right));
+  top: calc(var(--topbar-bottom) + 160px);
   transform-origin: 100% 0;
   width: 190px;
   font-size: 12px;
@@ -688,12 +743,10 @@
   color: #9dff3d;
 }
 
-/* Kleiner Bildschirm (Handy quer): schmal, damit der Zähler nicht über der Skill-Leiste liegt. */
-@media (max-height: 500px) {
-  #quest-tracker {
-    width: 122px;
-    font-size: 11px;
-  }
+/* Handy-Layout: schmal, damit der Zähler nicht über der Skill-Leiste liegt. */
+.ui-mobile #quest-tracker {
+  width: 122px;
+  font-size: 11px;
 }
 
 #quest-tracker .more {
@@ -712,17 +765,12 @@
  * src/data/worldmap.ts) – immer so, dass das ganze Fenster in den Bildschirm passt.
  */
 #worldmap {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  box-sizing: border-box;
   padding: 5px 7px 6px;
-  background: rgba(22, 26, 22, 0.94);
-  border: 2px solid #0c0f0c;
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
+}
+
+/* Die Zeichenfläche passt WorldMap.ts selbst in den Platz ein – Scrollen braucht es hier nie. */
+#worldmap-body {
+  overflow: hidden;
 }
 
 #worldmap .window-title {
@@ -730,12 +778,6 @@
   font-size: 13px;
 }
 
-/* Der Schließen-Knopf ist größer als bei den alten Fenstern: gut zu treffen mit dem Finger. */
-#worldmap .window-buttons button {
-  width: 30px;
-  height: 30px;
-  font-size: 20px;
-}
 
 #worldmap-canvas {
   display: block;
@@ -788,8 +830,8 @@
 
 #topbar {
   position: absolute;
-  right: 10px;
-  top: 10px;
+  right: calc(10px + var(--safe-right));
+  top: calc(10px + var(--safe-top));
   display: flex;
   gap: 4px;
   padding: 3px;
@@ -801,8 +843,8 @@
 
 .topbar-button {
   position: relative;
-  width: 26px;
-  height: 26px;
+  width: var(--topbar-size);
+  height: var(--topbar-size);
   padding: 0;
   font: 16px/1 sans-serif;
   color: #f4ecd2;
@@ -830,26 +872,14 @@
 }
 
 #settings {
-  position: absolute;
-  right: 10px;
-  top: 50px;
-  z-index: 2;
+  width: 230px;
+  font-size: 12px;
+}
+
+#settings .window-body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: 230px;
-  /* Bei kleinem Browserfenster wird gescrollt statt abgeschnitten. */
-  max-height: calc(100vh - 70px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #6f7566 transparent;
-  box-sizing: border-box;
-  padding: 8px 10px 10px;
-  font-size: 12px;
-  background: rgba(22, 26, 22, 0.94);
-  border: 2px solid #0c0f0c;
-  border-radius: 4px;
-  pointer-events: auto;
 }
 
 #settings label {
@@ -857,7 +887,7 @@
 }
 
 #settings .window-title {
-  margin-bottom: 2px;
+  margin-bottom: 8px;
   font-size: 13px;
 }
 
@@ -946,33 +976,28 @@
 }
 
 /* Das Menü "Spielstände": gleicher Platz und gleiches Aussehen wie die Einstellungen. */
+/* Im Spiel ein Fenster wie alle anderen (GameWindow); vor dem Spiel steht die Auswahl fest in der Bildmitte. */
 #saves {
-  position: absolute;
-  right: 10px;
-  top: 50px;
-  /* Über dem Inventarfenster, das in der Standard-Lage am selben Rand sitzt. */
-  z-index: 2;
   width: 300px;
-  max-height: calc(100vh - 70px);
+  font-size: 12px;
+}
+
+.no-game #saves {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: max(4px, 15vh);
+  width: 340px;
+  max-width: calc(100% - 8px);
+  max-height: calc(100% - max(4px, 15vh) - 8px);
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #6f7566 transparent;
+  margin: 0 auto;
   box-sizing: border-box;
   padding: 8px 10px 10px;
-  font-size: 12px;
   background: rgba(22, 26, 22, 0.94);
   border: 2px solid #0c0f0c;
   border-radius: 4px;
   pointer-events: auto;
-}
-
-/* Vor dem Spiel steht die Auswahl in der Bildmitte. */
-.no-game #saves {
-  left: 0;
-  right: 0;
-  top: 15vh;
-  width: 340px;
-  margin: 0 auto;
 }
 
 #saves .window-title {
@@ -1020,7 +1045,7 @@
   margin-top: 4px;
 }
 
-#saves > #saves-body > .save-buttons {
+#saves-body > .save-buttons {
   margin-bottom: 6px;
 }
 
@@ -1248,23 +1273,9 @@
 
 /* ---------------------------------------------------------------- Fenster "Charakter & Inventar" */
 
-/* Position und Größe setzt InventoryWindow.ts (verschieben, Größe ziehen, merken). */
+/* Platz und Größe setzt GameWindow.ts; hier nur die Standard-Breite. */
 #inventory {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
   width: 540px;
-  min-width: 290px;
-  min-height: 180px;
-  max-width: 100vw;
-  max-height: 100vh;
-  padding: 8px 10px 10px;
-  background: rgba(22, 26, 22, 0.94);
-  border: 2px solid #0c0f0c;
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
 }
 
 /* Angepinnt: heller Rand als Erkennungszeichen. */
@@ -1282,9 +1293,6 @@
   text-shadow: 0 1px 0 #000;
 }
 
-#inventory-title {
-  cursor: move;
-}
 
 .window-buttons {
   display: flex;
@@ -1320,26 +1328,10 @@
   border-color: #ffd34d;
 }
 
-/* Griff unten rechts zum Ziehen der Größe: zwei schräge Striche. */
-#inventory-resize {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 14px;
-  height: 14px;
-  cursor: nwse-resize;
-  background: linear-gradient(135deg, transparent 50%, #6f7566 50%, #6f7566 60%, transparent 60%, transparent 75%, #6f7566 75%, #6f7566 85%, transparent 85%);
-}
-
 /* Ist das Fenster kleiner als sein Inhalt, lässt sich der Inhalt scrollen. */
 .window-columns {
   display: flex;
   gap: 12px;
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #6f7566 transparent;
 }
 
 .window-column {
@@ -1472,17 +1464,7 @@
 
 /* Links in der Bildmitte – das Inventar steht in der Standard-Lage rechts. */
 #shop {
-  position: absolute;
-  left: 10px;
-  top: 110px;
-  box-sizing: border-box;
   width: 226px;
-  padding: 8px 10px 10px;
-  background: rgba(22, 26, 22, 0.94);
-  border: 2px solid #0c0f0c;
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
 }
 
 /* Das Regal: 4 Plätze pro Zeile, unter jedem Item sein Preis. */
@@ -1620,23 +1602,6 @@
 
 /* ---------------------------------------------------------------- Dorfausbau und Lagertruhe */
 
-/* Beide Fenster sitzen links wie der Händler – offen ist immer nur eines davon. */
-.side-window {
-  position: absolute;
-  left: 10px;
-  top: 110px;
-  box-sizing: border-box;
-  max-height: calc(100vh - 130px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #6f7566 transparent;
-  padding: 8px 10px 10px;
-  background: rgba(22, 26, 22, 0.94);
-  border: 2px solid #0c0f0c;
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
-}
 
 #town {
   width: 500px;
@@ -1766,28 +1731,12 @@
 /* Questlog, Gespräch mit einem Questgeber und Kopfgeld-Brett: ein Fenster, links wie das Jagdbuch. */
 #quests {
   width: 430px;
-  max-width: calc(100vw - 20px);
-}
-
-/* Kleiner Bildschirm (Handy quer): ganz nach oben, links neben die Knopf-Leiste, volle Höhe. */
-@media (max-height: 500px) {
-  #quests {
-    top: 6px;
-    width: calc(100vw - 250px);
-    min-width: 290px;
-    max-height: calc(100vh - 12px);
-  }
 }
 
 #quests .window-title {
   margin-bottom: 6px;
 }
 
-/* Das × ist hier groß genug zum Tippen. */
-#quests .window-buttons button {
-  width: 30px;
-  height: 30px;
-}
 
 .quest-empty {
   padding: 6px 2px;
@@ -1911,7 +1860,6 @@
 
 #bestiary {
   width: 680px;
-  max-width: calc(100vw - 20px);
 }
 
 #bestiary-tabs {
@@ -2124,7 +2072,8 @@
 /* Die Position setzt ItemTooltip.ts: neben dem Fenster, auf Höhe des Feldes unter dem Mauszeiger. */
 #item-tooltip {
   position: fixed;
-  z-index: 3;
+  /* Über allen Fenstern (deren z-index zählt GameWindow hoch). */
+  z-index: 200000;
   width: 220px;
   padding: 6px 8px;
   font-size: 12px;
@@ -2182,4 +2131,211 @@
   font-size: 11px;
   font-style: normal;
   color: #8a8a80;
+}
+
+/* ---------------------------------------------------------------- Fenster (gemeinsam, GameWindow.ts) */
+
+/*
+ * Jedes Fenster bekommt die Klasse "game-window" von src/ui/GameWindow.ts. Platz, Größe, Grenzen und
+ * Reihenfolge (z-index) setzt GameWindow; hier steht nur das gemeinsame Aussehen. Eigene Regeln
+ * der Fenster (#inventory, #shop …) legen nur noch Standard-Breite und Inhalt fest.
+ */
+.game-window {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 8px 10px 10px;
+  background: rgba(22, 26, 22, 0.94);
+  border: 2px solid #0c0f0c;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+/* An der Titelleiste wird gezogen – auch mit dem Finger, ohne dass die Seite mitscrollt. */
+.game-window > .window-title {
+  flex: none;
+  cursor: move;
+  touch-action: none;
+}
+
+/* Der Inhalt füllt den Rest. Ist das Fenster kleiner als der Inhalt, wird gescrollt statt abgeschnitten. */
+.game-window > .window-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #6f7566 transparent;
+}
+
+/* Griff unten rechts zum Ziehen der Größe: zwei schräge Striche. */
+.window-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  touch-action: none;
+  background: linear-gradient(135deg, transparent 50%, #6f7566 50%, #6f7566 60%, transparent 60%, transparent 75%, #6f7566 75%, #6f7566 85%, transparent 85%);
+}
+
+/* ---------------------------------------------------------------- Knöpfe im Item-Tooltip (Finger) */
+
+/* Mit Knöpfen fängt der Tooltip Finger ab (sonst gehen Klicks durch das HUD hindurch). */
+#item-tooltip.with-actions {
+  pointer-events: auto;
+}
+
+.tip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tip-actions button {
+  flex: 1 1 auto;
+  min-height: 40px;
+  padding: 4px 10px;
+  font: inherit;
+  font-weight: bold;
+  color: inherit;
+  background: #2e342c;
+  border: 1px solid #6f7566;
+  border-radius: 3px;
+  touch-action: manipulation;
+}
+
+/* Sicherheits-Klick: erst nach dem zweiten Druck wird verkauft bzw. weggeworfen. */
+.tip-actions button.armed {
+  color: #ffb4a8;
+  border-color: #ff8d7a;
+}
+
+/* ---------------------------------------------------------------- Hinweise für Maus oder Finger */
+
+/* Steht beides im Fenster, zeigt sich nur der passende Hinweis (ui-touch setzt src/ui/device.ts). */
+.ui-touch .hint-mouse,
+:root:not(.ui-touch) .hint-touch {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- Handy und Finger */
+
+/*
+ * Alle Sonderfälle für kleine Bildschirme und Finger stehen hier – unter den Klassen, die
+ * src/ui/device.ts an <html> setzt. Bitte keine eigenen Bildschirm-Abfragen an anderer Stelle.
+ *   .ui-touch    = bedient mit dem Finger: größere Knöpfe (mind. rund 44 Pixel)
+ *   .ui-mobile   = kleiner Bildschirm (Handy): HUD etwas kleiner und anders angeordnet
+ *   .ui-portrait = Hochformat
+ */
+
+/* Finger: Knopf-Leiste, Fenster-Knöpfe und Größen-Griff groß genug zum Treffen. */
+.ui-touch {
+  --topbar-size: 44px;
+}
+
+.ui-touch .topbar-button {
+  font-size: 22px;
+}
+
+/* Das Rüstungs-Symbol des Inventar-Knopfs: doppelt so groß und mittig im größeren Knopf. */
+.ui-touch .topbar-icon {
+  left: 13px;
+  top: 13px;
+  transform: scale(1.6);
+}
+
+.ui-touch .window-buttons {
+  gap: 6px;
+}
+
+.ui-touch .window-buttons button {
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+}
+
+.ui-touch #inventory-pin {
+  font-size: 16px;
+}
+
+/* Sichtbar bleibt der kleine Griff; die Fläche zum Anfassen ist größer. */
+.ui-touch .window-resize {
+  width: 32px;
+  height: 32px;
+  background-size: 14px 14px;
+  background-position: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.ui-touch #target-clear {
+  width: 34px;
+  height: 34px;
+  margin: -8px -6px -8px 0;
+  font-size: 20px;
+}
+
+.ui-touch #hud-edit-bar button,
+.ui-touch #settings button,
+.ui-touch .shop-button,
+.ui-touch .shop-tab,
+.ui-touch #saves button {
+  min-height: 40px;
+}
+
+.ui-touch #settings summary {
+  padding: 8px 0;
+}
+
+/* Handy: HUD-Elemente etwas kleiner (die Einstellung "Größe" rechnet darauf). */
+.ui-mobile #player-frame,
+.ui-mobile #target-frame {
+  --base-scale: 0.85;
+}
+
+.ui-mobile #skillbar {
+  --base-scale: 0.8;
+  bottom: calc(6px + var(--safe-bottom));
+}
+
+.ui-mobile #minimap {
+  --base-scale: 0.75;
+}
+
+/* Der Zielrahmen sitzt am Handy unter dem Spielerrahmen statt daneben (dort ist die Knopf-Leiste). */
+.ui-mobile #target-frame {
+  left: calc(10px + var(--safe-left));
+  top: calc(10px + var(--safe-top) + 80px);
+}
+
+/* Quest-Zähler unter der kleineren Minimap (148 × 0,75 ≈ 111 Pixel). */
+.ui-mobile #quest-tracker {
+  top: calc(var(--topbar-bottom) + 122px);
+}
+
+/* Die Beute-Liste über der Skill-Leiste, damit sie sich am schmalen Bildschirm nicht überschneiden. */
+.ui-mobile #loot-log {
+  --base-scale: 0.85;
+  bottom: calc(76px + var(--safe-bottom));
+}
+
+.ui-mobile #message {
+  bottom: calc(80px + var(--safe-bottom));
+}
+
+/*
+ * Hochformat: Die Knopf-Leiste ist so breit wie der Bildschirm – Spielerrahmen und Zielrahmen
+ * rutschen darunter, die Minimap bleibt rechts daneben.
+ */
+.ui-mobile.ui-portrait #player-frame {
+  top: calc(var(--topbar-bottom) + 6px);
+}
+
+.ui-mobile.ui-portrait #target-frame {
+  top: calc(var(--topbar-bottom) + 6px + 80px);
 }
