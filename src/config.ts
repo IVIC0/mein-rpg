@@ -22,6 +22,13 @@ export const BODY_RADIUS = 5;
 export const HOLD_DELAY_MS = 250;
 
 /**
+ * Mit dem Finger trifft man ungenauer als mit der Maus: Ein Tippen zählt auch dann für einen
+ * Gegner oder eine Figur (Händler, Truhe …), wenn es bis zu so viele Welt-Pixel daneben liegt.
+ * Bei 2-fachem Zoom sind 5 Welt-Pixel rund 10 Bildschirm-Pixel. Startwert (Meilenstein 12b).
+ */
+export const TOUCH_HIT_PAD = 5;
+
+/**
  * Kamera-Zoom passend zur Fenstergröße: immer ganzzahlig, damit Pixel scharf
  * bleiben. Ziel sind rund 40 × 22 sichtbare Kacheln.
  */

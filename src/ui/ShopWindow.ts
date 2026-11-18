@@ -5,6 +5,8 @@ import { rarityById, type Item } from '../items/generator';
 import type { Inventory } from '../items/Inventory';
 import type { BuyResult, Shop } from '../items/Shop';
 import { bindTip } from './tip';
+import { pressedByTouch } from './device';
+import { GameWindow } from './GameWindow';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
 import type { InventoryWindow } from './InventoryWindow';
@@ -31,11 +33,14 @@ type Tab = 'stock' | 'buyback';
  */
 export class ShopWindow {
   private readonly root = byId('shop');
+  /** Das gemeinsame Fenster-Gerüst: verschieben, Größe ziehen, merken, nach vorn holen. */
+  private readonly win = new GameWindow(this.root, 'shop');
   private readonly gold = byId('shop-gold');
   private readonly restock = byId('shop-restock');
   private readonly potionText = byId('shop-potion-text');
   private readonly potionCount = byId('shop-potion-count');
   private readonly potionButton = byId('shop-potion-buy') as HTMLButtonElement;
+  private readonly potionBulkButton = byId('shop-potion-bulk') as HTMLButtonElement;
   private readonly restockButton = byId('shop-restock-now') as HTMLButtonElement;
   private readonly tabButtons: Record<Tab, HTMLElement> = { stock: byId('shop-tab-stock'), buyback: byId('shop-tab-buyback') };
   private readonly pages: Record<Tab, HTMLElement> = { stock: byId('shop-page-stock'), buyback: byId('shop-page-buyback') };
@@ -43,6 +48,10 @@ export class ShopWindow {
   private tab: Tab = 'stock';
   /** Der Platz unter dem Mauszeiger im gerade offenen Reiter; -1 = keiner. */
   private hovered = -1;
+  /** Am Handy angetippt: Der Tooltip zeigt einen Knopf statt des Maus-Hinweises. */
+  private tapped = false;
+  /** Was der Knopf im Tooltip am Handy tut (kaufen bzw. zurückkaufen). */
+  private tapAction: () => void = () => {};
 
   constructor(
     private readonly shop: Shop,
@@ -66,14 +75,9 @@ export class ShopWindow {
       `Linksklick: zum Verkaufspreis zurückkaufen<br />Der Händler merkt sich die letzten ${BUYBACK.size} verkauften Items.`;
     (byId('shop-potion-icon') as HTMLElement).style.backgroundPosition = iconPosition(POTION.frame);
     byId('shop-potion-help').textContent = `Umschalt + Klick: ${POTION.bulkAmount} Stück auf einmal`;
-    this.potionButton.addEventListener('click', (event) => {
-      // Umschalt + Klick kauft einen ganzen Vorrat – oder so viele, wie das Gold hergibt.
-      const bought = this.shop.buyPotions(event.shiftKey ? POTION.bulkAmount : 1);
-      if (bought === 0) this.hud.flash('Zu wenig Gold');
-      else if (bought > 1) this.hud.flash(`${bought} Heiltränke gekauft`);
-      this.potionButton.blur();
-      this.render();
-    });
+    // Umschalt + Klick oder der zweite Knopf (für den Finger) kauft einen ganzen Vorrat – oder so viele, wie das Gold hergibt.
+    this.potionButton.addEventListener('click', (event) => this.buyPotions(event.shiftKey ? POTION.bulkAmount : 1));
+    this.potionBulkButton.addEventListener('click', () => this.buyPotions(POTION.bulkAmount));
     this.restockButton.addEventListener('click', () => {
       this.report(this.shop.buyRestock());
       this.restockButton.blur();
@@ -89,7 +93,11 @@ export class ShopWindow {
       slot.className = 'shop-slot';
       slot.innerHTML = '<div class="item-cell"><span class="item-icon sprite-icon"></span></div><span class="shop-price"></span>';
       const box = slot.querySelector('.item-cell') as HTMLElement;
-      box.addEventListener('click', () => this.report(onClick(index)));
+      box.addEventListener('click', () => {
+        // Mit dem Finger: erst Tooltip mit Knopf "Kaufen", nicht sofort kaufen.
+        if (pressedByTouch()) this.onTap(index, box, () => this.report(onClick(index)));
+        else this.report(onClick(index));
+      });
       bindTip(
         box,
         () => {
@@ -100,6 +108,7 @@ export class ShopWindow {
           if (this.hovered === index) this.hovered = -1;
           this.tooltip.hide();
         },
+        { touch: false },
       );
       parent.appendChild(slot);
       slots.push({ root: slot, box, icon: slot.querySelector('.item-icon') as HTMLElement, price: slot.querySelector('.shop-price') as HTMLElement });
@@ -108,12 +117,12 @@ export class ShopWindow {
   }
 
   get isOpen(): boolean {
-    return !this.root.hidden;
+    return this.win.isOpen;
   }
 
   /** Öffnet den Handel: Das Inventar geht mit auf, dort lässt sich jetzt verkaufen. */
   open(): void {
-    this.root.hidden = false;
+    this.win.show();
     this.shop.restockIfDue();
     this.inventoryWindow.open();
     this.inventoryWindow.setShop(this.shop);
@@ -122,7 +131,7 @@ export class ShopWindow {
 
   close(): void {
     if (!this.isOpen) return;
-    this.root.hidden = true;
+    this.win.hide();
     this.hovered = -1;
     this.tooltip.hide();
     this.inventoryWindow.setShop(null);
@@ -157,6 +166,8 @@ export class ShopWindow {
     this.potionCount.textContent = `Im Gepäck: ${this.player.potions}`;
     this.potionButton.textContent = `Kaufen: ${price} Gold`;
     this.potionButton.disabled = price > gold;
+    this.potionBulkButton.textContent = `${POTION.bulkAmount} Stück`;
+    this.potionBulkButton.disabled = price > gold;
 
     // "Neue Ware sofort" gibt es erst mit Kontor Stufe 3.
     const restockPrice = this.shop.instantRestockPrice;
@@ -192,10 +203,38 @@ export class ShopWindow {
     if (this.restock.textContent !== text) this.restock.textContent = text;
   }
 
+  private buyPotions(amount: number): void {
+    const bought = this.shop.buyPotions(amount);
+    if (bought === 0) this.hud.flash('Zu wenig Gold');
+    else if (bought > 1) this.hud.flash(`${bought} Heiltränke gekauft`);
+    this.potionButton.blur();
+    this.potionBulkButton.blur();
+    this.render();
+  }
+
   /** Sagt dem Spieler, warum ein Kauf nicht geklappt hat. */
   private report(result: BuyResult): void {
     if (result === 'gold') this.hud.flash('Zu wenig Gold');
     else if (result === 'full') this.hud.flash('Inventar voll');
+  }
+
+  /** Antippen mit dem Finger: Tooltip mit Knopf "Kaufen" bzw. "Zurückkaufen". */
+  private onTap(index: number, box: HTMLElement, buy: () => void): void {
+    const items = this.tab === 'buyback' ? this.shop.buyback : this.shop.stock;
+    if (!items[index]) return;
+    this.tooltip.openByTap(
+      box,
+      () => {
+        this.hovered = index;
+        this.tapped = true;
+        this.tapAction = buy;
+        this.showTooltip();
+      },
+      () => {
+        this.tapped = false;
+        if (this.hovered === index) this.hovered = -1;
+      },
+    );
   }
 
   private showTooltip(): void {
@@ -206,7 +245,15 @@ export class ShopWindow {
     if (!item) return this.tooltip.hide();
     const price = buyback ? sellPrice(item.level, item.rarity) : buyPrice(item.level, item.rarity);
     const action = buyback ? 'zurückkaufen' : 'kaufen';
-    const hint = price > this.inventory.gold ? `Kostet ${price} Gold – dir fehlen ${price - this.inventory.gold}` : `Linksklick: ${action} für ${price} Gold`;
-    this.tooltip.show(item, this.slots[this.tab][this.hovered].box, this.root, 'right', true, [hint]);
+    const missing = price - this.inventory.gold;
+    const box = this.slots[this.tab][this.hovered].box;
+    if (this.tapped) {
+      const hints = missing > 0 ? [`Kostet ${price} Gold – dir fehlen ${missing}`] : [];
+      const label = `${buyback ? 'Zurückkaufen' : 'Kaufen'} (${price} Gold)`;
+      this.tooltip.show(item, box, this.root, 'right', true, hints, [{ label, run: this.tapAction }]);
+      return;
+    }
+    const hint = missing > 0 ? `Kostet ${price} Gold – dir fehlen ${missing}` : `Linksklick: ${action} für ${price} Gold`;
+    this.tooltip.show(item, box, this.root, 'right', true, [hint]);
   }
 }

@@ -2,6 +2,8 @@ import { STASH_MAX } from '../data/town';
 import { rarityById } from '../items/generator';
 import type { Stash } from '../items/Stash';
 import { bindTip } from './tip';
+import { pressedByTouch } from './device';
+import { GameWindow } from './GameWindow';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
 import type { InventoryWindow } from './InventoryWindow';
@@ -19,10 +21,14 @@ interface Cell {
  */
 export class StashWindow {
   private readonly root = byId('stash');
+  /** Das gemeinsame Fenster-Gerüst: verschieben, Größe ziehen, merken, nach vorn holen. */
+  private readonly win = new GameWindow(this.root, 'stash');
   private readonly count = byId('stash-count');
   private readonly cells: Cell[] = [];
   /** Der Platz unter dem Mauszeiger; -1 = keiner. */
   private hovered = -1;
+  /** Am Handy angetippt: Der Tooltip zeigt einen Knopf statt des Maus-Hinweises. */
+  private tapped = false;
 
   constructor(
     private readonly stash: Stash,
@@ -36,7 +42,9 @@ export class StashWindow {
       box.className = 'item-cell';
       box.innerHTML = '<span class="item-icon sprite-icon"></span>';
       box.addEventListener('click', () => {
-        if (!this.stash.take(index)) this.hud.flash('Inventar voll');
+        // Mit dem Finger: erst Tooltip mit Knopf, nicht sofort herausnehmen.
+        if (pressedByTouch()) this.onTap(index);
+        else this.take(index);
       });
       bindTip(
         box,
@@ -48,6 +56,7 @@ export class StashWindow {
           if (this.hovered === index) this.hovered = -1;
           this.tooltip.hide();
         },
+        { touch: false },
       );
       parent.appendChild(box);
       this.cells.push({ box, icon: box.querySelector('.item-icon') as HTMLElement });
@@ -56,12 +65,12 @@ export class StashWindow {
   }
 
   get isOpen(): boolean {
-    return !this.root.hidden;
+    return this.win.isOpen;
   }
 
   /** Öffnet die Truhe: Das Inventar geht mit auf, dort lässt sich jetzt einlagern. */
   open(): void {
-    this.root.hidden = false;
+    this.win.show();
     this.inventoryWindow.open();
     this.inventoryWindow.setStash(this.stash);
     this.render();
@@ -69,7 +78,7 @@ export class StashWindow {
 
   close(): void {
     if (!this.isOpen) return;
-    this.root.hidden = true;
+    this.win.hide();
     this.hovered = -1;
     this.tooltip.hide();
     this.inventoryWindow.setStash(null);
@@ -91,11 +100,37 @@ export class StashWindow {
     this.showTooltip();
   }
 
+  private take(index: number): void {
+    if (!this.stash.take(index)) this.hud.flash('Inventar voll');
+  }
+
+  /** Antippen mit dem Finger: Tooltip mit Knopf "Ins Inventar nehmen". */
+  private onTap(index: number): void {
+    if (!this.stash.slots[index]) return;
+    this.tooltip.openByTap(
+      this.cells[index].box,
+      () => {
+        this.hovered = index;
+        this.tapped = true;
+        this.showTooltip();
+      },
+      () => {
+        this.tapped = false;
+        if (this.hovered === index) this.hovered = -1;
+      },
+    );
+  }
+
   private showTooltip(): void {
     // Liegt die Maus nicht über einem Platz dieses Fensters, gehört der Tooltip dem Inventar-Fenster.
     if (this.hovered < 0) return;
     const item = this.stash.slots[this.hovered];
     if (!item) return this.tooltip.hide();
-    this.tooltip.show(item, this.cells[this.hovered].box, this.root, 'right', true, ['Linksklick: ins Inventar nehmen']);
+    const index = this.hovered;
+    if (this.tapped) {
+      this.tooltip.show(item, this.cells[index].box, this.root, 'right', true, [], [{ label: 'Ins Inventar nehmen', run: () => this.take(index) }]);
+    } else {
+      this.tooltip.show(item, this.cells[index].box, this.root, 'right', true, ['Linksklick: ins Inventar nehmen']);
+    }
   }
 }

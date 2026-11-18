@@ -4,7 +4,7 @@ import { HUD_ITEMS, type HudItemId, type PlateSettings, type Settings } from './
 
 /**
  * Wendet die Einstellungen auf die Anzeigen an (ein-/ausblenden, Größe, Deckkraft, Platz)
- * und steuert den Bearbeitungsmodus, in dem sich die HUD-Elemente mit der Maus ziehen lassen.
+ * und steuert den Bearbeitungsmodus, in dem sich die HUD-Elemente mit Maus oder Finger ziehen lassen.
  *
  * Der Platz eines Elements ist eine Verschiebung (dx, dy) gegenüber seinem Standard-Platz
  * aus hud.css. So bleibt z. B. die Skill-Leiste auch nach einer Größenänderung des
@@ -102,22 +102,28 @@ export class HudLayout {
   private startDrag(event: PointerEvent, id: HudItemId, element: HTMLElement): void {
     if (!this.editing || event.button !== 0) return;
     event.preventDefault();
+    // Alle weiteren Bewegungen dieses Zeigers (Maus oder Finger) gehen an das Element.
+    element.setPointerCapture(event.pointerId);
     const values = this.settings.hud[id];
     const start = { x: event.clientX, y: event.clientY, dx: values.dx, dy: values.dy };
 
     const onMove = (move: PointerEvent): void => {
+      if (move.pointerId !== event.pointerId) return;
       values.dx = Math.round(start.dx + move.clientX - start.x);
       values.dy = Math.round(start.dy + move.clientY - start.y);
       element.style.setProperty('--dx', `${values.dx}px`);
       element.style.setProperty('--dy', `${values.dy}px`);
       this.keepInView(id, element);
     };
-    const onUp = (): void => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+    const onUp = (up: PointerEvent): void => {
+      if (up.pointerId !== event.pointerId) return;
+      element.removeEventListener('pointermove', onMove);
+      element.removeEventListener('pointerup', onUp);
+      element.removeEventListener('pointercancel', onUp);
       this.onChange();
     };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    element.addEventListener('pointermove', onMove);
+    element.addEventListener('pointerup', onUp);
+    element.addEventListener('pointercancel', onUp);
   }
 }

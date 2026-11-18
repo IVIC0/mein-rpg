@@ -5,6 +5,7 @@ import { ZONES } from '../data/zones';
 import { cleanName, newSave, parseSave, testSave, type SaveGame } from '../save/saveGame';
 import { ALL_SLOTS, MAIN_SLOTS, TEST_SLOT, deleteSlot, exportSlot, lastSlot, rawSlot, readSlot, restartWith, session, slotLabel, writeSlot } from '../save/slots';
 import { askName, confirmDialog, showMessage } from './dialog';
+import { GameWindow } from './GameWindow';
 import { byId } from './dom';
 
 /** Was das Menü vom laufenden Spiel braucht. */
@@ -27,12 +28,18 @@ export class SaveMenu {
   private readonly root = byId('saves');
   private readonly body = byId('saves-body');
   private readonly button = byId('saves-button');
+  /** Im laufenden Spiel ein Fenster wie alle anderen; vor dem Spiel (Slot-Auswahl) steht es fest in der Bildmitte. */
+  private readonly win: GameWindow | null;
 
   /** `notice` = Hinweis, der oben im Menü steht (z. B. warum ein Slot nicht geladen wurde). */
   constructor(
     private readonly game: GameHooks | null,
     private notice = '',
   ) {
+    this.win = game ? new GameWindow(this.root, 'saves') : null;
+    // Vor dem Spiel gibt es nichts, wohin man zurückkönnte: kein ×.
+    byId('saves-close').hidden = !game;
+    byId('saves-close').addEventListener('click', () => this.close());
     if (game) {
       this.button.addEventListener('click', () => {
         if (this.isOpen) this.close();
@@ -51,13 +58,15 @@ export class SaveMenu {
   }
 
   open(): void {
-    this.root.hidden = false;
+    if (this.win) this.win.show();
+    else this.root.hidden = false;
     this.button.classList.add('active');
     this.render();
   }
 
   close(): void {
-    this.root.hidden = true;
+    if (this.win) this.win.hide();
+    else this.root.hidden = true;
     this.button.classList.remove('active');
     this.notice = '';
   }

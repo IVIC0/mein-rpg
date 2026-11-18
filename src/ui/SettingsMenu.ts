@@ -1,5 +1,6 @@
 import { DIFFICULTY_PRESETS, DIFFICULTY_RANGE, rewardBonus, type Difficulty } from '../data/difficulty';
 import { byId } from './dom';
+import { GameWindow } from './GameWindow';
 import { HUD_ITEMS, OPACITY_RANGE, SCALE_RANGE, loadSettings, resetSettings, saveSettings, type Settings } from './settings';
 
 /** Was das Menü nach außen meldet. */
@@ -8,7 +9,7 @@ interface Callbacks {
   onChange: () => void;
   /** "HUD verschieben" wurde gedrückt. */
   onEditHud: () => void;
-  /** "Fenster zurücksetzen" bzw. "Alles auf Standard" wurde gedrückt. */
+  /** "Fensterlayout zurücksetzen" bzw. "Alles auf Standard" wurde gedrückt. */
   onResetWindows: () => void;
   /** Die Schwierigkeit des laufenden Spielstands. Die Regler ändern dieses Objekt direkt. */
   difficulty: Difficulty;
@@ -27,6 +28,8 @@ export class SettingsMenu {
   private readonly root = byId('settings');
   private readonly body = byId('settings-body');
   private readonly button = byId('settings-button');
+  /** Das gemeinsame Fenster-Gerüst: verschieben, Größe ziehen, merken, nach vorn holen. */
+  private readonly win = new GameWindow(this.root, 'settings');
   private callbacks: Callbacks | null = null;
 
   constructor() {
@@ -35,6 +38,7 @@ export class SettingsMenu {
       // Fokus abgeben: sonst würde die Leertaste den Knopf noch einmal drücken.
       this.button.blur();
     });
+    byId('settings-close').addEventListener('click', () => this.close());
     this.build();
   }
 
@@ -70,7 +74,7 @@ export class SettingsMenu {
   }
 
   get isOpen(): boolean {
-    return !this.root.hidden;
+    return this.win.isOpen;
   }
 
   close(): void {
@@ -78,7 +82,8 @@ export class SettingsMenu {
   }
 
   private setOpen(open: boolean): void {
-    this.root.hidden = !open;
+    if (open) this.win.show();
+    else this.win.hide();
     this.button.classList.toggle('active', open);
   }
 

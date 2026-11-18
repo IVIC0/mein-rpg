@@ -6,34 +6,23 @@ import { rarityById, type Item } from '../items/generator';
 import type { Inventory } from '../items/Inventory';
 import type { Shop } from '../items/Shop';
 import type { Stash } from '../items/Stash';
-import { bindTip } from './tip';
+import { bindTip, closedJustNow, holdTouchTip } from './tip';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
-import type { ItemTooltip } from './ItemTooltip';
+import type { ItemTooltip, TipAction } from './ItemTooltip';
 import { loadUi, saveUi } from './storage';
+import { GameWindow, adoptOldInventoryLayout } from './GameWindow';
+import { pressedByTouch } from './device';
 import { damageReduction } from '../combat/damage';
 
-/**
- * Was sich das Fenster merkt. null = Standard: Position rechts in der Bildmitte,
- * Breite aus hud.css, Höhe passend zum Inhalt.
- */
-interface WindowLayout {
-  left: number | null;
-  top: number | null;
-  width: number | null;
-  height: number | null;
+/** Was sich das Fenster außer Platz und Größe merkt (die merkt sich GameWindow). */
+interface InventoryPrefs {
   /** Angepinnt: das Fenster bleibt offen – Esc schließt es nicht, und es ist nach dem Neuladen wieder da. */
   pinned: boolean;
 }
 
-const DEFAULT_LAYOUT: WindowLayout = { left: null, top: null, width: null, height: null, pinned: false };
-
-/** Abstand des Fensters zum Bildrand in der Standard-Position (Pixel); oben bleibt Platz für die Knopf-Leiste. */
-const EDGE_GAP = 10;
-const TOP_GAP = 50;
-
-/** Von der Titelzeile bleibt beim Verschieben mindestens so viel im Bild (Pixel). */
-const KEEP_VISIBLE = 40;
+/** Bis Meilenstein 12 stand hier auch Platz und Größe – die übernimmt einmalig das Fenster-System. */
+type OldInventoryLayout = InventoryPrefs & { left: number | null; top: number | null; width: number | null; height: number | null };
 
 /** Ein Feld im Fenster: entweder ein Inventar-Platz oder ein Ausrüstungsplatz. */
 type CellRef = { kind: 'bag'; index: number } | { kind: 'equip'; slot: EquipSlot };
@@ -72,8 +61,12 @@ export class InventoryWindow {
   private readonly cells: Cell[] = [];
   /** Das Feld unter dem Mauszeiger – sein Tooltip wird nach jeder Änderung neu geschrieben. */
   private hovered: Cell | null = null;
+  /** Am Handy angetippt: Der Tooltip zeigt Knöpfe statt Maus-Hinweisen. */
+  private tapped = false;
   private statsHtml = '';
-  private layout: WindowLayout = loadUi('inventar', DEFAULT_LAYOUT);
+  private readonly prefs: InventoryPrefs;
+  /** Das gemeinsame Fenster-Gerüst: verschieben, Größe ziehen, merken, nach vorn holen. */
+  private readonly win = new GameWindow(this.root, 'inventory');
   private readonly bagButton = byId('bag-button');
 
   constructor(
@@ -82,6 +75,10 @@ export class InventoryWindow {
     private readonly hud: Hud,
     private readonly tooltip: ItemTooltip,
   ) {
+    const old = loadUi<OldInventoryLayout>('inventar', { pinned: false, left: null, top: null, width: null, height: null });
+    adoptOldInventoryLayout(old);
+    this.prefs = { pinned: old.pinned };
+
     const equipment = byId('equipment');
     for (const slot of EQUIP_SLOTS) this.addCell(equipment, { kind: 'equip', slot: slot.id }, slot.label);
     const bag = byId('bag');
@@ -94,32 +91,30 @@ export class InventoryWindow {
     });
     byId('inventory-close').addEventListener('click', () => this.close());
     byId('inventory-pin').addEventListener('click', (event) => {
-      this.layout.pinned = !this.layout.pinned;
-      this.root.classList.toggle('pinned', this.layout.pinned);
-      saveUi('inventar', this.layout);
+      this.prefs.pinned = !this.prefs.pinned;
+      this.showHelp();
+    this.root.classList.toggle('pinned', this.prefs.pinned);
+      saveUi('inventar', this.prefs);
       (event.currentTarget as HTMLElement).blur();
     });
-    byId('inventory-title').addEventListener('pointerdown', (event) => this.startDrag(event, 'move'));
-    byId('inventory-resize').addEventListener('pointerdown', (event) => this.startDrag(event, 'resize'));
-    // Wird das Browserfenster kleiner, rutscht das Fenster zurück ins Bild.
-    window.addEventListener('resize', () => this.applyLayout());
+    // Beim Verschieben wandert ein offener Tooltip mit.
+    this.win.onMove = () => this.showTooltip();
 
-    this.root.classList.toggle('pinned', this.layout.pinned);
+    this.root.classList.toggle('pinned', this.prefs.pinned);
     // Ein angepinntes Fenster ist nach dem Neuladen gleich wieder offen.
-    if (this.layout.pinned) this.open();
+    if (this.prefs.pinned) this.open();
   }
 
   /** Angepinnt bleibt das Fenster offen: Esc schließt es dann nicht. */
   get pinned(): boolean {
-    return this.layout.pinned;
+    return this.prefs.pinned;
   }
 
-  /** Zurück zu Standard-Position und -Größe, Pin gelöst (Knopf in den Einstellungen). */
-  resetLayout(): void {
-    this.layout = { ...DEFAULT_LAYOUT };
+  /** Pin lösen (Knopf "Fensterlayout zurücksetzen" – Platz und Größe setzt GameWindow.resetAll zurück). */
+  unpin(): void {
+    this.prefs.pinned = false;
     this.root.classList.remove('pinned');
-    saveUi('inventar', this.layout);
-    this.applyLayout();
+    saveUi('inventar', this.prefs);
   }
 
   /** Händler offen (`shop`) oder wieder zu (null): schaltet das Verkaufen per Rechtsklick. */
@@ -138,12 +133,16 @@ export class InventoryWindow {
   /** Die Hilfe-Zeilen unter dem Inventar: Was der Rechtsklick gerade tut, hängt am offenen Fenster. */
   private showHelp(): void {
     const rightClick = this.shop ? '<br /><b>Rechtsklick: verkaufen</b>' : this.stash ? '<br /><b>Rechtsklick: einlagern</b>' : '';
-    this.help.innerHTML = 'Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen' + rightClick;
+    const tap = this.shop ? ', <b>Verkaufen</b>' : this.stash ? ', <b>Einlagern</b>' : '';
+    // Beide Hinweise stehen da – hud.css zeigt je nach Gerät (Maus oder Finger) nur einen.
+    this.help.innerHTML =
+      `<span class="hint-mouse">Linksklick: anlegen / ablegen<br />Umschalt + Linksklick: wegwerfen${rightClick}</span>` +
+      `<span class="hint-touch">Item antippen: ansehen, dazu Knöpfe für Anlegen${tap}, Wegwerfen</span>`;
     this.showTooltip();
   }
 
   get isOpen(): boolean {
-    return !this.root.hidden;
+    return this.win.isOpen;
   }
 
   toggle(): void {
@@ -152,14 +151,13 @@ export class InventoryWindow {
   }
 
   open(): void {
-    this.root.hidden = false;
+    this.win.show();
     this.bagButton.classList.add('active');
     this.render();
-    this.applyLayout();
   }
 
   close(): void {
-    this.root.hidden = true;
+    this.win.hide();
     this.bagButton.classList.remove('active');
     this.hovered = null;
     this.clearConfirm();
@@ -209,83 +207,22 @@ export class InventoryWindow {
     this.statsBox.innerHTML = html;
   }
 
-  /**
-   * Trägt Position und Größe aus `layout` ins Fenster ein und hält es dabei im Bild.
-   * Nur bei offenem Fenster – ein verstecktes Element hat keine Größe.
-   */
-  private applyLayout(): void {
-    if (!this.isOpen) return;
-    const style = this.root.style;
-    // Leerer Text = der Wert aus hud.css gilt (Standard-Breite, Höhe nach Inhalt).
-    style.width = this.layout.width === null ? '' : `${this.layout.width}px`;
-    style.height = this.layout.height === null ? '' : `${this.layout.height}px`;
-
-    const width = this.root.offsetWidth;
-    const height = this.root.offsetHeight;
-    // Standard: rechts am Rand, in der Höhe mittig – aber nicht unter der Knopf-Leiste.
-    const left = this.layout.left ?? window.innerWidth - width - EDGE_GAP;
-    const top = this.layout.top ?? Math.max(TOP_GAP, (window.innerHeight - height) / 2);
-    // Die Titelzeile muss erreichbar bleiben, sonst bekäme man das Fenster nicht mehr zu fassen.
-    style.left = `${Math.round(clamp(left, KEEP_VISIBLE - width, window.innerWidth - KEEP_VISIBLE))}px`;
-    style.top = `${Math.round(clamp(top, 0, window.innerHeight - KEEP_VISIBLE))}px`;
-  }
-
-  /**
-   * Maustaste auf Titelzeile ('move') oder Größen-Ecke ('resize') gedrückt: bis zum
-   * Loslassen folgt das Fenster der Maus. Danach wird die neue Lage gemerkt.
-   */
-  private startDrag(event: PointerEvent, mode: 'move' | 'resize'): void {
-    // Nur die linke Maustaste, und nicht, wenn ein Knopf in der Titelzeile gemeint war.
-    if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
-    event.preventDefault();
-    const rect = this.root.getBoundingClientRect();
-    const startX = event.clientX;
-    const startY = event.clientY;
-
-    const onMove = (move: PointerEvent): void => {
-      const dx = move.clientX - startX;
-      const dy = move.clientY - startY;
-      if (mode === 'move') {
-        this.layout.left = rect.left + dx;
-        this.layout.top = rect.top + dy;
-      } else {
-        // Die Position festhalten, sonst würde ein Fenster in Standard-Lage beim Ziehen mitwandern.
-        this.layout.left = rect.left;
-        this.layout.top = rect.top;
-        this.layout.width = rect.width + dx;
-        this.layout.height = rect.height + dy;
-      }
-      this.applyLayout();
-      this.showTooltip();
-    };
-    const onUp = (): void => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      // Merken, was wirklich gilt: hud.css begrenzt die Größe nach unten und oben.
-      const now = this.root.getBoundingClientRect();
-      this.layout.left = now.left;
-      this.layout.top = now.top;
-      if (mode === 'resize') {
-        this.layout.width = now.width;
-        this.layout.height = now.height;
-      }
-      saveUi('inventar', this.layout);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-  }
-
   private addCell(parent: HTMLElement, ref: CellRef, label: string): void {
     const box = document.createElement('div');
     box.className = 'item-cell';
     box.innerHTML = `<span class="cell-label">${label}</span><span class="item-icon sprite-icon"></span>`;
     const cell: Cell = { ref, box, icon: box.querySelector('.item-icon') as HTMLElement };
-    box.addEventListener('click', (event) => this.onClick(cell, event.shiftKey));
+    box.addEventListener('click', (event) => {
+      // Mit dem Finger: erst Tooltip mit Knöpfen, nichts sofort anlegen.
+      if (pressedByTouch()) this.onTap(cell);
+      else this.onClick(cell, event.shiftKey);
+    });
     box.addEventListener('contextmenu', (event) => {
       event.preventDefault(); // kein Browser-Menü
-      this.onRightClick(cell);
+      // Langes Drücken mit dem Finger meldet sich manchmal als Rechtsklick – das soll nie verkaufen.
+      if (!pressedByTouch()) this.onRightClick(cell);
     });
-    // Tooltip: mit der Maus beim Überfahren, mit dem Finger nach dem Antippen (src/ui/tip.ts).
+    // Tooltip mit der Maus beim Überfahren (src/ui/tip.ts); den Finger behandelt onTap.
     bindTip(
       box,
       () => {
@@ -297,6 +234,7 @@ export class InventoryWindow {
         if (this.hovered === cell) this.hovered = null;
         this.tooltip.hide();
       },
+      { touch: false },
     );
     parent.appendChild(box);
     this.cells.push(cell);
@@ -318,6 +256,56 @@ export class InventoryWindow {
     }
   }
 
+  /** Antippen mit dem Finger: Tooltip mit Knöpfen (Anlegen, Verkaufen, Einlagern, Wegwerfen …). Nochmal tippen schließt ihn. */
+  private onTap(cell: Cell): void {
+    if (closedJustNow(cell.box) || !this.itemIn(cell.ref)) return;
+    this.clearConfirm();
+    this.hovered = cell;
+    this.tapped = true;
+    this.showTooltip();
+    holdTouchTip(
+      cell.box,
+      () => {
+        this.tapped = false;
+        if (this.hovered === cell) this.hovered = null;
+        this.tooltip.hide();
+      },
+      this.tooltip.box,
+    );
+  }
+
+  /** Die Knöpfe im Tooltip am Handy – dieselben Aktionen wie Links-, Rechts- und Umschalt+Klick mit der Maus. */
+  private touchActions(cell: Cell, item: Item): TipAction[] {
+    const ref = cell.ref;
+    if (ref.kind === 'equip') {
+      const unequip = (): void => {
+        if (!this.inventory.unequip(ref.slot)) this.hud.flash('Inventar voll');
+      };
+      return [{ label: 'Ablegen', run: unequip }];
+    }
+    const actions: TipAction[] = [{ label: 'Anlegen', run: () => this.inventory.equip(ref.index) }];
+    const shop = this.shop;
+    if (shop) {
+      const gold = sellPrice(item.level, item.rarity);
+      actions.push({
+        label: `Verkaufen (${gold} Gold)`,
+        confirm: needsConfirm(item) ? `Wirklich verkaufen? (${gold} Gold)` : undefined,
+        run: () => {
+          const got = shop.sell(ref.index);
+          if (got > 0) this.hud.flash(`Verkauft: +${got} Gold`);
+        },
+      });
+    } else if (this.stash) {
+      const stash = this.stash;
+      const store = (): void => {
+        if (!stash.store(ref.index)) this.hud.flash('Lagertruhe voll');
+      };
+      actions.push({ label: 'Einlagern', run: store });
+    }
+    actions.push({ label: 'Wegwerfen', confirm: 'Wirklich wegwerfen?', run: () => this.inventory.discard(ref.index) });
+    return actions;
+  }
+
   /** Zeigt den Tooltip zum Feld unter dem Mauszeiger – oder blendet ihn aus, wenn dort nichts liegt. */
   private showTooltip(): void {
     const cell = this.hovered;
@@ -328,6 +316,10 @@ export class InventoryWindow {
       return;
     }
     const inBag = cell.ref.kind === 'bag';
+    if (this.tapped) {
+      this.tooltip.show(item, cell.box, this.root, 'left', inBag, [], this.touchActions(cell, item));
+      return;
+    }
     const hints = inBag ? ['Linksklick: anlegen', 'Umschalt + Linksklick: wegwerfen'] : ['Linksklick: ablegen'];
     if (inBag && this.shop) {
       const gold = sellPrice(item.level, item.rarity);
@@ -383,8 +375,4 @@ export class InventoryWindow {
 function needsConfirm(item: Item): boolean {
   const order = RARITIES.map((rarity) => rarity.id);
   return order.indexOf(item.rarity) >= order.indexOf(SELL_CONFIRM_FROM);
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }

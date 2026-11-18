@@ -1,6 +1,7 @@
 import { BUILDINGS, BUILDING_IDS, MAX_BUILDING_LEVEL, type BuildingId } from '../data/town';
 import type { Inventory } from '../items/Inventory';
 import type { Town } from '../town/Town';
+import { GameWindow } from './GameWindow';
 import { byId, iconPosition } from './dom';
 import type { Hud } from './Hud';
 import { describeBuilding } from './townText';
@@ -22,6 +23,8 @@ interface Row {
  */
 export class TownWindow {
   private readonly root = byId('town');
+  /** Das gemeinsame Fenster-Gerüst: verschieben, Größe ziehen, merken, nach vorn holen. */
+  private readonly win = new GameWindow(this.root, 'town');
   private readonly gold = byId('town-gold');
   private readonly rows: Row[] = [];
 
@@ -64,16 +67,16 @@ export class TownWindow {
   }
 
   get isOpen(): boolean {
-    return !this.root.hidden;
+    return this.win.isOpen;
   }
 
   open(): void {
-    this.root.hidden = false;
+    this.win.show();
     this.render();
   }
 
   close(): void {
-    this.root.hidden = true;
+    this.win.hide();
   }
 
   /** Zeichnet alle Zeilen neu. Aufrufen, wenn sich Gold, eine Stufe oder ein Boss-Sieg geändert hat. */

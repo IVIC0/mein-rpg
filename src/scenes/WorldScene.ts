@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Bestiary } from '../bestiary/Bestiary';
 import { buildFieldGuide } from '../bestiary/fieldGuide';
 import { Combat } from '../combat/Combat';
-import { BODY_RADIUS, HOLD_DELAY_MS, TILE, zoomForViewport } from '../config';
+import { BODY_RADIUS, HOLD_DELAY_MS, TILE, TOUCH_HIT_PAD, zoomForViewport } from '../config';
 import { DEFAULT_DIFFICULTY, type Difficulty } from '../data/difficulty';
 import { NAMED_ELITES, NAMED_ELITE_RESPAWN_MS } from '../data/elites';
 import { ENEMIES } from '../data/enemies';
@@ -39,6 +39,7 @@ import { FloatingText } from '../ui/FloatingText';
 import { Hud } from '../ui/Hud';
 import { HudLayout } from '../ui/HudLayout';
 import { InventoryWindow } from '../ui/InventoryWindow';
+import { GameWindow } from '../ui/GameWindow';
 import { ItemTooltip } from '../ui/ItemTooltip';
 import { Minimap, type MinimapMark } from '../ui/Minimap';
 import { Nameplates } from '../ui/Nameplates';
@@ -259,7 +260,11 @@ export class WorldScene extends Phaser.Scene {
         this.worldMap.applySettings();
       },
       onEditHud: () => this.hudLayout.setEditing(true),
-      onResetWindows: () => this.inventoryWindow.resetLayout(),
+      onResetWindows: () => {
+        // Alle Fenster an ihren Startplatz (PC und Handy), Inventar nicht mehr angepinnt.
+        this.inventoryWindow.unpin();
+        GameWindow.resetAll();
+      },
       difficulty: this.difficulty,
       onDifficultyChange: () => this.requestSave(),
     });
@@ -344,6 +349,11 @@ export class WorldScene extends Phaser.Scene {
     byId('saves-button').addEventListener('click', () => this.settings.close());
     byId('settings-button').addEventListener('click', () => this.saveMenu.close());
     this.startAutosave();
+    // × im Zielrahmen: Ziel aufheben wie mit Esc (auch mit dem Finger erreichbar).
+    byId('target-clear').addEventListener('click', (event) => {
+      this.combat.clearTarget();
+      (event.currentTarget as HTMLElement).blur();
+    });
 
     this.input.mouse?.disableContextMenu();
     this.input.on(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
@@ -1039,13 +1049,15 @@ export class WorldScene extends Phaser.Scene {
     // Jeder Klick in die Welt (laufen, halten, Gegner, Händler …) beendet den Automatiklauf.
     this.endAutoWalk();
     this.walkingTo = null;
-    const enemy = this.combat.enemyAt(world);
+    // Mit dem Finger ist die Trefferfläche etwas größer (TOUCH_HIT_PAD).
+    const pad = pointer.wasTouch ? TOUCH_HIT_PAD : 0;
+    const enemy = findNear(world, pad, (at) => this.combat.enemyAt(at));
     if (enemy) {
       this.cancelPress();
       this.combat.engage(enemy);
       return;
     }
-    const thing = this.interactables.find((candidate) => candidate.contains(world));
+    const thing = findNear(world, pad, (at) => this.interactables.find((candidate) => candidate.contains(at)) ?? null);
     if (thing) {
       this.cancelPress();
       this.visit(thing);
@@ -1168,4 +1180,18 @@ function numberProperty(object: Phaser.Types.Tilemaps.TiledObject, name: string,
 function textProperty(object: Phaser.Types.Tilemaps.TiledObject, name: string): string {
   const value = property(object, name);
   return typeof value === 'string' ? value : '';
+}
+
+/**
+ * Sucht mit `find` an der Stelle `at` – und, wenn dort nichts ist, ringsum im Abstand `pad`
+ * (acht Punkte). So trifft ein Finger auch knapp daneben. `pad` = 0: nur genau die Stelle.
+ */
+function findNear<T>(at: Point, pad: number, find: (at: Point) => T | null): T | null {
+  const exact = find(at);
+  if (exact || pad <= 0) return exact;
+  for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const found = find({ x: at.x + dx * pad, y: at.y + dy * pad });
+    if (found) return found;
+  }
+  return null;
 }

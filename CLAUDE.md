@@ -35,6 +35,8 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
    - `src/data/difficulty.ts` – Schwierigkeit: Grenzen der Regler, die vier Knöpfe, Belohnung (EP und Gold)
    - `src/data/minimap.ts` – Minimap: Größe, Ausschnitt, Farben der Punkte
    - `src/data/worldmap.ts` – große Karte: Größe, Zielmarker, Schrift der Ortsnamen (die Farben der Punkte kommen aus `minimap.ts`)
+   - `src/data/windows.ts` – Fenster und Geräte: Grenze Handy-Layout, je Fenster Startplatz (PC und Handy),
+     Mindest- und Höchstgröße
    - `src/data/save.ts` – Speichern: Format-Nummer, Anzahl Slots, Auto-Save-Abstände, Namenslänge
    - `src/data/testSaves.ts` – Vorlagen für Test-Spielstände
    - `tools/zones/<zone>.mjs` – Bauplan je Zone: Lichtungen (mit `label` = Ortsname auf der großen Karte), Wege, Bauten, besondere Orte (`pois`:
@@ -54,8 +56,15 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
      Umschalt+Klick oder Hover gehen (Tasten und Tooltips sind als Zusatz in Ordnung).
    - Neue Fenster und HUD-Elemente passen sich an kleine Bildschirme an (Handy im Querformat, rund
      570 × 320 Pixel) und laufen nicht über den Rand. Knöpfe groß genug zum Tippen (rund 30 Pixel).
-   - Vorbild sind die große Karte (`src/ui/WorldMap.ts`) und das Questfenster (`src/ui/QuestWindow.ts`). Die älteren Fenster und das HUD halten die
-     Regel noch nicht ein – ihr Umbau ist ein eigener, späterer Meilenstein. Nicht nebenbei umbauen.
+   - **Jedes Fenster benutzt die gemeinsame Fenster-Komponente** `GameWindow` (`src/ui/GameWindow.ts`,
+     seit 12b): `.window-title` + `.window-body` in `index.html`, Eintrag in `WINDOWS` (`src/data/windows.ts`),
+     `new GameWindow(root, 'id')`. Kein eigener Code für Verschieben, Größe, Merken oder Reihenfolge.
+   - Ob Handy-Layout oder Finger, entscheidet nur `src/ui/device.ts` (Klassen `ui-mobile`, `ui-touch`,
+     `ui-portrait` an `<html>`). Sonderfälle in `hud.css` hängen an diesen Klassen – keine eigenen
+     Bildschirm-Abfragen. Aktionen, die es mit der Maus per Rechtsklick/Umschalt gibt, bekommen
+     am Finger Knöpfe (z. B. im Item-Tooltip, `TipAction`).
+   - Seit 12b Teil 1 halten Fenster-Gerüst und HUD die Regel ein. Der **Inhalt** der älteren Fenster
+     (Raster, Schriftgrößen, Anordnung) wird in 12b Teil 2 angepasst – nicht nebenbei umbauen.
 6. **Effizient testen:** Build prüfen und ein kurzer Check reichen. Keine großen
    Testreihen und nicht viele Screenshots – das Spielgefühl testet der Nutzer selbst.
 
@@ -85,6 +94,8 @@ Entscheidungen stehen in [GAME.md](GAME.md) – vor jeder Aufgabe lesen.
 - UI (Balken, Skill-Leiste, Schadenszahlen, Inventar-Fenster, Minimap) ist HTML/CSS über dem Canvas:
   `index.html`, `src/ui/hud.css`, `src/ui/Hud.ts`, `src/ui/InventoryWindow.ts`, `src/ui/BestiaryWindow.ts`, `src/ui/Nameplates.ts`,
   `src/ui/Minimap.ts`, `src/ui/WorldMap.ts`, `src/ui/QuestWindow.ts`, `src/ui/QuestTracker.ts`.
+  Gemeinsames Fenster-Gerüst: `src/ui/GameWindow.ts`; Geräte-Erkennung: `src/ui/device.ts`. Platz und Größe der
+  Fenster merkt sich der Browser unter `mein-rpg.ui.fenster` (getrennt PC/Handy, nicht im Spielstand).
 - Einstellungen des Spielers liegen in einem Objekt (`Settings` in `src/ui/settings.ts`, dort auch
   Standardwerte und Regler-Grenzen). Sie sind global (Browser), nicht Teil des Spielstands.
   Ausnahme: Die Schwierigkeit (`Difficulty` in `src/data/difficulty.ts`) steht im Spielstand (pro Slot); ihre Regler
